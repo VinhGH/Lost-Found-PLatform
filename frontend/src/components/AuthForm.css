@@ -1,0 +1,349 @@
+/* Auth Container */
+.auth-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF6B6B 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .auth-wrapper {
+    display: flex;
+    max-width: 1000px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    background: white;
+  }
+  
+  /* Left Side - DTU Branding */
+  .auth-left {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.9) 0%, rgba(220, 20, 60, 0.8) 100%);
+    color: white;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 500px;
+  }
+  
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 14px;
+  }
+  
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    gap: 8px;
+  }
+  
+  .breadcrumb-item:first-child:hover {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  
+  .home-icon {
+    display: inline-flex;
+    align-items: center;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+  }
+  
+  .breadcrumb-separator {
+    margin: 0 10px;
+    color: white;
+  }
+  
+  .welcome-title {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 30px;
+    line-height: 1.2;
+  }
+  
+  .dtu-branding {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 40px;
+    width: 100%;
+    height: 120px;
+  }
+  
+  .logo-image-full {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1); /* Làm logo thành màu trắng */
+  }
+  
+  .logo-text-fallback {
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  
+  .google-icon {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
+  
+  
+  
+  /* Right Side - Form */
+  .auth-right {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .google-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    color: #666;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+  }
+  
+  .google-btn:hover {
+    border-color: #ccc;
+    background-color: #f9f9f9;
+  }
+  
+  .google-icon {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
+  
+  .divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: #999;
+    font-size: 14px;
+  }
+  
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ddd;
+  }
+  
+  .divider span {
+    padding: 0 15px;
+  }
+  
+  .form-instruction {
+    text-align: center;
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  
+  /* Form Styles */
+  .auth-form {
+    width: 100%;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+  
+  .password-input input {
+    padding-right: 45px; /* Tạo khoảng trống cho icon */
+  }
+  
+  /* Ẩn icon password mặc định của trình duyệt */
+  .password-input input::-ms-reveal,
+  .password-input input::-ms-clear {
+    display: none !important;
+  }
+  
+  .password-input input::-webkit-credentials-auto-fill-button,
+  .password-input input::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+  }
+  
+  /* Ẩn tất cả icon mặc định của Edge/Chrome */
+  .password-input input::-webkit-textfield-decoration-container {
+    display: none !important;
+  }
+  
+  .password-input input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: #8B0000;
+    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
+  }
+  
+  .password-input {
+    position: relative;
+  }
+  
+  .password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .eye-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+  
+  .password-toggle:hover {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #8B0000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-bottom: 20px;
+  }
+  
+  .submit-btn:hover {
+    background-color: #A00000;
+  }
+  
+  .toggle-form {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .toggle-link {
+    background: none;
+    border: none;
+    color: #1976d2;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  
+  .toggle-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .auth-wrapper {
+      flex-direction: column;
+      max-width: 400px;
+    }
+    
+    .auth-left {
+      padding: 30px 20px;
+      min-height: auto;
+    }
+    
+    .welcome-title {
+      font-size: 2rem;
+    }
+    
+    .dtu-text {
+      font-size: 1.5rem;
+    }
+    
+    .auth-right {
+      padding: 30px 20px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .auth-container {
+      padding: 10px;
+    }
+    
+    .welcome-title {
+      font-size: 1.5rem;
+    }
+    
+    .dtu-logo {
+      width: 60px;
+      height: 60px;
+    }
+    
+    .logo-text {
+      font-size: 1.5rem;
+    }
+    
+    .dtu-text {
+      font-size: 1.2rem;
+    }
+  }
+  
