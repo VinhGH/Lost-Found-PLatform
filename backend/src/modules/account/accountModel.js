@@ -1,23 +1,49 @@
-const { sql, pool } = require('../../config/db');
+import { supabase } from '../../config/db.js';
 
 class AccountModel {
   async getByEmail(email) {
-    const request = pool.request();
-    request.input('Email', sql.NVarChar(255), email);
-    const result = await request.execute('sp_Login');
-    return result.recordset[0] || null;
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .select('account_id, email, password, role, user_name, avatar, phone_number')
+        .eq('email', email)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      return data || null;
+    } catch (err) {
+      console.error('Error getting account by email:', err.message);
+      throw err;
+    }
   }
 
   async create(userData) {
-    const request = pool.request();
-    request.input('Email', sql.NVarChar(255), userData.email);
-    request.input('Password', sql.NVarChar(255), userData.password);
-    request.input('User_name', sql.NVarChar(255), userData.user_name || 'Anonymous');
-    request.input('Phone_number', sql.NVarChar(50), userData.phone_number || null);
-    // ❌ KHÔNG truyền Role vì SP không có tham số này
-    const result = await request.execute('sp_CreateAccount');
-    return result.recordset[0] || null;
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .insert({
+          email: userData.email,
+          password: userData.password,
+          user_name: userData.user_name || 'Anonymous',
+          phone_number: userData.phone_number || null,
+          role: 'Student'
+        })
+        .select('account_id, email, role')
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data || null;
+    } catch (err) {
+      console.error('Error creating account:', err.message);
+      throw err;
+    }
   }
 }
 
-module.exports = new AccountModel();
+export default new AccountModel();

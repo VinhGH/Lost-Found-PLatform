@@ -2,118 +2,118 @@
 alwaysApply: true
 ---
 {
-  "project_name": "Lost & Found Platform",
+  "project_name": "Lost & Found Platform (DTU)",
   "rules": [
     {
       "scope": "global",
       "instructions": [
-        "Dự án sử dụng kiến trúc tách biệt: backend (Express + SQL Server) và frontend (React + Vite + Material UI).",
-        "Cursor chỉ được phép chỉnh sửa trong thư mục frontend/ và backend/ — không tự tạo file ngoài phạm vi này.",
-        "Không tự động tạo module lớn hoặc refactor toàn bộ project nếu không có hướng dẫn cụ thể từ developer.",
-        "Chỉ tạo file mới khi thật sự cần thiết (ví dụ: component React, route Express, hoặc controller), phải đặt đúng vị trí theo cấu trúc thư mục.",
-        "Không sửa hoặc ghi đè file .env.",
-        "Tôn trọng coding style hiện có của nhóm: giữ nguyên indent, nháy đơn, và convention đặt tên."
+        "Dự án gồm hai phần chính: backend (Express + PostgreSQL) và frontend (React + Vite + Material UI).",
+        "Cursor chỉ được phép chỉnh sửa trong hai thư mục chính: backend/ và frontend/.",
+        "Không tự tạo hoặc ghi đè file ngoài hai thư mục này nếu không có hướng dẫn từ developer.",
+        "Không được chỉnh sửa file .env hoặc file cấu hình nhạy cảm (config/db.js, vite.config.js).",
+        "Khi thêm mới file, phải đặt đúng vị trí và theo naming convention của nhóm.",
+        "Tuân thủ cấu trúc code và style hiện tại, giữ nguyên indent, nháy đơn, camelCase và PascalCase."
       ]
     },
     {
       "scope": "frontend",
       "path": "frontend/",
       "instructions": [
-        "Dự án frontend chạy bằng React + Vite + Axios + Material UI.",
-        "Không sử dụng CRA (Create React App).",
-        "Các component React phải đặt trong src/components hoặc src/pages.",
-        "Luôn dùng function component và React hooks (useState, useEffect, useContext, ...). Không dùng class component.",
-        "Toàn bộ request API phải sử dụng axios từ services/api.js. Không được hardcode URL trong component.",
-        "Axios phải có baseURL: http://localhost:5000/api.",
-        "Mọi form đăng nhập/đăng ký phải validate email @dtu.edu.vn trước khi gửi API.",
-        "Không lưu password plaintext trong console.log hoặc localStorage.",
-        "Chỉ lưu JWT token (nếu có) trong localStorage với key 'token'.",
-        "Khi login/register thành công, hiển thị thông báo rõ ràng cho người dùng (alert, toast hoặc snackbar).",
-        "Tuân thủ Material UI design: ưu tiên các component sẵn có (Button, TextField, Dialog, Typography, v.v.).",
-        "Không thêm thư viện UI mới nếu chưa có trong package.json.",
-        "Khi sửa UI, chỉ thay đổi style qua props hoặc sx={} của Material UI — không override CSS sâu.",
-        "Luôn đảm bảo code FE chạy được bằng npm run dev (port 5173)."
+        "Frontend sử dụng React + Vite + Axios + Material UI.",
+        "Không dùng Create React App (CRA).",
+        "Các component React phải là function component, không dùng class component.",
+        "Hook được khuyến khích: useState, useEffect, useContext, useNavigate, v.v.",
+        "Tất cả request API phải dùng axios từ services/api.js (baseURL = import.meta.env.VITE_API_BASE_URL).",
+        "Không hardcode URL trực tiếp trong component.",
+        "Email @dtu.edu.vn phải được validate trước khi đăng ký.",
+        "Không log hoặc lưu password trong localStorage hay console.",
+        "Chỉ lưu JWT token (nếu có) vào localStorage với key 'token'.",
+        "Khi đăng nhập/đăng ký thành công, hiển thị thông báo (alert hoặc Material UI Snackbar).",
+        "UI tuân theo Material UI, không cài thêm thư viện UI ngoài danh sách trong package.json.",
+        "Thay đổi style bằng sx={} hoặc styled() — không override CSS sâu.",
+        "Code FE phải chạy được bằng npm run dev (port 5173)."
       ]
     },
     {
       "scope": "backend",
       "path": "backend/",
       "instructions": [
-        "Dự án backend chạy trên Node.js với Express framework và SQL Server.",
-        "Không dùng ORM (Sequelize, Prisma, v.v.) — chỉ dùng thư viện mssql hoặc tedious để kết nối DB.",
-        "Mọi truy vấn SQL phải dùng prepared statements hoặc stored procedure, tuyệt đối không nối chuỗi trực tiếp.",
-        "Cấu trúc thư mục chuẩn: routes/, controllers/, config/, middlewares/, services/.",
-        "Luôn import và sử dụng express.json() và cors().",
-        "Port backend cố định là 5000.",
-        "Các route phải bắt đầu bằng /api/, ví dụ: /api/auth/login, /api/posts, /api/match.",
-        "File index.js hoặc app.js phải có app.use('/api/auth', authRoutes).",
-        "Response của controller phải là JSON chuẩn hóa: { success, message, data } hoặc { token, user }.",
-        "Không gửi HTML hoặc string thô từ API.",
-        "Không log thông tin nhạy cảm (password, token, query SQL) ra console.",
-        "Đảm bảo sử dụng biến môi trường (process.env) cho DB, JWT, và CORS.",
-        "Sử dụng try/catch trong mọi hàm async để tránh crash server.",
-        "Nếu kết nối DB thất bại, log lỗi nhưng không tắt server hoàn toàn.",
-        "CORS phải cho phép FE: process.env.CORS_ORIGIN = http://localhost:5173.",
-        "Khi thêm route mới, phải tạo controller và service tương ứng để tách logic rõ ràng."
+        "Backend chạy bằng Node.js + Express + PostgreSQL (qua thư viện pg).",
+        "Không sử dụng ORM như Sequelize hoặc Prisma.",
+        "Truy vấn dữ liệu phải dùng parameterized query hoặc stored function (plpgsql), không nối chuỗi.",
+        "Cấu trúc thư mục chuẩn: config/, routes/, controllers/, middleware/, modules/, utils/.",
+        "Port backend mặc định là 5000.",
+        "Các route phải bắt đầu bằng /api/, ví dụ: /api/accounts/login, /api/posts.",
+        "index.js phải có app.use('/api', routes).",
+        "Response JSON phải chuẩn hóa: { success, message, data } hoặc { token, user }.",
+        "Không trả về HTML thô hoặc string thuần.",
+        "Không log thông tin nhạy cảm như password, JWT, hoặc query DB.",
+        "Tất cả biến kết nối (DB_HOST, DB_USER, DB_PASSWORD, JWT_SECRET) phải lấy từ .env.",
+        "Nếu kết nối DB thất bại, log lỗi nhưng server vẫn chạy.",
+        "CORS phải cho phép origin trong .env (CORS_ORIGIN=http://localhost:5173).",
+        "Khi thêm module mới (posts, match, notification), phải tách rõ controller và model logic."
       ]
     },
     {
       "scope": "auth",
-      "path": "backend/routes/auth.js",
+      "path": "backend/src/modules/account/",
       "instructions": [
-        "Router phải có 2 endpoint chính: POST /login và POST /register.",
-        "Controller login phải kiểm tra email tồn tại trong DB và bcrypt.compare(password).",
-        "Nếu đúng, trả về status 200 và JSON: { token, user }. Nếu sai, trả về status 401 và message 'Invalid credentials'.",
-        "Không trả về password trong response user.",
-        "Controller register phải hash mật khẩu bằng bcrypt trước khi lưu.",
-        "Khi tạo tài khoản mới, validate email @dtu.edu.vn và tránh trùng lặp.",
-        "Các lỗi phải được trả về dạng JSON: { success: false, message: '...' }.",
-        "Không dùng console.log để debug password hoặc JWT token."
+        "Phải có hai endpoint chính: POST /login và POST /register.",
+        "Login kiểm tra tồn tại email, so sánh mật khẩu bằng bcrypt.compare().",
+        "Nếu đúng, trả về { success: true, token, user }. Nếu sai, trả { success: false, message: 'Invalid credentials' }.",
+        "Không trả về password trong response.",
+        "Register phải hash mật khẩu trước khi lưu vào DB bằng bcrypt.hash().",
+        "Email phải có domain @dtu.edu.vn.",
+        "Kiểm tra trùng email trước khi insert.",
+        "Xử lý lỗi bằng try/catch, trả JSON { success: false, message: error.message }.",
+        "Không log password hoặc JWT ra console."
       ]
     },
     {
       "scope": "frontend-auth",
-      "path": "frontend/src/components/AuthForm.jsx",
+      "path": "frontend/src/pages/",
       "instructions": [
-        "Hàm handleSubmit phải gửi request API bằng axios tới /auth/login hoặc /auth/register.",
-        "Khi nhận response, nếu có token, lưu vào localStorage với key 'token' và chuyển hướng người dùng (hoặc hiển thị alert).",
-        "Hiển thị lỗi rõ ràng nếu API trả 400 hoặc 401.",
-        "Không log formData hoặc mật khẩu ra console.",
-        "Các input phải có type phù hợp: email, password.",
-        "Sử dụng Material UI TextField, Button, và FormControl để đảm bảo tính nhất quán UI."
+        "Form Login và Register phải gọi API bằng axios.post('/accounts/login' hoặc '/accounts/register').",
+        "Khi thành công, lưu token vào localStorage và điều hướng user tới trang chính.",
+        "Hiển thị lỗi rõ ràng (alert hoặc snackbar) khi API trả về 400 hoặc 401.",
+        "Không log dữ liệu form hoặc password ra console.",
+        "Các input phải có type đúng: email, password, text.",
+        "Dùng Material UI TextField, Button, Typography, Container.",
+        "Không tạo thêm thư viện form ngoài React hook form nếu chưa có trong package.json."
       ]
     },
     {
       "scope": "security",
       "instructions": [
-        "Không log dữ liệu nhạy cảm như mật khẩu, token, hoặc query SQL.",
-        "Không commit file .env lên repository.",
-        "Không in lỗi chi tiết SQL ra response client.",
-        "Không để token hoặc key hardcode trong code.",
-        "Bật CORS với origin được định nghĩa trong .env.",
-        "Dùng bcrypt để hash password và JWT để tạo token.",
-        "JWT secret phải được lấy từ biến môi trường."
+        "Không commit file .env hoặc chứa secret lên GitHub.",
+        "Không log thông tin nhạy cảm (password, JWT, query SQL).",
+        "Không gửi stack trace lỗi SQL ra client.",
+        "Không để hardcode token hoặc key trong code.",
+        "Dùng bcrypt để hash mật khẩu, JWT để tạo token.",
+        "JWT secret bắt buộc nằm trong biến môi trường.",
+        "CORS chỉ cho phép origin xác định trong .env."
       ]
     },
     {
       "scope": "linting",
       "instructions": [
-        "Dấu nháy đơn ('') thay vì nháy kép (\"\").",
-        "Indent 2 spaces trong toàn bộ JS/JSX.",
-        "Luôn có dấu ; kết thúc mỗi statement.",
-        "Tên biến theo camelCase, tên component theo PascalCase.",
-        "Không để console.log() trong production code.",
-        "Viết comment rõ ràng khi function hoặc query có logic phức tạp.",
-        "Ưu tiên async/await thay cho promise .then() chain."
+        "Dùng dấu nháy đơn ('') thay vì nháy kép.",
+        "Indent 2 spaces toàn bộ JS/JSX.",
+        "Luôn có dấu ; kết thúc statement.",
+        "Tên biến theo camelCase, component theo PascalCase.",
+        "Không dùng console.log trong production.",
+        "Viết comment ngắn gọn khi function có logic phức tạp.",
+        "Ưu tiên async/await thay vì .then()."
       ]
     },
     {
       "scope": "error-handling",
       "instructions": [
-        "Toàn bộ API backend phải có khối try/catch bao quanh logic chính.",
-        "Khi xảy ra lỗi, trả JSON: { success: false, message: error.message }.",
-        "Không để server crash khi gặp lỗi DB hoặc lỗi truy vấn.",
-        "Log lỗi ra console server, không gửi stack trace ra client."
+        "Mọi hàm async trong backend phải có try/catch.",
+        "Khi lỗi, trả về JSON: { success: false, message: error.message }.",
+        "Không để server crash nếu lỗi DB hoặc query sai.",
+        "Chỉ log lỗi ở console server, không trả stack trace cho FE.",
+        "Middleware errorHandler phải xử lý lỗi tập trung cuối cùng."
       ]
     }
   ]

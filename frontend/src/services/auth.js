@@ -7,7 +7,15 @@ export const login = async (email, password) => {
     return res.data; // trả về JSON { success, token, user }
   } catch (err) {
     console.error("❌ Login failed:", err.response?.data || err.message);
-    throw err.response?.data || { message: "Server error" };
+    
+    // Trả về lỗi với cấu trúc chuẩn
+    if (err.response?.data) {
+      throw err.response.data;
+    } else if (err.message) {
+      throw { message: err.message };
+    } else {
+      throw { message: "Server error" };
+    }
   }
 };
 
@@ -18,7 +26,15 @@ export const register = async (userData) => {
     return res.data; // trả về JSON { success, message }
   } catch (err) {
     console.error("❌ Register failed:", err.response?.data || err.message);
-    throw err.response?.data || { message: "Server error" };
+    
+    // Trả về lỗi với cấu trúc chuẩn
+    if (err.response?.data) {
+      throw err.response.data;
+    } else if (err.message) {
+      throw { message: err.message };
+    } else {
+      throw { message: "Server error" };
+    }
   }
 };
 

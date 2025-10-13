@@ -68,7 +68,19 @@ const AuthForm = () => {
       }
     } catch (error) {
       console.error('❌ Auth error:', error);
-      setError(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      
+      // Xử lý lỗi từ API response
+      let errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
