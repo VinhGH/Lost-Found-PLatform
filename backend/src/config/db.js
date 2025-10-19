@@ -1,22 +1,47 @@
-const sql = require('mssql');
+// =======================================
+// 📂 backend/src/config/db.js
+// PostgreSQL Connection (Supabase + Local fallback)
+// =======================================
+import dotenv from 'dotenv';
+import pkg from 'pg';
 
-const config = {
-  user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || 'Sa@123456',
-  server: process.env.DB_SERVER || 'localhost',
-  database: process.env.DB_NAME || 'LostandFound',
-  port: parseInt(process.env.DB_PORT, 10) || 1433,
-  options: {
-    encrypt: false,
-    trustServerCertificate: true
-  }
-};
+dotenv.config();
+const { Pool } = pkg;
 
-const pool = new sql.ConnectionPool(config);
-const poolConnect = pool.connect();
+let pool;
 
-poolConnect
+// 🧠 Ưu tiên dùng Supabase (DATABASE_URL)
+console.log('🔍 DATABASE_URL =', process.env.DATABASE_URL);
+
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  }); 
+  console.log('🌐 Using Supabase cloud database...');
+} else {
+  // 💻 Nếu không có DATABASE_URL thì dùng PostgreSQL local
+  pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'Admin123',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'lostandfound',
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  });
+  console.log('💻 Using local PostgreSQL database...');
+}
+
+// ✅ Kiểm tra kết nối khi khởi động
+pool
+  .connect()
   .then(() => console.log('✅ Database connected successfully!'))
-  .catch(err => console.error('❌ Database connection failed:', err));
+  .catch((err) => {
+    console.error('❌ Database connection failed:', err.message);
+    console.warn('⚠️ Server will continue running without DB connection...');
+  });
 
-module.exports = { sql, pool, poolConnect };
+export { pool };
