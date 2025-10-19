@@ -1,22 +1,31 @@
-const { sql, pool } = require('../../config/db');
+const { pool } = require('../../config/db');
 
 class AccountModel {
   async getByEmail(email) {
-    const request = pool.request();
-    request.input('Email', sql.NVarChar(255), email);
-    const result = await request.execute('sp_Login');
-    return result.recordset[0] || null;
+    const query = `
+      SELECT account_id, email, password, role, user_name, avatar, phone_number
+      FROM "Account"
+      WHERE email = $1
+      LIMIT 1;
+    `;
+    const result = await pool.query(query, [email]);
+    return result.rows[0] || null;
   }
 
   async create(userData) {
-    const request = pool.request();
-    request.input('Email', sql.NVarChar(255), userData.email);
-    request.input('Password', sql.NVarChar(255), userData.password);
-    request.input('User_name', sql.NVarChar(255), userData.user_name || 'Anonymous');
-    request.input('Phone_number', sql.NVarChar(50), userData.phone_number || null);
-    // ❌ KHÔNG truyền Role vì SP không có tham số này
-    const result = await request.execute('sp_CreateAccount');
-    return result.recordset[0] || null;
+    const query = `
+      INSERT INTO "Account" (email, password, user_name, phone_number, role, created_at)
+      VALUES ($1, $2, $3, $4, 'Student', NOW())
+      RETURNING account_id, email, role;
+    `;
+    const values = [
+      userData.email,
+      userData.password,
+      userData.user_name || 'Anonymous',
+      userData.phone_number || null,
+    ];
+    const result = await pool.query(query, values);
+    return result.rows[0] || null;
   }
 }
 
