@@ -69,6 +69,32 @@ export const register = async (req, res, next) => {
   }
 };
 
-export const getProfile = (req, res) => {
-  res.json({ success: true, message: 'Profile endpoint - OK' });
+export const getProfile = async (req, res, next) => {
+  try {
+    const accountId = req.user?.accountId;
+
+    if (!accountId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    const user = await accountModel.getById(accountId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile retrieved successfully',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
 };

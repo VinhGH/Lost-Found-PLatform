@@ -44,6 +44,25 @@ class AccountModel {
       throw err;
     }
   }
+
+  async getById(accountId) {
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .select('account_id, email, user_name, phone_number, avatar, role, created_at')
+        .eq('account_id', accountId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      return data || null;
+    } catch (err) {
+      console.error('Error getting account by ID:', err.message);
+      throw err;
+    }
+  }
 }
 
 export default new AccountModel();

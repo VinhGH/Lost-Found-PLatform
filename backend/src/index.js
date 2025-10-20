@@ -6,8 +6,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import { supabase, testConnection } from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
-import accountRoutes from './routes/accountRoutes.js';
-import postRoutes from './routes/postRoutes.js';
+import routes from './routes/index.js';
+import adminRoutes from './modules/admin/adminRoutes.js';
 
 dotenv.config();
 
@@ -53,8 +53,8 @@ app.get('/health', async (req, res) => {
 });
 
 // API routes
-app.use('/api/accounts', accountRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api', routes);
+app.use('/api/admin', adminRoutes);
 
 // Root
 app.get('/', (req, res) => {

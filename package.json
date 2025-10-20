@@ -12,7 +12,8 @@
     "setup": "npm run install:all && echo 'Setup completed! Copy backend/env.example to backend/.env and configure your database settings.'"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
   },
   "keywords": [
     "lost-found",
@@ -22,5 +23,12 @@
     "sql-server"
   ],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.75.0",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
 }
