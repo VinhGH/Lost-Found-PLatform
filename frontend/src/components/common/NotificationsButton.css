@@ -1,0 +1,30 @@
+/* NotificationsButton.css */
+.notifications-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 72px; /* sit just above ThemeToggle (which is at 18px) */
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: #dc143c; /* Red color */
+  color: white;
+  border: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.notifications-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  background-color: #b22222; /* Darker red on hover */
+}
+
+.notifications-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}

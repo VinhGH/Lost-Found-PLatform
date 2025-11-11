@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AuthForm.css';
-import { login, register } from '../services/auth';
+import adminApi from '../services/adminApi.js';
+import userApi from '../services/userApi.js';
+import ThemeToggle from './common/ThemeToggle';
+import {
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  Warning as WarningIcon,
+  Google as GoogleIcon,
+  ArrowBack as ArrowBackIcon
+} from '@mui/icons-material';
 
-const AuthForm = () => {
-  const [isLogin, setIsLogin] = useState(false);
+const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'login', onBack }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+
+  // Update isLogin when initialMode changes
+  useEffect(() => {
+    setIsLogin(initialMode === 'login');
+    // Clear form data when switching modes
+    setFormData({
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
+    setError('');
+  }, [initialMode]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -11,7 +32,7 @@ const AuthForm = () => {
     password: '',
     confirmPassword: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleInputChange = (field) => (event) => {
@@ -19,58 +40,85 @@ const AuthForm = () => {
       ...formData,
       [field]: event.target.value
     });
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
+
+  // Check if email is admin account
+  const isAdminAccount = (email) => {
+    const adminEmails = [
+      'admin@dtu.edu.vn',
+      'administrator@dtu.edu.vn'
+    ];
+    return adminEmails.includes(email.toLowerCase());
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
     setError('');
-    setLoading(true);
+
 
     try {
-      // Validate email domain
-      if (!formData.email.endsWith('@dtu.edu.vn')) {
-        setError('Email phải kết thúc bằng @dtu.edu.vn');
-        return;
-      }
-
       if (isLogin) {
-        // Login logic
-        console.log('🔄 Attempting login...');
-        const response = await login(formData.email, formData.password);
-        console.log('✅ Server response:', response);
-        
-        if (response.success && response.token) {
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user));
-          alert('Đăng nhập thành công!');
-          // Redirect to home or dashboard
-          window.location.href = '/';
+        // Handle login
+        if (isAdminAccount(formData.email)) {
+          // Try real API login for other admin accounts
+          const adminCredentials = {
+            username: formData.email.split('@')[0], // Extract username from email
+            password: formData.password
+          };
+
+          const response = await adminApi.loginAdmin(adminCredentials);
+          if (response.success) {
+            adminApi.setAuthData(response.token, response.data);
+            onAdminLoginSuccess(response.data);
+            return;
+          } else {
+            throw new Error(response.error || 'Đăng nhập thất bại');
+          }
+        } else {
+          // Regular user login
+          const response = await userApi.loginUser({
+            email: formData.email,
+            password: formData.password
+          });
+          
+          if (response.success) {
+            userApi.setAuthData(response.token, response.data);
+            // Call the callback to navigate to user dashboard
+            onUserLoginSuccess(response.data);
+            return;
+          } else {
+            throw new Error(response.error || 'Đăng nhập thất bại');
+          }
         }
       } else {
-        // Register logic
-        if (formData.password !== formData.confirmPassword) {
-          setError('Mật khẩu xác nhận không khớp');
-          return;
-        }
-        
-        console.log('🔄 Attempting register...');
-        const response = await register({
-          email: formData.email,
-          password: formData.password
-        });
-        console.log('✅ Server response:', response);
-        
-        if (response.success) {
-          alert('Đăng ký thành công! Vui lòng đăng nhập.');
-          setIsLogin(true);
-          setFormData({ email: '', password: '', confirmPassword: '' });
+        // Handle registration
+        if (isAdminAccount(formData.email)) {
+          setError('Không thể đăng ký tài khoản admin qua form này');
+        } else {
+          // Regular user registration
+          const response = await userApi.registerUser({
+            email: formData.email,
+            password: formData.password
+          });
+          
+          if (response.success) {
+            userApi.setAuthData(response.token, response.data);
+            // Call the callback to navigate to user dashboard
+            onUserLoginSuccess(response.data);
+            return;
+          } else {
+            throw new Error(response.error || 'Đăng ký thất bại');
+          }
         }
       }
     } catch (error) {
-      console.error('❌ Auth error:', error);
-      setError(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      console.error('Auth error:', error);
+      setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -84,20 +132,16 @@ const AuthForm = () => {
     setError('');
   };
 
+
   return (
     <div className="auth-container">
+      <ThemeToggle />
       <div className="auth-wrapper">
         {/* Left side - DTU Branding */}
         <div className="auth-left">
           {/* Breadcrumb */}
           <div className="breadcrumb">
             <span className="breadcrumb-item">
-              <img src="/img/home.png" alt="Home" className="home-icon" />
-              Trang chủ
-            </span>
-            <span className="breadcrumb-separator">›</span>
-            <span className="breadcrumb-item">
-              {isLogin ? 'Đăng nhập' : 'Đăng ký'}
             </span>
           </div>
 
@@ -124,9 +168,17 @@ const AuthForm = () => {
 
         {/* Right side - Form */}
         <div className="auth-right">
+          {/* Back Button */}
+          {onBack && (
+            <button className="auth-back-btn" onClick={onBack}>
+              <ArrowBackIcon className="back-icon" />
+              <span>Quay lại trang chủ</span>
+            </button>
+          )}
+          
           {/* Google Sign In Button */}
           <button className="google-btn">
-            <img src="/img/google.png" alt="Google" className="google-icon" />
+            <GoogleIcon className="google-icon" />
             Đăng nhập bằng Google
           </button>
 
@@ -142,15 +194,9 @@ const AuthForm = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="error-message" style={{
-              color: '#ff4444',
-              backgroundColor: '#ffe6e6',
-              padding: '10px',
-              borderRadius: '4px',
-              marginBottom: '15px',
-              fontSize: '14px'
-            }}>
-              {error}
+            <div className="error-message">
+              <WarningIcon className="error-icon" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -165,6 +211,7 @@ const AuthForm = () => {
                 value={formData.email}
                 onChange={handleInputChange('email')}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -180,17 +227,19 @@ const AuthForm = () => {
                   required
                   autoComplete="new-password"
                   data-lpignore="true"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
-                  <img 
-                    src={showPassword ? "/img/eyeoff.png" : "/img/eye.png"} 
-                    alt={showPassword ? "Hide password" : "Show password"} 
-                    className="eye-icon" 
-                  />
+                  {showPassword ? (
+                    <VisibilityOffIcon className="eye-icon" />
+                  ) : (
+                    <VisibilityIcon className="eye-icon" />
+                  )}
                 </button>
               </div>
             </div>
@@ -208,26 +257,36 @@ const AuthForm = () => {
                     required
                     autoComplete="new-password"
                     data-lpignore="true"
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     className="password-toggle"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={isLoading}
                   >
-                    <img 
-                      src={showConfirmPassword ? "/img/eyeoff.png" : "/img/eye.png"} 
-                      alt={showConfirmPassword ? "Hide password" : "Show password"} 
-                      className="eye-icon" 
-                    />
+                    {showConfirmPassword ? (
+                      <VisibilityOffIcon className="eye-icon" />
+                    ) : (
+                      <VisibilityIcon className="eye-icon" />
+                    )}
                   </button>
                 </div>
               </div>
             )}
 
             {/* Submit Button */}
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập' : 'Đăng ký ngay')}
+            <button type="submit" className="submit-btn" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  {isLogin ? 'Đang đăng nhập...' : 'Đang đăng ký...'}
+                </>
+              ) : (
+                isLogin ? 'Đăng nhập' : 'Đăng ký ngay'
+              )}
             </button>
+
 
             {/* Toggle Form Link */}
             <p className="toggle-form">

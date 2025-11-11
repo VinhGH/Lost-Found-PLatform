@@ -1,0 +1,47 @@
+/* Recent section (green tone like screenshot) */
+.recent-section {
+  background: #e9f7ef;
+  border: 1px solid #d3f0dd;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 0 0 24px 0; /* align with outer grid edges */
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.recent-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f5132;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-view-all {
+  background: #198754;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.recent-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem; /* match main grids */
+}
+
+@media (max-width: 768px) {
+  .recent-section {
+    margin: 0 0.5rem 16px 0.5rem;
+  }
+}
+
+
