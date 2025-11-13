@@ -2,24 +2,32 @@ import React, { useState, useEffect, useRef } from "react";
 import { Close as CloseIcon, Upload } from "@mui/icons-material";
 import "./CreatePostModal.css";
 
-const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = null, lockPostType = false, initialPostType = "lost" }) => {
+const CreatePostModal = ({
+  onClose,
+  onSubmit,
+  mode = "create",
+  existingData = null,
+  lockPostType = false,
+  initialPostType = "lost",
+  user = null
+}) => {
   const [formData, setFormData] = useState({
     postType: initialPostType,
-    author: "",
+    author: user?.name || "",
     title: "",
     description: "",
-    category: "",
+    category: "Ví/Túi",
     location: "",
     building: "",
     room: "",
     address: "",
-    date: "",
-    contact: "",
+    date: new Date().toISOString().split("T")[0],
+    contact: user?.phone || user?.contact || "",
     image: null,
-    sampleImage: "",
   });
 
   const [preview, setPreview] = useState(null);
+  const [errors, setErrors] = useState({});
   const modalRef = useRef(null);
 
   // 🔹 Lock body scroll khi modal mở
@@ -46,7 +54,15 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
   }, [onClose]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
   // Lock postType if lockPostType is true
@@ -57,7 +73,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
         author: existingData.author || "",
         title: existingData.title || "",
         description: existingData.description || "",
-        category: existingData.category || "",
+        category: existingData.category || "Ví/Túi",
         location: existingData.location || "",
         // cố gắng parse từ location cũ nếu có định dạng "Tòa X - Phòng Y - Địa chỉ"
         building: (() => {
@@ -76,14 +92,26 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           const parts = loc.split(" - ");
           return parts.length >= 3 ? parts.slice(2).join(" - ").trim() : "";
         })(),
-        date: existingData.date || "",
+        date: existingData.date || new Date().toISOString().split("T")[0],
         contact: existingData.contact || "",
-        sampleImage: existingData.sampleImage || "",
         image: null,
       });
       setPreview(existingData.imageUrl || existingData.image || null);
+      setErrors({});
     }
   }, [mode, existingData]);
+
+  useEffect(() => {
+    if (mode !== "edit" && user) {
+      setFormData((prev) => ({
+        ...prev,
+        author: user.name || prev.author,
+        contact: user.phone || user.contact || prev.contact,
+        date: prev.date || new Date().toISOString().split("T")[0],
+        category: prev.category || "Ví/Túi",
+      }));
+    }
+  }, [user, mode]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -92,20 +120,81 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
+      if (errors.image) {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated.image;
+          return updated;
+        });
+      }
     }
   };
 
   const handleClearImage = () => {
     setFormData({ ...formData, image: null });
     setPreview(null);
+    setErrors((prev) => ({
+      ...prev,
+      image: "Vui lòng tải lên ít nhất một hình ảnh."
+    }));
   };
 
-  const handleSampleSelect = (sample) => {
-    setFormData({ ...formData, sampleImage: sample });
+  const validateForm = () => {
+    const newErrors = {};
+    const trimmedAuthor = formData.author.trim();
+    if (!trimmedAuthor) {
+      newErrors.author = "Vui lòng nhập tên người đăng.";
+    } else if (trimmedAuthor.length < 3) {
+      newErrors.author = "Tên người đăng phải có ít nhất 3 ký tự.";
+    }
+
+    const trimmedTitle = formData.title.trim();
+    if (!trimmedTitle) {
+      newErrors.title = "Vui lòng nhập tiêu đề.";
+    } else if (trimmedTitle.length < 5) {
+      newErrors.title = "Tiêu đề phải có ít nhất 5 ký tự.";
+    }
+
+    const trimmedDescription = formData.description.trim();
+    if (!trimmedDescription) {
+      newErrors.description = "Vui lòng nhập mô tả chi tiết.";
+    } else if (trimmedDescription.length < 88) {
+      newErrors.description = "Mô tả cần ít nhất 8 ký tự để cung cấp đủ thông tin.";
+    }
+
+    if (!formData.category) {
+      newErrors.category = "Vui lòng chọn danh mục.";
+    }
+
+    if (!formData.building) {
+      newErrors.building = "Vui lòng chọn tòa.";
+    }
+
+    if (!formData.date) {
+      newErrors.date = "Vui lòng chọn ngày xảy ra.";
+    }
+
+    const phone = formData.contact.trim();
+    const normalizedPhone = phone.replace(/\s+/g, "");
+    if (!phone) {
+      newErrors.contact = "Vui lòng nhập số điện thoại liên hệ.";
+    } else if (!/^(0|\+84)\d{8,9}$|^\d{9,11}$/.test(normalizedPhone)) {
+      newErrors.contact = "Số điện thoại không hợp lệ. Vui lòng nhập 9-11 số.";
+    }
+
+    if (!preview && !formData.image) {
+      newErrors.image = "Vui lòng tải lên ít nhất một hình ảnh.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     const parts = [];
     if (formData.building) {
       parts.push(`Tòa ${formData.building}`);
@@ -119,15 +208,6 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     const composedLocation = parts.join(" - ");
     onSubmit({ ...formData, location: composedLocation });
   };
-
-  const sampleImages = [
-    { id: 1, label: "Thẻ căn cước/CMND", img: "/img/cccd.jpg" },
-    { id: 2, label: "Ví/Túi tiền", img: "/img/vi.jpg" },
-    { id: 3, label: "Chìa khóa", img: "/img/chiakhoa.jpg" },
-    { id: 4, label: "Điện thoại/Thiết bị điện tử", img: "/img/dienthoai.jpg" },
-    { id: 5, label: "Balo/Túi xách", img: "/img/balo.jpg" },
-    { id: 6, label: "Khác", img: "/img/khac.jpg" },
-  ];
 
   return (
     <div 
@@ -177,46 +257,45 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
 
           {/* Tên người đăng */}
           <div className="form-group">
-            <label>Tên người đăng *</label>
+            <label>
+              Tên người đăng
+              <span className="required-marker">*</span>
+            </label>
             <input
               type="text"
               name="author"
               placeholder="Nhập tên người đăng..."
               value={formData.author}
               onChange={handleChange}
-              required
+              readOnly={!!user}
+              className={errors.author ? "input-error" : ""}
             />
+            {errors.author && <p className="field-error">{errors.author}</p>}
           </div>
 
           {/* Tiêu đề */}
           <div className="form-group">
-            <label>Tiêu đề</label>
+            <label>
+              Tiêu đề
+              <span className="required-marker">*</span>
+            </label>
             <input
               type="text"
               name="title"
               placeholder="Nhập tiêu đề bài viết"
               value={formData.title}
               onChange={handleChange}
-              required
+              className={errors.title ? "input-error" : ""}
             />
-          </div>
-
-          {/* Mô tả chi tiết */}
-          <div className="form-group">
-            <label>Mô tả chi tiết</label>
-            <textarea
-              name="description"
-              placeholder="Mô tả chi tiết về đồ vật, địa điểm, thời gian..."
-              rows="4"
-              value={formData.description}
-              onChange={handleChange}
-              required
-            />
+            {errors.title && <p className="field-error">{errors.title}</p>}
           </div>
 
           {/* Upload ảnh */}
           <div className="upload-section">
-            <label>Tải ảnh của bạn</label>
+            <label>
+              Tải ảnh của bạn
+              <span className="required-marker">*</span>
+            </label>
             <div className="upload-container">
               {!preview ? (
                 <label className="upload-label">
@@ -238,35 +317,39 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
                 </div>
               )}
             </div>
+            {errors.image && <p className="field-error">{errors.image}</p>}
           </div>
 
-          {/* Ảnh mẫu */}
-          <div className="sample-section">
-            <label>Hoặc chọn hình ảnh mẫu:</label>
-            <div className="sample-grid">
-              {sampleImages.map((sample) => (
-                <div
-                  key={sample.id}
-                  className={`sample-card ${
-                    formData.sampleImage === sample.img ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    handleSampleSelect(sample.img);
-                    setPreview(sample.img);
-                  }}
-                >
-                  <img src={sample.img} alt={sample.label} />
-                  <p>{sample.label}</p>
-                </div>
-              ))}
-            </div>
+          {/* Mô tả chi tiết */}
+          <div className="form-group">
+            <label>
+              Mô tả chi tiết
+              <span className="required-marker">*</span>
+            </label>
+            <textarea
+              name="description"
+              placeholder="Mô tả chi tiết về đồ vật, địa điểm, thời gian..."
+              rows="4"
+              value={formData.description}
+              onChange={handleChange}
+              className={errors.description ? "input-error" : ""}
+            />
+            {errors.description && <p className="field-error">{errors.description}</p>}
           </div>
 
           {/* Danh mục & địa điểm */}
           <div className="form-row">
             <div className="form-group">
-              <label>Danh mục</label>
-              <select name="category" value={formData.category} onChange={handleChange} required>
+              <label>
+                Danh mục
+                <span className="required-marker">*</span>
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={errors.category ? "input-error" : ""}
+              >
                 <option value="">Chọn danh mục</option>
                 <option value="Ví/Túi">Ví/Túi</option>
                 <option value="Điện thoại">Điện thoại</option>
@@ -275,10 +358,19 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
                 <option value="Phụ kiện">Phụ kiện</option>
                 <option value="Khác">Khác</option>
               </select>
+              {errors.category && <p className="field-error">{errors.category}</p>}
             </div>
             <div className="form-group">
-              <label>Tòa</label>
-              <select name="building" value={formData.building} onChange={handleChange} required>
+              <label>
+                Tòa
+                <span className="required-marker">*</span>
+              </label>
+              <select
+                name="building"
+                value={formData.building}
+                onChange={handleChange}
+                className={errors.building ? "input-error" : ""}
+              >
                 <option value="">Chọn tòa</option>
                 <option value="A">Tòa A</option>
                 <option value="B">Tòa B</option>
@@ -287,8 +379,8 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
                 <option value="E">Tòa E</option>
                 <option value="F">Tòa F</option>
                 <option value="G">Tòa G</option>
-                <option value="NULL">NULL</option>
               </select>
+              {errors.building && <p className="field-error">{errors.building}</p>}
             </div>
           </div>
 
@@ -319,25 +411,33 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           {/* Ngày & Liên hệ */}
           <div className="form-row">
             <div className="form-group">
-              <label>Ngày xảy ra</label>
+              <label>
+                Ngày xảy ra
+                <span className="required-marker">*</span>
+              </label>
               <input
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                required
+                className={errors.date ? "input-error" : ""}
               />
+              {errors.date && <p className="field-error">{errors.date}</p>}
             </div>
             <div className="form-group">
-              <label>Số điện thoại liên hệ</label>
+              <label>
+                Số điện thoại liên hệ
+                <span className="required-marker">*</span>
+              </label>
               <input
                 type="text"
                 name="contact"
                 placeholder="Nhập số điện thoại của bạn"
                 value={formData.contact}
                 onChange={handleChange}
-                required
+                className={errors.contact ? "input-error" : ""}
               />
+              {errors.contact && <p className="field-error">{errors.contact}</p>}
             </div>
           </div>
 

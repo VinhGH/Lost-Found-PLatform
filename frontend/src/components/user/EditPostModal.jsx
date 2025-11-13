@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload } from "lucide-react";
+import { Close as CloseIcon, CloudUpload as CloudUploadIcon } from "@mui/icons-material";
 import "./CreatePostModal.css"; // dùng chung style
 
 const EditPostModal = ({ postData, onClose, onUpdate }) => {
@@ -16,7 +16,6 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     date: "",
     contact: "",
     image: null,
-    sampleImage: "",
   });
   const [preview, setPreview] = useState(null);
 
@@ -62,7 +61,6 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         })(),
         date: postData.date || "",
         contact: postData.contact || "",
-        sampleImage: postData.sampleImage || "",
         image: null,
       });
       // Set preview với ảnh cũ nếu có
@@ -92,16 +90,13 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Xử lý ảnh: ưu tiên preview (ảnh mới hoặc ảnh cũ), sau đó sampleImage, cuối cùng là ảnh cũ
+    // Xử lý ảnh: ưu tiên preview (ảnh mới hoặc ảnh cũ), nếu không sẽ giữ ảnh cũ
     let finalImage = postData.image || postData.imageUrl; // Giữ ảnh cũ mặc định
     if (preview) {
-      // Nếu có preview (có thể là ảnh mới upload, sample mới chọn, hoặc ảnh cũ)
+      // Nếu có preview (ảnh mới upload hoặc ảnh cũ)
       finalImage = preview;
-    } else if (formData.sampleImage) {
-      // Nếu chọn sample image mới
-      finalImage = formData.sampleImage;
     }
-    // Nếu không có preview và không có sampleImage mới, giữ ảnh cũ (đã set ở trên)
+    // Nếu không có preview, giữ ảnh cũ (đã set ở trên)
     
     const parts = [];
     if (formData.building) {
@@ -128,7 +123,6 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       contact: formData.contact,
       author: formData.author || postData.author, // Giữ author nếu không có
       image: finalImage, // Dùng ảnh đã xử lý ở trên
-      sampleImage: formData.sampleImage || postData.sampleImage, // Giữ sampleImage nếu có
       time: postData.time || "Vừa đăng", // Giữ time cũ
       status: postData.status || "active", // Giữ status cũ
       views: postData.views || 0, // Giữ views cũ
@@ -146,7 +140,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         <div className="modal-header">
           <h2>Chỉnh sửa bài đăng</h2>
           <button className="close-btn" onClick={onClose}>
-            <X size={22} />
+            <CloseIcon style={{ fontSize: 22 }} />
           </button>
         </div>
 
@@ -175,7 +169,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           </div>
 
           <div className="form-group">
-            <label>Tiêu đề *</label>
+            <label>
+              Tiêu đề
+              <span className="required-marker">*</span>
+            </label>
             <input
               type="text"
               name="title"
@@ -186,7 +183,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           </div>
 
           <div className="form-group">
-            <label>Mô tả chi tiết *</label>
+            <label>
+              Mô tả chi tiết
+              <span className="required-marker">*</span>
+            </label>
             <textarea
               name="description"
               rows="4"
@@ -201,7 +201,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             <div className="upload-container">
               {!preview ? (
                 <label className="upload-label">
-                  <Upload size={18} style={{ marginRight: "8px" }} />
+                  <CloudUploadIcon style={{ fontSize: 18, marginRight: "8px" }} />
                   Kéo thả hoặc chọn ảnh để tải lên
                   <input
                     type="file"
@@ -218,45 +218,19 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
                     className="clear-image-btn"
                     onClick={handleClearImage}
                   >
-                    <X size={14} />
+                    <CloseIcon style={{ fontSize: 14 }} />
                   </button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Ảnh mẫu */}
-          <div className="sample-section">
-            <label>Hoặc chọn hình ảnh mẫu:</label>
-            <div className="sample-grid">
-              {[
-                { id: 1, label: "Thẻ căn cước/CMND", img: "/img/sample-idcard.png" },
-                { id: 2, label: "Ví/Túi tiền", img: "/img/sample-wallet.jpg" },
-                { id: 3, label: "Chìa khóa", img: "/img/sample-key.jpg" },
-                { id: 4, label: "Điện thoại/Thiết bị điện tử", img: "/img/sample-phone.jpg" },
-                { id: 5, label: "Balo/Túi xách", img: "/img/sample-bag.jpg" },
-                { id: 6, label: "Khác", img: "/img/sample-different.jpg" },
-              ].map((sample) => (
-                <div
-                  key={sample.id}
-                  className={`sample-card ${
-                    formData.sampleImage === sample.img ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    setFormData({ ...formData, sampleImage: sample.img });
-                    setPreview(sample.img);
-                  }}
-                >
-                  <img src={sample.img} alt={sample.label} />
-                  <p>{sample.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="form-row">
             <div className="form-group">
-              <label>Danh mục *</label>
+              <label>
+                Danh mục
+                <span className="required-marker">*</span>
+              </label>
               <select
                 name="category"
                 value={formData.category}
@@ -274,7 +248,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             </div>
 
             <div className="form-group">
-              <label>Tòa *</label>
+              <label>
+                Tòa
+                <span className="required-marker">*</span>
+              </label>
               <select name="building" value={formData.building} onChange={handleChange} required>
                 <option value="">Chọn tòa</option>
                 <option value="A">Tòa A</option>
@@ -314,7 +291,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Ngày xảy ra *</label>
+              <label>
+                Ngày xảy ra
+                <span className="required-marker">*</span>
+              </label>
               <input
                 type="date"
                 name="date"
@@ -324,7 +304,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
               />
             </div>
             <div className="form-group">
-              <label>Số điện thoại liên hệ *</label>
+              <label>
+                Số điện thoại liên hệ
+                <span className="required-marker">*</span>
+              </label>
               <input
                 type="text"
                 name="contact"

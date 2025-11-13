@@ -46,7 +46,7 @@ const UserHeader = ({
           <img src="/img/logo_dtu_while.png" alt="DTU Logo" className="logo-image" />
           <div className="logo-text">
             <h1>TimDoDTU</h1>
-            <span>DTU Lost and Found</span>
+            <span>DTU Lost&Found</span>
           </div>
         </div>
 

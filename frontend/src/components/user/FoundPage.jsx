@@ -155,7 +155,11 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
         {olderList.map((post) => (
           <div key={post.id} id={`post-${post.id}`} className="found-post-card">
             <div className="post-image">
-              <img src={post.image} alt={post.title} />
+              {post.image ? (
+                <img src={post.image} alt={post.title} />
+              ) : (
+                <div className="no-image-placeholder">Không có hình ảnh</div>
+              )}
               <div className="post-badge found">Nhặt được</div>
               {post.reward && <div className="reward-badge">{post.reward}</div>}
             </div>

@@ -7,7 +7,6 @@ import {
   AccessTime as TimeIcon,
   Person as PersonIcon,
   Phone as PhoneIcon,
-  Label as LabelIcon,
 } from "@mui/icons-material";
 
 // 🔹 Hàm tính toán thời gian real-time
@@ -37,7 +36,8 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
   const handleNavigate = onNavigate || (() => {});
   const tabName = currentTab || (post.type === "lost" ? "Đồ mất" : "Đồ nhặt được");
   const category = categoryPath || post.category;
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [, forceTimeUpdate] = useState(Date.now());
+  const [showImagePreview, setShowImagePreview] = useState(false);
   
   // 🔹 Lock body scroll when modal is open
   useEffect(() => {
@@ -59,7 +59,7 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
     if (!post) return;
     
     const interval = setInterval(() => {
-      setCurrentTime(Date.now());
+      forceTimeUpdate(Date.now());
     }, 60000); // Cập nhật mỗi 60 giây
     
     return () => clearInterval(interval);
@@ -103,25 +103,16 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
 
         {/* Scrollable Content Wrapper */}
         <div className="detail-content-wrapper">
-          {/* Image */}
-          <div className="detail-image">
-            <img src={post.image} alt={post.title} />
-          </div>
-
-          {/* Content */}
-          <div className="detail-body">
-            <p className="detail-description">{post.description}</p>
-
-            <div className="detail-info">
+          <div className="detail-info">
+            <div className="detail-info-left">
               <div>
                 <LocationIcon /> <strong>Địa điểm:</strong> {post.location}
               </div>
               <div>
-                <LabelIcon /> <strong>Danh mục:</strong> {post.category}
-              </div>
-              <div>
                 <PersonIcon /> <strong>Người đăng:</strong> {post.author}
               </div>
+            </div>
+            <div className="detail-info-right">
               <div>
                 <TimeIcon /> <strong>Thời gian:</strong> {getTimeAgo(post.createdAt || post.id)}
               </div>
@@ -131,14 +122,49 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="detail-tags">
-              <strong>Tags:</strong>
-              <span className="tag">#{post.category}</span>
-              <span className="tag">#{post.author.split(" ")[0]}</span>
+          {/* Image */}
+          <div
+            className={`detail-image ${post.image ? "is-clickable" : ""}`}
+            onClick={() => post.image && setShowImagePreview(true)}
+            role={post.image ? "button" : undefined}
+            tabIndex={post.image ? 0 : -1}
+            onKeyDown={(e) => {
+              if (post.image && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                setShowImagePreview(true);
+              }
+            }}
+          >
+            {post.image ? (
+              <img src={post.image} alt={post.title} />
+            ) : (
+              <div className="no-image-placeholder">Không có hình ảnh</div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="detail-body">
+            <p className="detail-description">{post.description}</p>
+          </div>
+
+        </div>
+
+        {showImagePreview && post.image && (
+          <div className="detail-image-overlay" onClick={() => setShowImagePreview(false)}>
+            <button
+              className="overlay-close-btn"
+              onClick={() => setShowImagePreview(false)}
+              aria-label="Đóng ảnh phóng to"
+            >
+              <CloseIcon style={{ fontSize: 26 }} />
+            </button>
+            <div className="detail-image-overlay-content" onClick={(e) => e.stopPropagation()}>
+              <img src={post.image} alt={post.title} />
             </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
         <div className="detail-footer">

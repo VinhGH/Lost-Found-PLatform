@@ -26,7 +26,7 @@ const PostList = ({ searchQuery }) => {
         location: 'Canteen DTU',
         category: 'Ví/Giấy tờ tùy thân',
         time: '2 giờ trước',
-        image: '/img/sample-wallet.jpg',
+        image: '',
         contact: '0901234567',
         author: 'Nguyễn Văn A'
       },
@@ -38,7 +38,7 @@ const PostList = ({ searchQuery }) => {
         location: 'Phòng máy tính A1',
         category: 'Thiết bị điện tử',
         time: '5 giờ trước',
-        image: '/img/sample-phone.jpg',
+        image: '',
         contact: '0907654321',
         author: 'Trần Thị B'
       },
@@ -50,7 +50,7 @@ const PostList = ({ searchQuery }) => {
         location: 'Sân Thể Dục DTU',
         category: 'Chìa khóa',
         time: '1 ngày trước',
-        image: '/img/sample-key.jpg',
+        image: '',
         contact: '0909876543',
         author: 'Lê Văn C'
       },
@@ -62,7 +62,7 @@ const PostList = ({ searchQuery }) => {
         location: 'Thư viện DTU',
         category: 'Đồ dùng gia đình',
         time: '2 ngày trước',
-        image: '/img/sample-bag.jpg',
+        image: '',
         contact: '0904567890',
         author: 'Phạm Thị D'
       }
@@ -163,7 +163,11 @@ const PostList = ({ searchQuery }) => {
             sortedPosts.map(post => (
               <div key={post.id} className="post-card">
                 <div className="post-image">
-                  <img src={post.image} alt={post.title} />
+                  {post.image ? (
+                    <img src={post.image} alt={post.title} />
+                  ) : (
+                    <div className="no-image-placeholder">Không có hình ảnh</div>
+                  )}
                   <div className={`post-badge ${post.type}`}>
                     {post.type === 'found' ? 'Nhặt được' : 'Tìm đồ'}
                   </div>

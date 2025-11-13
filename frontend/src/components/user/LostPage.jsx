@@ -154,7 +154,11 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
         {olderList.map((post) => (
           <div key={post.id} id={`post-${post.id}`} className="lost-post-card">
             <div className="post-image">
-              <img src={post.image} alt={post.title} />
+              {post.image ? (
+                <img src={post.image} alt={post.title} />
+              ) : (
+                <div className="no-image-placeholder">Không có hình ảnh</div>
+              )}
               <div className="post-badge lost">Tìm đồ</div>
               {post.reward && <div className="reward-badge">{post.reward}</div>}
             </div>

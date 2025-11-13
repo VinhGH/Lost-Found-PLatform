@@ -272,6 +272,17 @@
   box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
 }
 
+.form-group .field-error {
+  color: #dc143c;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.input-error {
+  border-color: #dc143c !important;
+  box-shadow: 0 0 0 2px rgba(220, 20, 60, 0.15);
+}
+
 .form-group input:disabled {
   background: #f8f9fa;
   cursor: not-allowed;

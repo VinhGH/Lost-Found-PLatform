@@ -38,6 +38,19 @@
   gap: 2rem; /* match main grids */
 }
 
+.no-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(15, 81, 50, 0.65);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 @media (max-width: 768px) {
   .recent-section {
     margin: 0 0.5rem 16px 0.5rem;

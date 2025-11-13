@@ -6,6 +6,7 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -135,8 +136,8 @@
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    width: 90%;
-    max-width: 550px;
+  width: min(80vw, 1100px);
+  max-width: 1100px;
     max-height: 90vh;
     animation: slideUp 0.35s ease;
     overflow: hidden;
@@ -145,6 +146,18 @@
     margin: auto;
     position: relative;
   }
+
+.required-marker {
+  color: #dc143c;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 92vw;
+  }
+}
   
   /* Header */
   .modal-header {
@@ -258,6 +271,17 @@
     box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
     outline: none;
   }
+
+.form-group .field-error {
+  color: #dc143c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #dc143c !important;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+}
   
   /* Form-row 2 cột */
   .form-row {
@@ -435,44 +459,45 @@
   
   /* Footer */
   .modal-footer {
-    display: grid;
-    grid-template-columns: 160px 160px;
-    gap: 12px;
-    justify-content: center;
-    padding: 16px 24px;
+    display: flex;
+    gap: 16px;
+    padding: 20px 24px;
     background: #f9fafb;
     border-top: 1px solid #e5e7eb;
     flex-shrink: 0;
     margin-top: auto;
     min-height: 80px;
     align-items: center;
+    justify-content: center;
   }
   
   .cancel-btn,
   .submit-btn {
-    width: 160px;
-    height: 48px;
-    padding: 0;
+    flex: 1;
+    min-width: 220px;
+    max-width: 280px;
+    min-height: 52px;
+    padding: 0 24px;
     border-radius: 12px;
     border: none;
     font-weight: 600;
     font-size: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
-    position: relative;
     letter-spacing: 0.3px;
     box-sizing: border-box;
     text-align: center;
     white-space: nowrap;
     line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .cancel-btn span,
   .submit-btn span {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: static;
+    transform: none;
     display: block;
   }
   

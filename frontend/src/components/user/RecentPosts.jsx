@@ -32,7 +32,11 @@ const RecentPosts = ({ title, posts = [], onOpenDetail, onContact }) => {
           return (
             <div key={post.id} id={`post-${post.id}`} className={cardClass}>
               <div className="post-image">
-                <img src={post.image} alt={post.title} />
+                {post.image ? (
+                  <img src={post.image} alt={post.title} />
+                ) : (
+                  <div className="no-image-placeholder">Không có hình ảnh</div>
+                )}
                 <div className={`post-badge ${badgeClass}`}>{post.type === "found" ? "Nhặt được" : "Tìm đồ"}</div>
               </div>
               <div className="post-content">

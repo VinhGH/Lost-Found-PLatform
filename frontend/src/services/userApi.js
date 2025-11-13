@@ -109,7 +109,7 @@ class UserApi {
   async loginUser(credentials) {
     try {
       // For demo purposes, simulate API call
-      if (credentials.email === 'user@dtu.edu.vn' && credentials.password === 'user123') {
+      if (credentials.email === 'user@dtu.edu.vn' && credentials.password === 'user12345') {
         // 🔹 Kiểm tra xem có profile đã lưu không
         const profileKey = `userProfile_${credentials.email}`;
         let savedProfile = null;

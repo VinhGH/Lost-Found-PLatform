@@ -279,6 +279,19 @@
   background: #f8f9fa;
 }
 
+.no-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(76, 175, 80, 0.75);
+  font-weight: 600;
+  background: linear-gradient(135deg, #f1f8f4 0%, #d9efe2 100%);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .post-badge {
   position: absolute;
   top: 1rem;

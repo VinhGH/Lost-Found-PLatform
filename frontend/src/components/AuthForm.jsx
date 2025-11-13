@@ -24,6 +24,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       confirmPassword: ''
     });
     setError('');
+    setFieldErrors({});
   }, [initialMode]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -34,6 +35,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleInputChange = (field) => (event) => {
     setFormData({
@@ -42,6 +44,13 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     });
     // Clear error when user starts typing
     if (error) setError('');
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
   };
 
   // Check if email is admin account
@@ -53,19 +62,51 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     return adminEmails.includes(email.toLowerCase());
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    const trimmedEmail = formData.email.trim();
+
+    if (!trimmedEmail) {
+      newErrors.email = 'Vui lòng nhập email DTU.';
+    } else if (!/^[A-Z0-9._%+-]+@dtu\.edu\.vn$/i.test(trimmedEmail)) {
+      newErrors.email = 'Email phải thuộc tên miền @dtu.edu.vn.';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Vui lòng nhập mật khẩu.';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
+    }
+
+    if (!isLogin) {
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Vui lòng nhập lại mật khẩu.';
+      } else if (formData.confirmPassword !== formData.password) {
+        newErrors.confirmPassword = 'Mật khẩu nhập lại không khớp.';
+      }
+    }
+
+    setFieldErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsLoading(true);
     setError('');
-
+    if (!validateForm()) {
+      return;
+    }
+    setIsLoading(true);
+    setFieldErrors({});
 
     try {
+      const email = formData.email.trim();
       if (isLogin) {
         // Handle login
-        if (isAdminAccount(formData.email)) {
+        if (isAdminAccount(email)) {
           // Try real API login for other admin accounts
           const adminCredentials = {
-            username: formData.email.split('@')[0], // Extract username from email
+            username: email.split('@')[0], // Extract username from email
             password: formData.password
           };
 
@@ -80,7 +121,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         } else {
           // Regular user login
           const response = await userApi.loginUser({
-            email: formData.email,
+            email,
             password: formData.password
           });
           
@@ -95,12 +136,12 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         }
       } else {
         // Handle registration
-        if (isAdminAccount(formData.email)) {
+        if (isAdminAccount(email)) {
           setError('Không thể đăng ký tài khoản admin qua form này');
         } else {
           // Regular user registration
           const response = await userApi.registerUser({
-            email: formData.email,
+            email,
             password: formData.password
           });
           
@@ -130,6 +171,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       confirmPassword: ''
     });
     setError('');
+    setFieldErrors({});
   };
 
 
@@ -210,9 +252,10 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                 placeholder="email@dtu.edu.vn"
                 value={formData.email}
                 onChange={handleInputChange('email')}
-                required
                 disabled={isLoading}
+                className={fieldErrors.email ? 'input-error' : ''}
               />
+              {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
             </div>
 
             {/* Password Field */}
@@ -224,10 +267,10 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   placeholder="••••••••••"
                   value={formData.password}
                   onChange={handleInputChange('password')}
-                  required
                   autoComplete="new-password"
                   data-lpignore="true"
                   disabled={isLoading}
+                  className={fieldErrors.password ? 'input-error' : ''}
                 />
                 <button
                   type="button"
@@ -242,6 +285,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   )}
                 </button>
               </div>
+              {fieldErrors.password && <p className="field-error">{fieldErrors.password}</p>}
             </div>
 
             {/* Confirm Password Field (only for registration) */}
@@ -254,10 +298,10 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                     placeholder="••••••••••"
                     value={formData.confirmPassword}
                     onChange={handleInputChange('confirmPassword')}
-                    required
                     autoComplete="new-password"
                     data-lpignore="true"
                     disabled={isLoading}
+                    className={fieldErrors.confirmPassword ? 'input-error' : ''}
                   />
                   <button
                     type="button"
@@ -272,6 +316,9 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                     )}
                   </button>
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="field-error">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
             )}
 

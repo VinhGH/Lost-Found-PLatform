@@ -131,8 +131,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(data.image);
+        } else if (typeof data.image === "string") {
+          resolve(data.image);
         } else {
-          resolve(data.sampleImage || "");
+          resolve("");
         }
       });
 
@@ -223,6 +225,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
             mode="create"
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreatePost}
+            user={user}
           />
         )}
       </main>
