@@ -1,132 +1,130 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
-
-/* Nền mờ toàn màn hình */
+/* Confirm Logout Modal - Simple & Centered */
 .confirm-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  font-family: "Poppins", sans-serif;
-  animation: fadeIn 0.3s ease;
+  z-index: 10000;
+  margin: 0;
+  padding: 0;
 }
 
-/* Hộp chính giữa */
 .confirm-modal {
-  background: #fff;
-  border-radius: 16px;
-  width: 380px;
-  max-width: 90%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-  animation: popIn 0.3s ease;
+  background: #ffffff;
+  border-radius: 12px;
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  position: relative;
+  animation: modalAppear 0.3s ease;
+}
+
+.confirm-header {
+  background: linear-gradient(135deg, #dc143c 0%, #b22222 100%);
+  color: #ffffff;
+  padding: 20px 24px;
   text-align: center;
 }
 
-/* Header */
-.confirm-header {
-  background: #dc143c;
-  color: white;
-  padding: 14px 20px;
+.confirm-header h2 {
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
-  font-size: 18px;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
 }
 
-/* Body */
 .confirm-body {
-  padding: 24px 28px;
+  padding: 28px 24px;
+  text-align: center;
 }
 
 .confirm-body p {
-  font-size: 15px;
-  color: #333;
-  margin-bottom: 24px;
-  line-height: 1.5;
+  margin: 0 0 28px 0;
+  font-size: 16px;
+  color: #333333;
+  line-height: 1.6;
 }
 
-/* Footer */
 .confirm-footer {
   display: flex;
   justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .cancel-btn,
 .confirm-btn {
-  width: 100px;
-  height: 42px;
-  border-radius: 8px;
+  min-width: 120px;
+  padding: 12px 24px;
   border: none;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  font-family: "Poppins", sans-serif;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .cancel-btn {
-  background: #e5e7eb;
-  color: #333;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .cancel-btn:hover {
-  background: #d1d5db;
-}
-
-.confirm-btn {
-  background: #dc143c;
-  color: white;
-}
-
-.confirm-btn:hover {
-  background: #b22222;
+  background: #e2e8f0;
   transform: translateY(-1px);
 }
 
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.confirm-btn {
+  background: linear-gradient(135deg, #dc143c 0%, #b22222 100%);
+  color: #ffffff;
 }
 
-@keyframes popIn {
+.confirm-btn:hover {
+  background: linear-gradient(135deg, #b22222 0%, #8b1a1a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4);
+}
+
+@keyframes modalAppear {
   from {
+    opacity: 0;
     transform: scale(0.9);
-    opacity: 0;
   }
   to {
-    transform: scale(1);
     opacity: 1;
+    transform: scale(1);
   }
 }
 
-/* ---------------- Dark Mode ---------------- */
+/* Dark Mode */
 [data-theme='dark'] .confirm-modal {
-  background: var(--surface);
-  color: var(--text);
+  background: #1e293b;
 }
 
 [data-theme='dark'] .confirm-body p {
-  color: var(--text);
+  color: #e2e8f0;
 }
 
 [data-theme='dark'] .cancel-btn {
-  background: #374151;
-  color: var(--text);
+  background: #334155;
+  color: #e2e8f0;
 }
 
 [data-theme='dark'] .cancel-btn:hover {
-  background: #4b5563;
+  background: #475569;
 }
 
+/* Responsive */
+@media (max-width: 480px) {
+  .confirm-modal {
+    width: calc(100vw - 20px);
+  }
+}

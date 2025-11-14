@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import './AdminHeader.css';
-import ConfirmLogoutModal from '../user/ConfirmLogoutModal';
 import {
   Person as PersonIcon,
-  Settings as SettingsIcon,
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   Close as CloseIcon,
@@ -13,10 +11,9 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
 
-const AdminHeader = ({ onLogout, adminUser }) => {
+const AdminHeader = ({ onLogout, adminUser, onProfileClick }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const notifications = [
     {
@@ -44,14 +41,16 @@ const AdminHeader = ({ onLogout, adminUser }) => {
 
   const userMenuItems = [
     { label: 'Hồ sơ', icon: <PersonIcon />, action: 'profile' },
-    { label: 'Cài đặt', icon: <SettingsIcon />, action: 'settings' },
     { label: 'Đăng xuất', icon: <LogoutIcon />, action: 'logout' }
   ];
 
   const handleUserMenuAction = (action) => {
     if (action === 'logout') {
       setShowUserMenu(false);
-      setShowLogoutModal(true);
+      onLogout(); // ✅ Đăng xuất ngay, không cần popup
+    } else if (action === 'profile' && onProfileClick) {
+      setShowUserMenu(false);
+      onProfileClick();
     } else {
       setShowUserMenu(false);
     }
@@ -114,13 +113,25 @@ const AdminHeader = ({ onLogout, adminUser }) => {
         </div>
 
         {/* User Menu */}
-        <div className="user-container">
+        <div 
+          className="user-container"
+          onMouseEnter={() => setShowUserMenu(true)}
+          onMouseLeave={() => setShowUserMenu(false)}
+        >
           <button
             className="user-btn"
-            onClick={() => setShowUserMenu(!showUserMenu)}
+            type="button"
           >
             <div className="user-avatar">
-              <span>A</span>
+              {adminUser?.avatar ? (
+                <img 
+                  src={adminUser.avatar} 
+                  alt={adminUser?.name || 'Admin'} 
+                  className="user-avatar-img"
+                />
+              ) : (
+                <span>{(adminUser?.name || 'Admin User').charAt(0).toUpperCase()}</span>
+              )}
             </div>
             <div className="user-info">
               <span className="user-name">{adminUser?.name || 'Admin User'}</span>
@@ -129,44 +140,39 @@ const AdminHeader = ({ onLogout, adminUser }) => {
             <span className="dropdown-arrow"><KeyboardArrowDownIcon /></span>
           </button>
 
-          {showUserMenu && (
-            <div className="user-dropdown">
-              <div className="user-dropdown-header">
-                <div className="user-avatar-large">
-                  <span>A</span>
-                </div>
-                <div className="user-details">
-                  <h4>{adminUser?.name || 'Admin User'}</h4>
-                  <p>{adminUser?.email || 'admin@dtu.edu.vn'}</p>
-                </div>
+          <div className={`user-dropdown ${showUserMenu ? 'visible' : ''}`}>
+            <div className="user-dropdown-header">
+              <div className="user-avatar-large">
+                {adminUser?.avatar ? (
+                  <img 
+                    src={adminUser.avatar} 
+                    alt={adminUser?.name || 'Admin'} 
+                    className="user-avatar-img-large"
+                  />
+                ) : (
+                  <span>{(adminUser?.name || 'Admin User').charAt(0).toUpperCase()}</span>
+                )}
               </div>
-              <div className="user-menu-items">
-                {userMenuItems.map((item, index) => (
-                  <button
-                    key={index}
-                    className="user-menu-item"
-                    onClick={() => handleUserMenuAction(item.action)}
-                  >
-                    <span className="menu-icon">{item.icon}</span>
-                    <span className="menu-label">{item.label}</span>
-                  </button>
-                ))}
+              <div className="user-details">
+                <h4>{adminUser?.name || 'Admin User'}</h4>
+                <p>{adminUser?.email || 'admin@dtu.edu.vn'}</p>
               </div>
             </div>
-          )}
+            <div className="user-menu-items">
+              {userMenuItems.map((item, index) => (
+                <button
+                  key={index}
+                  className="user-menu-item"
+                  onClick={() => handleUserMenuAction(item.action)}
+                >
+                  <span className="menu-icon">{item.icon}</span>
+                  <span className="menu-label">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Modal xác nhận đăng xuất */}
-      {showLogoutModal && (
-        <ConfirmLogoutModal
-          onCancel={() => setShowLogoutModal(false)}
-          onConfirm={() => {
-            setShowLogoutModal(false);
-            onLogout();
-          }}
-        />
-      )}
     </header>
   );
 };

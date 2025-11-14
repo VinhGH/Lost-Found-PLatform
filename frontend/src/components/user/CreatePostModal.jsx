@@ -1,33 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Close as CloseIcon, Upload } from "@mui/icons-material";
+import { Close as CloseIcon } from "@mui/icons-material";
 import "./CreatePostModal.css";
 
-const CreatePostModal = ({
-  onClose,
-  onSubmit,
-  mode = "create",
-  existingData = null,
-  lockPostType = false,
-  initialPostType = "lost",
-  user = null
-}) => {
+const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = null, lockPostType = false, initialPostType = "lost", user = null }) => {
   const [formData, setFormData] = useState({
     postType: initialPostType,
     author: user?.name || "",
     title: "",
     description: "",
-    category: "Ví/Túi",
+    category: "",
     location: "",
     building: "",
     room: "",
     address: "",
-    date: new Date().toISOString().split("T")[0],
-    contact: user?.phone || user?.contact || "",
+    date: "",
+    contact: user?.phone || "",
     image: null,
   });
 
-  const [preview, setPreview] = useState(null);
+  const [images, setImages] = useState([]); // Mảng để lưu nhiều ảnh (tối đa 3)
   const [errors, setErrors] = useState({});
+  const [zoomedImage, setZoomedImage] = useState(null); // Ảnh đang được phóng to
   const modalRef = useRef(null);
 
   // 🔹 Lock body scroll khi modal mở
@@ -42,7 +35,11 @@ const CreatePostModal = ({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        if (zoomedImage) {
+          setZoomedImage(null);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -51,19 +48,41 @@ const CreatePostModal = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, zoomedImage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    // Xóa lỗi khi người dùng bắt đầu nhập
     if (errors[name]) {
-      setErrors((prev) => {
+      setErrors(prev => {
         const updated = { ...prev };
         delete updated[name];
         return updated;
       });
     }
   };
+
+  // 🔹 Tự động fill author, contact, date và category từ user khi component mount
+  useEffect(() => {
+    if (mode === "create") {
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
+      setFormData(prev => {
+        // Set category mặc định dựa trên postType
+        const defaultCategory = prev.postType === "lost" ? "Ví/Túi" : "Điện thoại";
+        
+        return {
+          ...prev,
+          author: user?.name || prev.author,
+          contact: user?.phone || prev.contact,
+          date: prev.date || dateString, // Tự động set ngày hiện tại nếu chưa có
+          category: prev.category || defaultCategory, // Set mặc định nếu chưa có
+        };
+      });
+    }
+  }, [user, mode]);
 
   // Lock postType if lockPostType is true
   useEffect(() => {
@@ -73,7 +92,7 @@ const CreatePostModal = ({
         author: existingData.author || "",
         title: existingData.title || "",
         description: existingData.description || "",
-        category: existingData.category || "Ví/Túi",
+        category: existingData.category || "",
         location: existingData.location || "",
         // cố gắng parse từ location cũ nếu có định dạng "Tòa X - Phòng Y - Địa chỉ"
         building: (() => {
@@ -92,98 +111,148 @@ const CreatePostModal = ({
           const parts = loc.split(" - ");
           return parts.length >= 3 ? parts.slice(2).join(" - ").trim() : "";
         })(),
-        date: existingData.date || new Date().toISOString().split("T")[0],
+        date: existingData.date || "",
         contact: existingData.contact || "",
         image: null,
       });
-      setPreview(existingData.imageUrl || existingData.image || null);
-      setErrors({});
+      // Load ảnh cũ vào images array nếu có
+      if (existingData.imageUrl || existingData.image) {
+        setImages([{
+          file: null,
+          preview: existingData.imageUrl || existingData.image,
+          id: Date.now()
+        }]);
+      }
     }
   }, [mode, existingData]);
 
-  useEffect(() => {
-    if (mode !== "edit" && user) {
-      setFormData((prev) => ({
-        ...prev,
-        author: user.name || prev.author,
-        contact: user.phone || user.contact || prev.contact,
-        date: prev.date || new Date().toISOString().split("T")[0],
-        category: prev.category || "Ví/Túi",
-      }));
-    }
-  }, [user, mode]);
-
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-      setFormData({ ...formData, image: file });
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
-      if (errors.image) {
-        setErrors((prev) => {
-          const updated = { ...prev };
-          delete updated.image;
-          return updated;
-        });
-      }
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Lọc chỉ lấy file ảnh
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    
+    if (imageFiles.length === 0) {
+      setErrors(prev => ({
+        ...prev,
+        image: "Vui lòng chọn file ảnh hợp lệ."
+      }));
+      return;
     }
+
+    // Kiểm tra số lượng ảnh (tối đa 3)
+    if (images.length + imageFiles.length > 3) {
+      setErrors(prev => ({
+        ...prev,
+        image: `Bạn chỉ có thể tải tối đa 3 ảnh. Hiện tại bạn đã có ${images.length} ảnh.`
+      }));
+      return;
+    }
+
+    // Đọc tất cả ảnh
+    let loadedCount = 0;
+    const newImages = [];
+    
+    imageFiles.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newImages.push({
+          file: file,
+          preview: reader.result,
+          id: Date.now() + index
+        });
+        
+        loadedCount++;
+        // Khi đã đọc xong tất cả ảnh
+        if (loadedCount === imageFiles.length) {
+          setImages(prev => [...prev, ...newImages]);
+          // Xóa lỗi nếu có
+          setErrors(prev => {
+            const updated = { ...prev };
+            delete updated.image;
+            return updated;
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleClearImage = () => {
-    setFormData({ ...formData, image: null });
-    setPreview(null);
-    setErrors((prev) => ({
-      ...prev,
-      image: "Vui lòng tải lên ít nhất một hình ảnh."
-    }));
+  const handleClearImage = (imageId) => {
+    if (imageId) {
+      // Xóa ảnh cụ thể
+      setImages(prev => prev.filter(img => img.id !== imageId));
+    } else {
+      // Xóa tất cả
+      setImages([]);
+      setFormData({ ...formData, image: null });
+    }
+    // Xóa lỗi nếu có
+    if (errors.image) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated.image;
+        return updated;
+      });
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    const trimmedAuthor = formData.author.trim();
-    if (!trimmedAuthor) {
-      newErrors.author = "Vui lòng nhập tên người đăng.";
-    } else if (trimmedAuthor.length < 3) {
-      newErrors.author = "Tên người đăng phải có ít nhất 3 ký tự.";
+    
+    // Validation cho tên người đăng
+    if (!formData.author || formData.author.trim().length < 2) {
+      newErrors.author = "Tên người đăng không được để trống và phải có ít nhất 2 ký tự.";
     }
 
-    const trimmedTitle = formData.title.trim();
-    if (!trimmedTitle) {
-      newErrors.title = "Vui lòng nhập tiêu đề.";
-    } else if (trimmedTitle.length < 5) {
+    // Validation cho tiêu đề
+    if (!formData.title || formData.title.trim().length < 5) {
       newErrors.title = "Tiêu đề phải có ít nhất 5 ký tự.";
     }
 
-    const trimmedDescription = formData.description.trim();
-    if (!trimmedDescription) {
-      newErrors.description = "Vui lòng nhập mô tả chi tiết.";
-    } else if (trimmedDescription.length < 88) {
-      newErrors.description = "Mô tả cần ít nhất 8 ký tự để cung cấp đủ thông tin.";
+    // Validation cho mô tả (tối thiểu 8 ký tự)
+    if (!formData.description || formData.description.trim().length < 8) {
+      newErrors.description = "Mô tả phải có ít nhất 8 ký tự.";
     }
 
+    // Validation cho danh mục
     if (!formData.category) {
       newErrors.category = "Vui lòng chọn danh mục.";
     }
 
+    // Validation cho tòa
     if (!formData.building) {
       newErrors.building = "Vui lòng chọn tòa.";
     }
 
+    // Validation cho ngày xảy ra
     if (!formData.date) {
       newErrors.date = "Vui lòng chọn ngày xảy ra.";
+    } else {
+      // Kiểm tra ngày không được là tương lai
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (selectedDate > today) {
+        newErrors.date = "Ngày xảy ra không được là ngày tương lai.";
+      }
     }
 
+    // Validation cho số điện thoại
     const phone = formData.contact.trim();
     const normalizedPhone = phone.replace(/\s+/g, "");
     if (!phone) {
       newErrors.contact = "Vui lòng nhập số điện thoại liên hệ.";
     } else if (!/^(0|\+84)\d{8,9}$|^\d{9,11}$/.test(normalizedPhone)) {
-      newErrors.contact = "Số điện thoại không hợp lệ. Vui lòng nhập 9-11 số.";
+      newErrors.contact = "Số điện thoại không hợp lệ. Vui lòng nhập 9-11 số (bắt đầu bằng 0 hoặc +84).";
     }
 
-    if (!preview && !formData.image) {
-      newErrors.image = "Vui lòng tải lên ít nhất một hình ảnh.";
+    // Validation cho hình ảnh (bắt buộc, tối đa 3 ảnh)
+    if (images.length === 0) {
+      newErrors.image = "Vui lòng tải lên ít nhất 1 ảnh cho bài đăng.";
+    } else if (images.length > 3) {
+      newErrors.image = "Bạn chỉ có thể tải tối đa 3 ảnh.";
     }
 
     setErrors(newErrors);
@@ -206,7 +275,14 @@ const CreatePostModal = ({
       parts.push(formData.address.trim());
     }
     const composedLocation = parts.join(" - ");
-    onSubmit({ ...formData, location: composedLocation });
+    
+    // Gửi images thay vì image đơn lẻ
+    onSubmit({ 
+      ...formData, 
+      location: composedLocation,
+      images: images.map(img => img.file),
+      imagePreviews: images.map(img => img.preview)
+    });
   };
 
   return (
@@ -240,14 +316,26 @@ const CreatePostModal = ({
                   className={`type-btn ${
                     formData.postType === "lost" ? "active" : ""
                   }`}
-                  onClick={() => setFormData({ ...formData, postType: "lost" })}
+                  onClick={() => {
+                    setFormData({ 
+                      ...formData, 
+                      postType: "lost",
+                      category: "Ví/Túi" // Set category mặc định khi chọn "lost"
+                    });
+                  }}
                 >
                   Tìm đồ thất lạc
                 </button>
                 <button
                   type="button"
                   className={`type-btn ${formData.postType === "found" ? "active" : ""}`}
-                  onClick={() => setFormData({ ...formData, postType: "found" })}
+                  onClick={() => {
+                    setFormData({ 
+                      ...formData, 
+                      postType: "found",
+                      category: "Điện thoại" // Set category mặc định khi chọn "found"
+                    });
+                  }}
                 >
                   Nhặt được đồ
                 </button>
@@ -257,28 +345,28 @@ const CreatePostModal = ({
 
           {/* Tên người đăng */}
           <div className="form-group">
-            <label>
-              Tên người đăng
-              <span className="required-marker">*</span>
-            </label>
+            <label>Tên người đăng <span className="required-star">*</span></label>
             <input
               type="text"
               name="author"
               placeholder="Nhập tên người đăng..."
               value={formData.author}
               onChange={handleChange}
-              readOnly={!!user}
-              className={errors.author ? "input-error" : ""}
+              readOnly
+              disabled
+              required
+              style={{
+                backgroundColor: "#f5f5f5",
+                cursor: "not-allowed",
+                color: "#6c757d"
+              }}
             />
             {errors.author && <p className="field-error">{errors.author}</p>}
           </div>
 
           {/* Tiêu đề */}
           <div className="form-group">
-            <label>
-              Tiêu đề
-              <span className="required-marker">*</span>
-            </label>
+            <label>Tiêu đề <span className="required-star">*</span></label>
             <input
               type="text"
               name="title"
@@ -292,28 +380,50 @@ const CreatePostModal = ({
 
           {/* Upload ảnh */}
           <div className="upload-section">
-            <label>
-              Tải ảnh của bạn
-              <span className="required-marker">*</span>
-            </label>
-            <div className="upload-container">
-              {!preview ? (
+            <label>Tải ảnh của bạn <span className="required-star">*</span> <span style={{ fontSize: "12px", color: "#666", fontWeight: "normal" }}>(Tối đa 3 ảnh)</span></label>
+            <div className={`upload-container ${errors.image ? "input-error" : ""}`}>
+              {images.length === 0 ? (
                 <label className="upload-label">
-                  <Upload size={18} style={{ marginRight: "8px" }} />
-                  Kéo thả hoặc chọn ảnh để tải lên
+                  Kéo thả hoặc chọn ảnh để tải lên (tối đa 3 ảnh)
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
                 </label>
               ) : (
-                <div className="upload-preview">
-                  <img src={preview} alt="preview" className="preview-image" />
-                  <button type="button" className="clear-image-btn" onClick={handleClearImage}>
-                    <CloseIcon style={{ fontSize: "14px" }} />
-                  </button>
+                <div className="upload-preview-grid">
+                  {images.map((img) => (
+                    <div key={img.id} className="upload-preview-item">
+                      <img 
+                        src={img.preview} 
+                        alt="preview" 
+                        className="preview-image" 
+                        onClick={() => setZoomedImage(img.preview)}
+                        style={{ cursor: "pointer" }}
+                      />
+                      <span 
+                        className="remove-image-text" 
+                        onClick={() => handleClearImage(img.id)}
+                      >
+                        Remove
+                      </span>
+                    </div>
+                  ))}
+                  {images.length < 3 && (
+                    <label className="upload-add-item">
+                      <span className="upload-add-icon">+</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileChange}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                  )}
                 </div>
               )}
             </div>
@@ -322,10 +432,7 @@ const CreatePostModal = ({
 
           {/* Mô tả chi tiết */}
           <div className="form-group">
-            <label>
-              Mô tả chi tiết
-              <span className="required-marker">*</span>
-            </label>
+            <label>Mô tả chi tiết <span className="required-star">*</span></label>
             <textarea
               name="description"
               placeholder="Mô tả chi tiết về đồ vật, địa điểm, thời gian..."
@@ -337,16 +444,14 @@ const CreatePostModal = ({
             {errors.description && <p className="field-error">{errors.description}</p>}
           </div>
 
+
           {/* Danh mục & địa điểm */}
           <div className="form-row">
             <div className="form-group">
-              <label>
-                Danh mục
-                <span className="required-marker">*</span>
-              </label>
-              <select
-                name="category"
-                value={formData.category}
+              <label>Danh mục <span className="required-star">*</span></label>
+              <select 
+                name="category" 
+                value={formData.category} 
                 onChange={handleChange}
                 className={errors.category ? "input-error" : ""}
               >
@@ -361,13 +466,10 @@ const CreatePostModal = ({
               {errors.category && <p className="field-error">{errors.category}</p>}
             </div>
             <div className="form-group">
-              <label>
-                Tòa
-                <span className="required-marker">*</span>
-              </label>
-              <select
-                name="building"
-                value={formData.building}
+              <label>Tòa <span className="required-star">*</span></label>
+              <select 
+                name="building" 
+                value={formData.building} 
                 onChange={handleChange}
                 className={errors.building ? "input-error" : ""}
               >
@@ -379,6 +481,7 @@ const CreatePostModal = ({
                 <option value="E">Tòa E</option>
                 <option value="F">Tòa F</option>
                 <option value="G">Tòa G</option>
+                <option value="NULL">Không xác định</option>
               </select>
               {errors.building && <p className="field-error">{errors.building}</p>}
             </div>
@@ -411,10 +514,7 @@ const CreatePostModal = ({
           {/* Ngày & Liên hệ */}
           <div className="form-row">
             <div className="form-group">
-              <label>
-                Ngày xảy ra
-                <span className="required-marker">*</span>
-              </label>
+              <label>Ngày xảy ra <span className="required-star">*</span></label>
               <input
                 type="date"
                 name="date"
@@ -425,10 +525,7 @@ const CreatePostModal = ({
               {errors.date && <p className="field-error">{errors.date}</p>}
             </div>
             <div className="form-group">
-              <label>
-                Số điện thoại liên hệ
-                <span className="required-marker">*</span>
-              </label>
+              <label>Số điện thoại liên hệ <span className="required-star">*</span></label>
               <input
                 type="text"
                 name="contact"
@@ -452,6 +549,18 @@ const CreatePostModal = ({
           </div>
         </form>
       </div>
+
+      {/* Image Zoom Modal */}
+      {zoomedImage && (
+        <div className="image-zoom-overlay" onClick={() => setZoomedImage(null)}>
+          <div className="image-zoom-container" onClick={(e) => e.stopPropagation()}>
+            <button className="image-zoom-close" onClick={() => setZoomedImage(null)}>
+              <CloseIcon style={{ fontSize: "24px" }} />
+            </button>
+            <img src={zoomedImage} alt="zoomed preview" className="zoomed-image" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

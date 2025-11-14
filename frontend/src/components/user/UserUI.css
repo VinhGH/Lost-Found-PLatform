@@ -18,9 +18,9 @@
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #92070C 0%, #DC143C 50%, #FF6B6B 100%);
-  color: white;
-  border: none;
+  background: #81c784 !important; /* Xanh lá nhạt */
+  color: white !important;
+  border: none !important;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -30,17 +30,19 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 4px 15px rgba(129, 199, 132, 0.4) !important;
 }
 
 .btn-primary:hover {
+  background: #2e7d32 !important; /* Xanh lá đậm khi hover */
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(146, 7, 12, 0.3);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.5) !important;
 }
 
 .btn-secondary {
-  background: white;
-  color: #92070C;
-  border: 2px solid #92070C;
+  background: white !important;
+  color: #81c784 !important; /* Xanh lá nhạt */
+  border: 2px solid #81c784 !important;
   padding: 10px 22px;
   border-radius: 8px;
   font-weight: 600;
@@ -50,12 +52,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-secondary:hover {
-  background: #92070C;
-  color: white;
+  background: #e8f5e9 !important; /* Nền xanh lá nhạt khi hover */
+  color: #2e7d32 !important; /* Xanh lá đậm khi hover */
+  border-color: #2e7d32 !important; /* Xanh lá đậm khi hover */
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3) !important;
 }
 
 .btn-cancel {

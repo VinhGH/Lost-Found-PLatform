@@ -1,22 +1,33 @@
 /* Auth Container */
 .auth-container {
   min-height: 100vh;
+  max-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF6B6B 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
 }
 
 .auth-wrapper {
   display: flex;
   max-width: 1000px;
   width: 100%;
+  max-height: calc(100vh - 40px);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   background: white;
+  overflow-y: auto;
 }
 
 /* Left Side - DTU Branding */
@@ -63,11 +74,92 @@
   color: white;
 }
 
-.welcome-title {
-  font-size: 3rem;
-  font-weight: bold;
+.welcome-title-container {
   margin-bottom: 30px;
+}
+
+.welcome-title {
+  font-size: 4rem;
+  font-weight: 900;
+  margin-bottom: 10px;
   line-height: 1.2;
+  color: #ffffff; /* Màu trắng */
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 20px rgba(255, 255, 255, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 8px 16px rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    2px 2px 0px rgba(255, 255, 255, 0.9),
+    4px 4px 0px rgba(255, 255, 255, 0.7),
+    6px 6px 0px rgba(255, 255, 255, 0.5),
+    8px 8px 0px rgba(255, 255, 255, 0.3);
+  transform: perspective(500px) rotateX(5deg);
+  letter-spacing: 3px;
+  position: relative;
+  display: inline-block;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5)) 
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.welcome-title::before {
+  content: 'TimDoDTU';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  text-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.8),
+    0 0 40px rgba(255, 255, 255, 0.6),
+    0 0 60px rgba(255, 255, 255, 0.4),
+    2px 2px 0px rgba(255, 255, 255, 1),
+    4px 4px 0px rgba(255, 255, 255, 0.8),
+    6px 6px 0px rgba(255, 255, 255, 0.6),
+    8px 8px 0px rgba(255, 255, 255, 0.4);
+  z-index: -1;
+  opacity: 0.7;
+  transform: translateZ(-20px);
+}
+
+.welcome-title::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 20px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  z-index: -2;
+  opacity: 0.6;
+  box-shadow: 
+    inset 0 0 20px rgba(255, 255, 255, 0.3),
+    0 0 40px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.welcome-subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff; /* Màu trắng */
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    1px 1px 0px rgba(255, 255, 255, 0.8),
+    2px 2px 0px rgba(255, 255, 255, 0.6),
+    3px 3px 0px rgba(255, 255, 255, 0.4);
+  letter-spacing: 2px;
+  margin: 0;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4)) 
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .dtu-branding {
@@ -77,13 +169,99 @@
   margin-top: 40px;
   width: 100%;
   height: 120px;
+  position: relative;
 }
 
 .logo-image-full {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: brightness(0) invert(1); /* Làm logo thành màu trắng */
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  filter: brightness(0) invert(1) 
+          drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)) 
+          drop-shadow(0 0 40px rgba(255, 255, 255, 0.4))
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.dtu-branding::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.2) 30%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.2) 70%,
+    rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 30px;
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  z-index: 0;
+  opacity: 0.7;
+  box-shadow: 
+    inset 0 0 30px rgba(255, 255, 255, 0.2),
+    inset 0 0 60px rgba(255, 255, 255, 0.1),
+    0 0 50px rgba(255, 255, 255, 0.3),
+    0 0 100px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 16px 64px rgba(0, 0, 0, 0.2);
+  animation: liquidGlow 3s ease-in-out infinite;
+}
+
+.dtu-branding::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle at 50% 50%, 
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    transparent 70%);
+  border-radius: 25px;
+  z-index: -1;
+  opacity: 0.8;
+  animation: liquidPulse 4s ease-in-out infinite;
+}
+
+@keyframes liquidGlow {
+  0%, 100% {
+    opacity: 0.7;
+    box-shadow: 
+      inset 0 0 30px rgba(255, 255, 255, 0.2),
+      inset 0 0 60px rgba(255, 255, 255, 0.1),
+      0 0 50px rgba(255, 255, 255, 0.3),
+      0 0 100px rgba(255, 255, 255, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 16px 64px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 
+      inset 0 0 40px rgba(255, 255, 255, 0.3),
+      inset 0 0 80px rgba(255, 255, 255, 0.15),
+      0 0 70px rgba(255, 255, 255, 0.4),
+      0 0 140px rgba(255, 255, 255, 0.3),
+      0 12px 48px rgba(0, 0, 0, 0.4),
+      0 24px 96px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes liquidPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
 }
 
 .logo-text-fallback {
@@ -95,6 +273,13 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
+  text-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.8),
+    0 0 40px rgba(255, 255, 255, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
 }
 
 
@@ -141,51 +326,21 @@
   justify-content: center;
 }
 
-.google-btn {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  color: #666;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
+/* Validation Error Styles */
+.validation-error {
+  display: block;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 4px;
 }
 
-.google-btn:hover {
-  border-color: #ccc;
-  background-color: #f9f9f9;
+.input-error {
+  border-color: #dc3545 !important;
 }
 
-.google-icon {
-  margin-right: 10px;
-  font-size: 18px;
-  color: #4285f4;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
-  color: #999;
-  font-size: 14px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #ddd;
-}
-
-.divider span {
-  padding: 0 15px;
+.input-error:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
 }
 
 .form-instruction {
@@ -272,17 +427,6 @@
   box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
 }
 
-.form-group .field-error {
-  color: #dc143c;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-.input-error {
-  border-color: #dc143c !important;
-  box-shadow: 0 0 0 2px rgba(220, 20, 60, 0.15);
-}
-
 .form-group input:disabled {
   background: #f8f9fa;
   cursor: not-allowed;
@@ -328,25 +472,57 @@
 
 .submit-btn {
   width: 100%;
-  padding: auto;
-  background-color: #8B0000;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF6B6B 100%);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
   margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.submit-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background-color: #A00000;
+  background: linear-gradient(135deg, #A00000 0%, #E63946 50%, #FF8A95 100%);
+  box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(139, 0, 0, 0.3);
 }
 
 .submit-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF6B6B 100%);
+  transform: none;
+  box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
 }
 
 .loading-spinner {
@@ -382,6 +558,145 @@
 
 .toggle-link:hover {
   text-decoration: underline;
+}
+
+/* Forgot Password Styles */
+.forgot-password-link {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  text-decoration: none;
+}
+
+.forgot-password-btn:hover {
+  text-decoration: underline;
+}
+
+.forgot-password-form {
+  width: 100%;
+}
+
+.back-to-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #dc143c;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.back-to-login-btn:hover {
+  color: #b22222;
+  transform: translateX(-4px);
+}
+
+.forgot-password-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.forgot-password-instruction {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* OTP Input Styles */
+.otp-input-container {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.otp-input {
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.otp-input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Dark mode for new elements */
+[data-theme='dark'] .forgot-password-title {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .forgot-password-instruction {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .otp-input {
+  background: #0b1220;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .otp-input:focus {
+  border-color: #dc143c;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.2);
+}
+
+[data-theme='dark'] .otp-input:disabled {
+  background: #111827;
+  opacity: 0.5;
+}
+
+[data-theme='dark'] .back-to-login-btn {
+  color: #fca5a5;
+}
+
+[data-theme='dark'] .back-to-login-btn:hover {
+  color: #f87171;
+}
+
+[data-theme='dark'] .forgot-password-btn {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .forgot-password-btn:hover {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .validation-error {
+  color: #fca5a5;
+}
+
+[data-theme='dark'] .input-error {
+  border-color: #dc3545 !important;
 }
 
 /* Dark mode styles */
@@ -492,17 +807,28 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .auth-container {
+    padding: 10px;
+  }
+  
   .auth-wrapper {
     flex-direction: column;
     max-width: 400px;
+    max-height: calc(100vh - 20px);
   }
   
   .auth-left {
     padding: 30px 20px;
-    min-height: 300px;}
+    min-height: 300px;
+    max-height: 40vh;
+  }
   
   .welcome-title {
-    font-size: 2rem;
+    font-size: 2.5rem;
+  }
+  
+  .welcome-subtitle {
+    font-size: 1.2rem;
   }
   
   .dtu-text {
@@ -511,6 +837,8 @@
   
   .auth-right {
     padding: 30px 20px;
+    max-height: 60vh;
+    overflow-y: auto;
   }
 }
 
@@ -520,7 +848,11 @@
   }
   
   .welcome-title {
-    font-size: 1.5rem;
+    font-size: 2rem;
+  }
+  
+  .welcome-subtitle {
+    font-size: 1rem;
   }
   
   .dtu-logo {

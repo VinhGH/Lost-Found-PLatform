@@ -41,7 +41,7 @@ class AdminApi {
   async loginAdmin(credentials) {
     try {
       // For demo purposes, simulate API call
-      if (credentials.username === 'admin' && credentials.password === 'admin12345') {
+      if (credentials.username === 'admin' && credentials.password === 'admin123') {
         const adminData = {
           id: 1,
           username: 'admin',

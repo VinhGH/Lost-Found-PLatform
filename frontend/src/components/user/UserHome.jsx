@@ -1,21 +1,23 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import './UserHome.css';
 import CreatePostModal from "./CreatePostModal";
+import PolicyButton from "./PolicyButton";
+import DonationSection from "./DonationSection";
 import userApi from '../../services/userApi';
 import {
-  Group as GroupIcon,
-  Search as SearchIcon,
-  GpsFixed as TargetIcon,
   CheckCircle as CheckIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
   Lightbulb as LightbulbIcon,
   Public as PublicIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 
 const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('lost');
+  const heroSectionRef = useRef(null);
+  const parallaxBackgroundRef = useRef(null);
 
   const openModal = (type) => {
     // Check if user is authenticated
@@ -40,11 +42,84 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
     closeModal();
   };
 
+  // ✅ Parallax Effect cho Hero Section
+  useEffect(() => {
+    const handleScroll = () => {
+      // Chỉ áp dụng parallax trên desktop (màn hình > 768px)
+      if (window.innerWidth <= 768) {
+        // Reset transform trên mobile
+        if (parallaxBackgroundRef.current) {
+          parallaxBackgroundRef.current.style.transform = 'none';
+        }
+        return;
+      }
+
+      if (parallaxBackgroundRef.current && heroSectionRef.current) {
+        const scrollY = window.scrollY || window.pageYOffset;
+        const heroSection = heroSectionRef.current;
+        const rect = heroSection.getBoundingClientRect();
+        const heroHeight = heroSection.offsetHeight;
+        
+        // Chỉ áp dụng parallax khi hero section còn trong viewport
+        // rect.top < heroHeight nghĩa là section vẫn còn một phần trong viewport
+        if (rect.top < heroHeight && rect.bottom > 0) {
+          // Tính toán tốc độ parallax (background di chuyển chậm hơn 50%)
+          const parallaxSpeed = 0.5;
+          // Tính scroll position từ đầu hero section
+          const scrollFromHero = Math.max(0, -rect.top);
+          const yPos = -(scrollFromHero * parallaxSpeed);
+          parallaxBackgroundRef.current.style.transform = `translate3d(0, ${yPos}px, 0)`;
+        } else if (rect.top >= heroHeight) {
+          // Nếu đã scroll qua hero section, reset về vị trí cuối
+          const maxYPos = -(heroHeight * 0.5);
+          parallaxBackgroundRef.current.style.transform = `translate3d(0, ${maxYPos}px, 0)`;
+        } else {
+          // Nếu chưa đến hero section, reset về vị trí đầu
+          parallaxBackgroundRef.current.style.transform = 'translate3d(0, 0, 0)';
+        }
+      }
+    };
+
+    // Throttle scroll event để tối ưu performance
+    let ticking = false;
+    const optimizedScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', optimizedScroll, { passive: true });
+    window.addEventListener('resize', optimizedScroll, { passive: true });
+    
+    // Gọi lần đầu để set vị trí ban đầu
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', optimizedScroll);
+      window.removeEventListener('resize', optimizedScroll);
+    };
+  }, []);
+
 
   return (
     <div className="user-home">
-      {/* Landing Page Hero Section */}
-      <section className="hero-section">
+      {/* Landing Page Hero Section với Parallax Background */}
+      <section className="hero-section" ref={heroSectionRef}>
+        {/* Parallax Background Layer */}
+        <div 
+          className="hero-parallax-background" 
+          ref={parallaxBackgroundRef}
+          style={{
+            backgroundImage: `url(${process.env.PUBLIC_URL}/img/background.jpg)`
+          }}
+        >
+          <div className="hero-background-overlay"></div>
+        </div>
+        {/* Content Layer */}
         <div className="hero-content">
           <h1 className="hero-title">
             Kết nối | Tìm kiếm | Hoàn trả
@@ -53,20 +128,6 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
             Website tìm đồ thất lạc danh cho sinh viên Đại học Duy Tân<br />
             Đăng tin tìm ví, điện thoại, giấy tờ, chìa khóa, tài liệu, vật dụng cá nhân.
           </p>
-          <div className="hero-features">
-            <div className="feature-item">
-              <GroupIcon className="feature-icon" />
-              <span className="feature-text">Kết nối</span>
-            </div>
-            <div className="feature-item">
-              <SearchIcon className="feature-icon" />
-              <span className="feature-text">Tìm kiếm</span>
-            </div>
-            <div className="feature-item">
-              <TargetIcon className="feature-icon" />
-              <span className="feature-text">Hoàn trả</span>
-            </div>
-          </div>
           <div className="hero-actions">
             <button className="btn-primary" onClick={() => openModal('lost')}>
               Đăng Tin Tìm Đồ
@@ -84,7 +145,7 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
           <div className="about-header">
             <div className="about-header-line"></div>
             <PublicIcon className="about-header-icon" />
-            <h2 className="about-title">Lost&Found - Website Tìm Đồ Thất Lạc Danh Cho Sinh Viên DTU</h2>
+            <h2 className="about-title">Lost & Found - Website Tìm Đồ Thất Lạc Danh Cho Sinh Viên DTU</h2>
             <PublicIcon className="about-header-icon" />
             <div className="about-header-line"></div>
           </div>
@@ -92,12 +153,12 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
           <div className="about-content">
             {/* Left Column */}
             <div className="about-left">
-              <h3 className="about-subtitle">Tại sao chọn Lost&Found?</h3>
+              <h3 className="about-subtitle">Tại sao chọn Lost & Found?</h3>
               <p className="about-description">
-              Lost&Found là nền tảng kết nối cộng đồng sinh viên DTU chuyên về tìm kiếm đồ vật thất lạc. 
+              Lost & Found là nền tảng kết nối cộng đồng sinh viên DTU chuyên về tìm kiếm đồ vật thất lạc. 
                 Với hệ thống thông minh và cộng đồng người dùng năng động, chúng tôi đã giúp hàng nghìn người 
                 tìm lại những món đồ quý giá của mình. Từ thẻ sinh viên, điện thoại, ví tiền, chìa khóa xe đến những 
-                vật dụng cá nhân khác, Lost&Found luôn là cầu nối đáng tin cậy.
+                vật dụng cá nhân khác, Lost & Found luôn là cầu nối đáng tin cậy.
               </p>
               
               <h4 className="about-services-title">Dịch vụ chính của chúng tôi:</h4>
@@ -119,11 +180,15 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
                   <span>Với các chia sẻ kinh nghiệm và mẹo hay trong việc tìm kiếm đồ vật</span>
                 </li>
               </ul>
+              
+              <div className="policy-button-container">
+                <PolicyButton />
+              </div>
             </div>
 
             {/* Right Column */}
             <div className="about-right">
-              <h3 className="about-subtitle">Hướng dẫn sử dụng Lost&Found</h3>
+              <h3 className="about-subtitle">Hướng dẫn sử dụng Lost & Found</h3>
               
               <div className="guide-box guide-box-blue">
                 <h4 className="guide-box-title">Khi bạn mất đồ:</h4>
@@ -144,7 +209,7 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
               <div className="guide-box guide-box-purple">
                 <h4 className="guide-box-title">Tính năng thông minh:</h4>
                 <p className="guide-box-text">
-                 Lost&Found sử dụng AI để gợi ý các tin đăng có thể liên quan, phân tích hình ảnh và đề xuất 
+                 Lost & Found sử dụng AI để gợi ý các tin đăng có thể liên quan, phân tích hình ảnh và đề xuất 
                   tìm kiếm dựa trên dữ liệu thống kê từ các trường hợp thành công trước đó.
                 </p>
               </div>
@@ -165,7 +230,7 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
 
           <div className="about-footer">
             <p>
-              Tham gia cộng đồng Lost&Found ngay hôm nay để trải nghiệm dịch vụ tìm đồ thất lạc hiệu quả danh cho sinh viên DTU. 
+              Tham gia cộng đồng Lost & Found ngay hôm nay để trải nghiệm dịch vụ tìm đồ thất lạc hiệu quả danh cho sinh viên DTU. 
               Cùng nhau xây dựng một cộng đồng tương trợ, chia sẻ và lan tỏa yêu thương.
             </p>
           </div>
@@ -206,16 +271,19 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
         </div>
       </section>
 
+      {/* Donation Section */}
+      <DonationSection />
+
       {/* Footer Section */}
       <footer className="main-footer">
         <div className="footer-container">
           <div className="footer-column">
             <div className="footer-logo">
               <SearchIcon className="footer-logo-icon" />
-              <span className="footer-logo-text">Lost&Found</span>
+              <span className="footer-logo-text">Lost & Found</span>
             </div>
             <p className="footer-description">
-              Lost&Found là nền tảng kết nối cộng đồng tìm kiếm, trao trả đồ vật. 
+              Lost & Found là nền tảng kết nối cộng đồng tìm kiếm, trao trả đồ vật. 
               Đăng tin nhanh chóng, tìm đồ dễ dàng, an toàn.
             </p>
           </div>
@@ -246,18 +314,18 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
             <ul className="footer-list footer-contact">
               <li>
                 <PhoneIcon className="footer-contact-icon" />
-                <span>0123456789</span>
+                <span>0339464751</span>
               </li>
               <li>
                 <EmailIcon className="footer-contact-icon" />
-                <span>Admin@dtu.edu.vn</span>
+                <span>t.vinh.1109z@gmail.com</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="footer-copyright">
-          <p>Copyright©2025 Lost&Found. Kết nối cộng đồng tìm đồ cho sinh viên.</p>
+          <p>Copyright©2025 Lost & Found. Kết nối cộng đồng tìm đồ cho sinh viên.</p>
         </div>
 
       </footer>
@@ -269,6 +337,7 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
           onSubmit={handleSubmit}
           initialPostType={modalType}
           lockPostType={true}
+          user={userApi.getCurrentUser()}
         />
       )}
     </div>

@@ -7,7 +7,7 @@
 
 /* Landing Header */
 .landing-header {
-  background: #ff8a80;
+  background: #8B0000; /* Màu đỏ đậm */
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -72,59 +72,59 @@
 }
 
 .landing-btn-login {
-  background: transparent;
-  color: #b3002d;
-  background-color: #ffffff;
-  border: 2px solid #b3002d;
+  background: #FF9800; /* Màu cam */
+  color: #ffffff;
+  border: 2px solid #FF9800;
 }
 
 .landing-btn-login:hover:not(.active) {
-  background: #e3f2fd;
+  background: #F57C00; /* Cam đậm hơn khi hover */
+  border-color: #F57C00;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
 }
 
 .landing-btn-login.active {
-  background: #b3002d;
+  background: #F57C00; /* Cam đậm khi active */
   color: white;
-  border-color: #b3002d;
-  box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
+  border-color: #F57C00;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
   font-weight: 700;
   transform: translateY(-1px);
 }
 
 .landing-btn-login.active:hover {
-  background: #b3002d;
-  border-color: #b3002d;
-  box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
+  background: #E65100; /* Cam rất đậm khi hover active */
+  border-color: #E65100;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
 }
 
 .landing-btn-register {
-    background: transparent;
-    color: #b3002d;
-    background-color: #ffffff;
-    border: 2px solid #b3002d;
+  background: #FF9800; /* Màu cam */
+  color: #ffffff;
+  border: 2px solid #FF9800;
 }
 
 .landing-btn-register:hover:not(.active) {
-    background: #e3f2fd;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
+  background: #F57C00; /* Cam đậm hơn khi hover */
+  border-color: #F57C00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
 }
 
 .landing-btn-register.active {
-    background: #b3002d;
-    color: white;
-    border-color: #b3002d;
-    box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
-    font-weight: 700;
-    transform: translateY(-1px);
+  background: #F57C00; /* Cam đậm khi active */
+  color: white;
+  border-color: #F57C00;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
+  font-weight: 700;
+  transform: translateY(-1px);
 }
 
 .landing-btn-register.active:hover {
-    background: #b3002d;
-    border-color: #b3002d;
-    box-shadow: 0 6px 20px rgba(231, 108, 106, 0.5);
+  background: #E65100; /* Cam rất đậm khi hover active */
+  border-color: #E65100;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
 }
 
 /* Auth Overlay */

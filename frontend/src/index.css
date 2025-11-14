@@ -35,6 +35,8 @@ code {
 html, body {
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden; /* Ngăn scroll ngang */
+  max-width: 100vw; /* Đảm bảo không vượt quá viewport width */
 }
 
 /* Common containers */

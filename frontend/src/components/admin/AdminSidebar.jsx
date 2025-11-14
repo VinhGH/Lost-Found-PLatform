@@ -1,57 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminSidebar.css';
 import {
-  Group as GroupIcon,
-  Person as PersonIcon,
-  AdminPanelSettings as AdminIcon,
-  Article as ArticleIcon,
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  ExpandMore as ExpandMoreIcon
+  ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 
 const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
-  const [expandedMenus, setExpandedMenus] = useState(['users']);
-  const pendingCount = 4;
+  // ✅ Tính số lượng bài đăng chờ duyệt từ localStorage
+  const getPendingCount = () => {
+    try {
+      const saved = localStorage.getItem("posts");
+      if (saved) {
+        const posts = JSON.parse(saved);
+        return posts.filter(p => p.status === 'pending').length;
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi đếm pending posts:", error);
+    }
+    return 0;
+  };
+  
+  const [pendingCount, setPendingCount] = useState(getPendingCount());
+  
+  // ✅ Cập nhật pending count khi có thay đổi
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPendingCount(getPendingCount());
+    }, 2000); // Check mỗi 2 giây
+    
+    // ✅ Lắng nghe event khi posts thay đổi
+    const handlePostsUpdated = () => {
+      setPendingCount(getPendingCount());
+    };
+    
+    window.addEventListener('postsUpdated', handlePostsUpdated);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('postsUpdated', handlePostsUpdated);
+    };
+  }, []);
+  
+  // ✅ 2 menu items riêng biệt, không còn submenu
   const menuItems = [
     {
-      id: 'users',
-      label: 'Quản lý người dùng',
-      icon: <GroupIcon />,
-      path: '/admin/users',
-      submenu: [
-        { id: 'user-accounts', label: 'Tài khoản người dùng', icon: <PersonIcon /> },
-        { id: 'admin-accounts', label: 'Tài khoản Admin', icon: <AdminIcon /> }
-      ]
+      id: 'lost-items',
+      label: 'Bài đăng chờ duyệt',
+      icon: <SearchIcon />,
+      badge: pendingCount
     },
     {
-      id: 'content',
-      label: 'Quản lý bài đăng',
-      icon: <ArticleIcon />,
-      path: '/admin/content',
-      submenu: [
-        { id: 'lost-items', label: 'Danh sách bài chờ duyệt', icon: <SearchIcon />, badge: pendingCount },
-        { id: 'approved-posts', label: 'Xem bài đăng', icon: <VisibilityIcon /> }
-      ]
-    },
+      id: 'approved-posts',
+      label: 'Bài đăng đã duyệt',
+      icon: <VisibilityIcon />
+    }
   ];
 
-  const handleMenuClick = (itemId, hasSubmenu = false) => {
-    if (hasSubmenu) {
-      setExpandedMenus(prev => 
-        prev.includes(itemId) 
-          ? prev.filter(id => id !== itemId)
-          : [...prev, itemId]
-      );
-    } else {
-      setActiveTab(itemId);
-    }
-  };
-
-  const isMenuExpanded = (itemId) => {
-    return expandedMenus.includes(itemId);
+  const handleMenuClick = (itemId) => {
+    setActiveTab(itemId);
   };
 
   return (
@@ -82,36 +90,14 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
             <li key={item.id} className="nav-item">
               <button
                 className={`nav-link ${activeTab === item.id ? 'active' : ''}`}
-                onClick={() => handleMenuClick(item.id, !!item.submenu)}
+                onClick={() => handleMenuClick(item.id)}
               >
                 <span className="nav-icon">{item.icon}</span>
                 {!isCollapsed && <span className="nav-label">{item.label}</span>}
-                {!isCollapsed && item.submenu && (
-                  <span className={`nav-arrow ${isMenuExpanded(item.id) ? 'expanded' : ''}`}>
-                    <ExpandMoreIcon />
-                  </span>
+                {!isCollapsed && typeof item.badge === 'number' && item.badge > 0 && (
+                  <span className="menu-badge" aria-label={`Số lượng chờ duyệt: ${item.badge}`}>{item.badge}</span>
                 )}
               </button>
-              
-              {/* Submenu */}
-              {!isCollapsed && item.submenu && isMenuExpanded(item.id) && (
-                <ul className="submenu">
-                  {item.submenu.map(subItem => (
-                    <li key={subItem.id} className="submenu-item">
-                      <button
-                        className={`submenu-link ${activeTab === subItem.id ? 'active' : ''}`}
-                        onClick={() => handleMenuClick(subItem.id)}
-                      >
-                        <span className="submenu-icon">{subItem.icon}</span>
-                        <span className="submenu-label">{subItem.label}</span>
-                        {typeof subItem.badge === 'number' && subItem.badge > 0 && (
-                          <span className="menu-badge" aria-label={`Số lượng chờ duyệt: ${subItem.badge}`}>{subItem.badge}</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </li>
           ))}
         </ul>

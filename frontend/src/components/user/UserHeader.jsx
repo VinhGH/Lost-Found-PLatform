@@ -21,21 +21,24 @@ const UserHeader = ({
   setSearchQuery,
   user,
   onLogout,
-  onCreatePostClick // ✅ callback được truyền từ UserUI
+  onCreatePostClick, // ✅ callback được truyền từ UserUI
+  onSearch // ✅ Hàm xử lý search từ UserUI
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Tìm kiếm sẽ được thực hiện tự động qua onChange của input
-    // Nhưng khi bấm Enter hoặc click icon, ta có thể trigger search nếu cần
-    console.log("🔍 Tìm kiếm với keyword:", searchQuery);
+    if (onSearch && searchQuery && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
   };
 
   const handleSearchIconClick = () => {
     // Trigger search khi click vào icon
-    console.log("🔍 Click icon tìm kiếm với keyword:", searchQuery);
+    if (onSearch && searchQuery && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
   };
 
   return (
@@ -46,7 +49,7 @@ const UserHeader = ({
           <img src="/img/logo_dtu_while.png" alt="DTU Logo" className="logo-image" />
           <div className="logo-text">
             <h1>TimDoDTU</h1>
-            <span>DTU Lost&Found</span>
+            <span>DTU Lost & Found</span>
           </div>
         </div>
 
@@ -101,8 +104,12 @@ const UserHeader = ({
           </button>
 
           {/* User Menu */}
-          <div className="header-user">
-            <button className="user-menu-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
+          <div 
+            className="header-user"
+            onMouseEnter={() => setShowUserMenu(true)}
+            onMouseLeave={() => setShowUserMenu(false)}
+          >
+            <button className="user-menu-btn" type="button">
               <div className="user-avatar">
                 {user?.avatar ? (
                   <img 
@@ -123,8 +130,8 @@ const UserHeader = ({
               <KeyboardArrowDownIcon className="dropdown-icon" style={{ fontSize: '16px' }} />
             </button>
 
-            {showUserMenu && (
-              <div className="user-dropdown">
+            <div className={`user-dropdown ${showUserMenu ? 'visible' : ''}`}>
+              <div className="dropdown-content">
                 <button
                   className="dropdown-item"
                   onClick={() => {
@@ -154,7 +161,7 @@ const UserHeader = ({
                   <LogoutIcon style={{ fontSize: '16px' }} /> Đăng xuất
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

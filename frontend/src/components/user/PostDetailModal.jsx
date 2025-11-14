@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./PostDetailModal.css";
 import Breadcrumb from "../common/Breadcrumb";
 import {
-  X as CloseIcon,
+  Close as CloseIcon,
   LocationOn as LocationIcon,
   AccessTime as TimeIcon,
   Person as PersonIcon,
@@ -10,10 +10,10 @@ import {
 } from "@mui/icons-material";
 
 // 🔹 Hàm tính toán thời gian real-time
-const getTimeAgo = (timestamp) => {
+const getTimeAgo = (timestamp, currentTime = Date.now()) => {
   if (!timestamp) return "Vừa đăng";
   
-  const now = Date.now();
+  const now = currentTime;
   const diff = now - timestamp;
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -36,8 +36,8 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
   const handleNavigate = onNavigate || (() => {});
   const tabName = currentTab || (post.type === "lost" ? "Đồ mất" : "Đồ nhặt được");
   const category = categoryPath || post.category;
-  const [, forceTimeUpdate] = useState(Date.now());
-  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
   
   // 🔹 Lock body scroll when modal is open
   useEffect(() => {
@@ -59,11 +59,25 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
     if (!post) return;
     
     const interval = setInterval(() => {
-      forceTimeUpdate(Date.now());
+      setCurrentTime(Date.now());
     }, 60000); // Cập nhật mỗi 60 giây
     
     return () => clearInterval(interval);
   }, [post]);
+
+  // 🔹 Xử lý ESC key để đóng modal phóng to ảnh
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isImageZoomed) {
+        setIsImageZoomed(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isImageZoomed]);
   
   if (!post) return null;
 
@@ -103,68 +117,41 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
 
         {/* Scrollable Content Wrapper */}
         <div className="detail-content-wrapper">
-          <div className="detail-info">
-            <div className="detail-info-left">
-              <div>
-                <LocationIcon /> <strong>Địa điểm:</strong> {post.location}
-              </div>
-              <div>
-                <PersonIcon /> <strong>Người đăng:</strong> {post.author}
-              </div>
-            </div>
-            <div className="detail-info-right">
-              <div>
-                <TimeIcon /> <strong>Thời gian:</strong> {getTimeAgo(post.createdAt || post.id)}
-              </div>
-              {post.contact && (
+          {/* Info Section - Above Image */}
+          <div className="detail-info-section">
+            <div className="detail-info">
+              <div className="detail-info-left">
                 <div>
-                  <PhoneIcon /> <strong>Liên hệ:</strong> {post.contact}
+                  <LocationIcon /> <strong>Địa điểm:</strong> {post.location}
                 </div>
-              )}
+                <div>
+                  <PersonIcon /> <strong>Người đăng:</strong> {post.author}
+                </div>
+              </div>
+              <div className="detail-info-right">
+                <div>
+                  <TimeIcon /> <strong>Thời gian:</strong> {getTimeAgo(post.createdAt || post.id, currentTime)}
+                </div>
+                {post.contact && (
+                  <div>
+                    <PhoneIcon /> <strong>Liên hệ:</strong> {post.contact}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Image */}
-          <div
-            className={`detail-image ${post.image ? "is-clickable" : ""}`}
-            onClick={() => post.image && setShowImagePreview(true)}
-            role={post.image ? "button" : undefined}
-            tabIndex={post.image ? 0 : -1}
-            onKeyDown={(e) => {
-              if (post.image && (e.key === "Enter" || e.key === " ")) {
-                e.preventDefault();
-                setShowImagePreview(true);
-              }
-            }}
-          >
-            {post.image ? (
-              <img src={post.image} alt={post.title} />
-            ) : (
-              <div className="no-image-placeholder">Không có hình ảnh</div>
-            )}
+          <div className="detail-image" onClick={() => setIsImageZoomed(true)}>
+            <img src={post.image} alt={post.title} />
+            <div className="image-zoom-hint">Click để phóng to</div>
           </div>
 
           {/* Content */}
           <div className="detail-body">
             <p className="detail-description">{post.description}</p>
           </div>
-
         </div>
-
-        {showImagePreview && post.image && (
-          <div className="detail-image-overlay" onClick={() => setShowImagePreview(false)}>
-            <button
-              className="overlay-close-btn"
-              onClick={() => setShowImagePreview(false)}
-              aria-label="Đóng ảnh phóng to"
-            >
-              <CloseIcon style={{ fontSize: 26 }} />
-            </button>
-            <div className="detail-image-overlay-content" onClick={(e) => e.stopPropagation()}>
-              <img src={post.image} alt={post.title} />
-            </div>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="detail-footer">
@@ -173,6 +160,18 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
           </button>
         </div>
       </div>
+
+      {/* Image Zoom Modal */}
+      {isImageZoomed && (
+        <div className="image-zoom-overlay" onClick={() => setIsImageZoomed(false)}>
+          <div className="image-zoom-container" onClick={(e) => e.stopPropagation()}>
+            <button className="image-zoom-close" onClick={() => setIsImageZoomed(false)}>
+              <CloseIcon style={{ fontSize: "24px" }} />
+            </button>
+            <img src={post.image} alt={post.title} className="zoomed-image" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

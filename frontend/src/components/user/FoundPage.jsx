@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./FoundPage.css";
 import {
   LocationOn as LocationIcon,
@@ -11,6 +11,8 @@ import PostDetailModal from "./PostDetailModal";
 import RecentPosts from "./RecentPosts";
 import FilterPanel from "./FilterPanel";
 import { FilterList as FilterIcon } from "@mui/icons-material";
+
+const ITEMS_PER_PAGE = 16; // 4 hàng × 4 cột
 
 // 🔹 Cấu hình khoảng thời gian hiển thị trong mục "Gần đây"
 // Mặc định: 24 giờ (1 ngày). Có thể điều chỉnh theo yêu cầu.
@@ -42,6 +44,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ building: "", category: "", date: "any" });
+  const [currentPage, setCurrentPage] = useState(1); // Pagination cho olderList
   
   // 🔹 Cập nhật thời gian mỗi phút để real-time
   useEffect(() => {
@@ -52,9 +55,10 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
     return () => clearInterval(interval);
   }, []);
   
-  // 🔍 Filter posts dựa trên searchQuery và bộ lọc
+  // 🔍 Filter posts dựa trên searchQuery và bộ lọc - chỉ hiển thị bài đã duyệt
   const foundPosts = posts.filter((p) => {
     if (p.type !== "found") return false;
+    if (p.status !== "active") return false; // ✅ Chỉ hiển thị bài đã duyệt
     
     // Nếu không có searchQuery, hiển thị tất cả
     if (!searchQuery || searchQuery.trim() === "") return true;
@@ -95,16 +99,87 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
   const isRecent = (p) => nowTs - (p.createdAt || p.id) <= RECENT_WINDOW_MS;
   const recent = [...filteredByPanel]
     .filter(isRecent)
-    .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id))
-    .slice(0, 6);
+    .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
   const olderList = filteredByPanel.filter((p) => !isRecent(p));
+
+  // Pagination cho olderList (các thẻ quá 24 giờ)
+  const totalPages = useMemo(() => {
+    return Math.ceil(olderList.length / ITEMS_PER_PAGE);
+  }, [olderList.length]);
+
+  const currentPageItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return olderList.slice(startIndex, endIndex);
+  }, [olderList, currentPage]);
+
+  // Reset về trang 1 khi olderList thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [olderList.length]);
+
+  // Tạo danh sách số trang để hiển thị
+  const getPageNumbers = (totalPages, currentPage) => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('ellipsis');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  const handlePageClick = (page) => {
+    setCurrentPage(page);
+  };
 
   console.log("🧭 FoundPage nhận được:", posts);
   console.log("🔍 Search query:", searchQuery);
   console.log("✅ Bài found hiển thị:", filteredByPanel);
 
-  const handleContact = (authorName) => {
-    setChatTarget(authorName);
+  const handleContact = (post) => {
+    // Truyền toàn bộ thông tin bài đăng, không chỉ authorName
+    setChatTarget(post.author);
+    // Lưu thông tin bài đăng vào localStorage để ChatPage có thể đọc
+    const postData = {
+      id: post.id,
+      title: post.title,
+      image: post.image,
+      type: post.type,
+      category: post.category,
+      location: post.location,
+      author: post.author,
+      description: post.description,
+      createdAt: post.createdAt || post.id
+    };
+    localStorage.setItem("chatPostData", JSON.stringify(postData));
+    // ✅ Dispatch custom event để ChatPage phát hiện thay đổi từ cùng tab
+    window.dispatchEvent(new Event('chatPostDataChanged'));
     setActiveTab("chat");
   };
 
@@ -138,7 +213,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
         title="Đồ nhặt được gần đây"
         posts={recent}
         onOpenDetail={(p) => openDetail(p)}
-        onContact={(name) => handleContact(name)}
+        onContact={(post) => handleContact(post)}
       />
 
       {searchQuery && filteredByPanel.length === 0 && (
@@ -152,16 +227,11 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
       )}
 
       <div className="found-posts-grid">
-        {olderList.map((post) => (
+        {currentPageItems.map((post) => (
           <div key={post.id} id={`post-${post.id}`} className="found-post-card">
             <div className="post-image">
-              {post.image ? (
-                <img src={post.image} alt={post.title} />
-              ) : (
-                <div className="no-image-placeholder">Không có hình ảnh</div>
-              )}
+              <img src={post.image} alt={post.title} />
               <div className="post-badge found">Nhặt được</div>
-              {post.reward && <div className="reward-badge">{post.reward}</div>}
             </div>
 
             <div className="post-content">
@@ -199,7 +269,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
               <div className="post-actions">
                 <button
                   className="btn-contact"
-                  onClick={() => handleContact(post.author)}
+                  onClick={() => handleContact(post)}
                 >
                   <PhoneIcon style={{ fontSize: "14px", marginRight: "4px" }} />
                   Liên hệ ngay
@@ -216,6 +286,33 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
         ))}
       </div>
 
+      {/* Pagination cho olderList - luôn hiển thị dù chỉ có 1 trang */}
+      {olderList.length > 0 && (
+        <div className="older-posts-pagination">
+          <div className="pagination-numbers">
+            {getPageNumbers(totalPages, currentPage).map((page, index) => {
+              if (page === 'ellipsis') {
+                return (
+                  <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <button
+                  key={page}
+                  className={`pagination-btn pagination-number ${currentPage === page ? 'active' : ''}`}
+                  onClick={() => handlePageClick(page)}
+                  aria-label={`Trang ${page}`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -227,6 +324,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
               setSelectedPost(null);
             }
           }}
+          onContact={handleContact}
         />
       )}
     </div>

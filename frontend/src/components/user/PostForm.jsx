@@ -6,11 +6,10 @@ import {
 
 const PostForm = ({ type, onBack }) => {
   const [formData, setFormData] = useState({
-    author: '',
     title: '',
     description: '',
     location: '',
-    category: 'Ví/Giấy tờ tùy thân',
+    category: '',
     contact: '',
     images: []
   });
@@ -75,31 +74,68 @@ const PostForm = ({ type, onBack }) => {
 
         <form onSubmit={handleSubmit} className="form-content">
           <div className="form-group">
-            <label className="form-label">
-              Tên người đăng
-              <span className="required-marker">*</span>
-            </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Nhập tên hiển thị của bạn"
-              value={formData.author || ''}
-              onChange={handleInputChange('author')}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              Tiêu đề
-              <span className="required-marker">*</span>
-            </label>
+            <label className="form-label">Tiêu đề *</label>
             <input
               type="text"
               className="form-input"
               placeholder={type === 'lost' ? 'Ví dụ: Mất ví da màu nâu tại quán cà phê' : 'Ví dụ: Nhặt được điện thoại iPhone tại công viên'}
               value={formData.title}
               onChange={handleInputChange('title')}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Mô tả chi tiết *</label>
+            <textarea
+              className="form-textarea"
+              placeholder="Mô tả đặc điểm, màu sắc, kích thước, dấu hiệu nhận biết..."
+              value={formData.description}
+              onChange={handleInputChange('description')}
+              rows="4"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Địa điểm *</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ví dụ: Quận 1, TP.HCM"
+                value={formData.location}
+                onChange={handleInputChange('location')}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Danh mục *</label>
+              <select
+                className="form-select"
+                value={formData.category}
+                onChange={handleInputChange('category')}
+                required
+              >
+                <option value="">Chọn danh mục</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Thông tin liên hệ *</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Số điện thoại hoặc email"
+              value={formData.contact}
+              onChange={handleInputChange('contact')}
               required
             />
           </div>
@@ -145,73 +181,6 @@ const PostForm = ({ type, onBack }) => {
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              Mô tả chi tiết
-              <span className="required-marker">*</span>
-            </label>
-            <textarea
-              className="form-textarea"
-              placeholder="Mô tả đặc điểm, màu sắc, kích thước, dấu hiệu nhận biết..."
-              value={formData.description}
-              onChange={handleInputChange('description')}
-              rows="4"
-              required
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">
-                Địa điểm
-                <span className="required-marker">*</span>
-              </label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Ví dụ: Quận 1, TP.HCM"
-                value={formData.location}
-                onChange={handleInputChange('location')}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                Danh mục
-                <span className="required-marker">*</span>
-              </label>
-              <select
-                className="form-select"
-                value={formData.category}
-                onChange={handleInputChange('category')}
-                required
-              >
-                <option value="">Chọn danh mục</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              Thông tin liên hệ
-              <span className="required-marker">*</span>
-            </label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Số điện thoại hoặc email"
-              value={formData.contact}
-              onChange={handleInputChange('contact')}
-              required
-            />
           </div>
 
           <div className="form-actions">

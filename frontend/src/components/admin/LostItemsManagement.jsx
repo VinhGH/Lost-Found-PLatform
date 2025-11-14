@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './LostItemsManagement.css';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
+import PostDetailModal from '../user/PostDetailModal';
 import {
   Search as SearchIcon,
   Search as LostIcon,
@@ -12,99 +14,55 @@ import {
   Phone as PhoneIcon,
   Delete as DeleteIcon,
   Check as ApproveIcon,
-  Close as RejectIcon
 } from '@mui/icons-material';
 
-const LostItemsManagement = () => {
+const LostItemsManagement = ({ onPostChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [selectedPosts, setSelectedPosts] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, postId: null, postTitle: '' });
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [posts, setPosts] = useState([]);
 
-  // Mock data for lost items posts
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      title: 'Tìm thấy ví da màu đen',
-      description: 'Tìm thấy ví da màu đen tại khu vực thư viện, bên trong có thẻ sinh viên và một số tiền mặt.',
-      type: 'found',
-      category: 'Ví/Túi',
-      location: 'Thư viện DTU',
-      date: '2024-12-20',
-      status: 'active',
-      reporter: 'Nguyễn Văn A',
-      reporterEmail: 'nguyenvana@dtu.edu.vn',
-      images: ['wallet1.jpg', 'wallet2.jpg'],
-      contactInfo: '0123456789'
-    },
-    {
-      id: 2,
-      title: 'Mất điện thoại iPhone 13',
-      description: 'Mất điện thoại iPhone 13 màu xanh tại khu vực canteen, có vỏ bảo vệ màu đen.',
-      type: 'lost',
-      category: 'Điện thoại',
-      location: 'Canteen DTU',
-      date: '2024-12-19',
-      status: 'pending',
-      reporter: 'Trần Thị B',
-      reporterEmail: 'tranthib@dtu.edu.vn',
-      images: [],
-      contactInfo: '0987654321'
-    },
-    {
-      id: 3,
-      title: 'Tìm thấy laptop Dell',
-      description: 'Tìm thấy laptop Dell tại phòng máy tính, có sticker DTU trên mặt laptop.',
-      type: 'found',
-      category: 'Laptop',
-      location: 'Phòng máy tính A1',
-      date: '2024-12-18',
-      status: 'pending',
-      reporter: 'Lê Văn C',
-      reporterEmail: 'levanc@dtu.edu.vn',
-      images: ['laptop1.jpg'],
-      contactInfo: '0369852147'
-    },
-    {
-      id: 4,
-      title: 'Mất chìa khóa xe máy',
-      description: 'Mất chìa khóa xe máy Honda tại bãi xe sinh viên, có móc khóa hình con gấu.',
-      type: 'lost',
-      category: 'Chìa khóa',
-      location: 'Bãi xe sinh viên',
-      date: '2024-12-17',
-      status: 'pending',
-      reporter: 'Phạm Thị D',
-      reporterEmail: 'phamthid@dtu.edu.vn',
-      images: [],
-      contactInfo: '0741258963'
-    },
-    {
-      id: 5,
-      title: 'Tìm thấy tai nghe AirPods',
-      description: 'Tìm thấy tai nghe AirPods màu trắng tại khu vực sân thể thao.',
-      type: 'found',
-      category: 'Phụ kiện',
-      location: 'Sân thể thao DTU',
-      date: '2024-12-16',
-      status: 'pending',
-      reporter: 'Hoàng Văn E',
-      reporterEmail: 'hoangvane@dtu.edu.vn',
-      images: ['airpods1.jpg'],
-      contactInfo: '0852147369'
-    }
-  ]);
+  // ✅ Load posts từ localStorage và chỉ hiển thị pending
+  useEffect(() => {
+    const loadPosts = () => {
+      try {
+        const saved = localStorage.getItem("posts");
+        if (saved) {
+          const allPosts = JSON.parse(saved);
+          // Chỉ lấy bài đăng có status = 'pending'
+          const pendingPosts = allPosts.filter(p => p.status === 'pending');
+          setPosts(pendingPosts);
+        }
+      } catch (error) {
+        console.error("❌ Lỗi khi load posts:", error);
+        setPosts([]);
+      }
+    };
+
+    loadPosts();
+
+    // ✅ Lắng nghe thay đổi từ localStorage
+    const handleStorageChange = () => {
+      loadPosts();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('postsUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('postsUpdated', handleStorageChange);
+    };
+  }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  const handleFilterChange = (filterType, value) => {
-    if (filterType === 'status') {
-      setFilterStatus(value);
-    } else if (filterType === 'type') {
-      setFilterType(value);
-    }
+  const handleFilterChange = (value) => {
+    setFilterType(value);
   };
 
   const handleSelectPost = (postId) => {
@@ -123,58 +81,118 @@ const LostItemsManagement = () => {
     }
   };
 
-  const handleStatusChange = (postId, newStatus) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId ? { ...post, status: newStatus } : post
-    ));
-  };
+  // ✅ Duyệt bài đăng
+  const handleApprovePost = (postId) => {
+    try {
+      const saved = localStorage.getItem("posts");
+      if (saved) {
+        const allPosts = JSON.parse(saved);
+        const postToApprove = allPosts.find(p => p.id === postId);
+        
+        if (postToApprove) {
+          // ✅ Cập nhật status bài đăng
+          const updatedPosts = allPosts.map(post => 
+            post.id === postId ? { ...post, status: 'active' } : post
+          );
+          localStorage.setItem("posts", JSON.stringify(updatedPosts));
+          
+          // ✅ Gửi thông báo đến user
+          const notification = {
+            id: Date.now(),
+            type: 'success',
+            title: 'Bài đăng đã được duyệt',
+            message: 'Bài viết của bạn đã được duyệt',
+            time: new Date().toISOString(),
+            read: false,
+            userId: postToApprove.author || postToApprove.reporter,
+            postId: postId, // ✅ Lưu postId để có thể navigate
+            postType: postToApprove.type, // ✅ Lưu postType để navigate đúng tab
+            createdAt: Date.now() // ✅ Lưu timestamp để tính 3 ngày
+          };
 
-  const handleBulkAction = (action) => {
-    if (action === 'approve') {
-      setPosts(prev => prev.map(post => 
-        selectedPosts.includes(post.id) 
-          ? { ...post, status: 'active' }
-          : post
-      ));
-    } else if (action === 'reject') {
-      setPosts(prev => prev.map(post => 
-        selectedPosts.includes(post.id) 
-          ? { ...post, status: 'rejected' }
-          : post
-      ));
-    } else if (action === 'delete') {
-      if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedPosts.length} bài đăng đã chọn?`)) {
-        setPosts(prev => prev.filter(post => !selectedPosts.includes(post.id)));
-        setSelectedPosts([]);
+          const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+          existingNotifications.unshift(notification);
+          localStorage.setItem("notifications", JSON.stringify(existingNotifications));
+          
+          // ✅ Trigger event để NotificationsButton reload và hiển thị toast
+          window.dispatchEvent(new CustomEvent('notificationAdded', { detail: notification }));
+          
+          setPosts(prev => prev.filter(p => p.id !== postId));
+          window.dispatchEvent(new Event('postsUpdated'));
+          if (onPostChange) onPostChange();
+          
+          alert("✅ Đã duyệt bài đăng và gửi thông báo đến người dùng!");
+        }
       }
+    } catch (error) {
+      console.error("❌ Lỗi khi duyệt bài đăng:", error);
+      alert("❌ Có lỗi xảy ra khi duyệt bài đăng!");
     }
   };
 
-  const handleDeletePost = (postId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài đăng này?')) {
-      setPosts(prev => prev.filter(post => post.id !== postId));
+  // ✅ Mở modal xác nhận xóa
+  const handleOpenDeleteModal = (postId, postTitle) => {
+    setDeleteModal({ isOpen: true, postId, postTitle });
+  };
+
+  // ✅ Xóa bài đăng và gửi thông báo
+  const handleConfirmDelete = () => {
+    const { postId } = deleteModal;
+    if (!postId) return;
+
+    try {
+      const saved = localStorage.getItem("posts");
+      if (saved) {
+        const allPosts = JSON.parse(saved);
+        const postToDelete = allPosts.find(p => p.id === postId);
+        
+        if (postToDelete) {
+          // ✅ Xóa bài đăng
+          const updatedPosts = allPosts.filter(post => post.id !== postId);
+          localStorage.setItem("posts", JSON.stringify(updatedPosts));
+          
+          // ✅ Gửi thông báo đến user
+          const notification = {
+            id: Date.now(),
+            type: 'warning',
+            title: 'Bài đăng đã bị xóa',
+            message: 'Bài viết của bạn đã xóa vì vi phạm tiêu chuẩn cộng đồng của chúng tôi.',
+            time: new Date().toISOString(),
+            read: false,
+            userId: postToDelete.author || postToDelete.reporter,
+            createdAt: Date.now() // ✅ Lưu timestamp để tính 3 ngày
+          };
+
+          // ✅ Lưu thông báo vào localStorage
+          const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+          existingNotifications.unshift(notification);
+          localStorage.setItem("notifications", JSON.stringify(existingNotifications));
+          
+          // ✅ Trigger event để NotificationsButton reload
+          window.dispatchEvent(new Event('notificationAdded'));
+          
+          setPosts(prev => prev.filter(p => p.id !== postId));
+          setDeleteModal({ isOpen: false, postId: null, postTitle: '' });
+          window.dispatchEvent(new Event('postsUpdated'));
+          if (onPostChange) onPostChange();
+          
+          alert("✅ Đã xóa bài đăng và gửi thông báo đến người dùng!");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi xóa bài đăng:", error);
+      alert("❌ Có lỗi xảy ra khi xóa bài đăng!");
     }
   };
 
   const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.reporter.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || post.status === filterStatus;
+    const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (post.reporter || post.author)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         post.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || post.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesType;
   });
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      active: { class: 'status-active', text: 'Đã duyệt' },
-      pending: { class: 'status-pending', text: 'Chờ duyệt' },
-      rejected: { class: 'status-rejected', text: 'Từ chối' }
-    };
-    const config = statusConfig[status] || statusConfig.pending;
-    return <span className={`status-badge ${config.class}`}>{config.text}</span>;
-  };
 
   const getTypeBadge = (type) => {
     return (
@@ -198,16 +216,16 @@ const LostItemsManagement = () => {
     <div className="lost-items-management">
       {/* Header */}
       <div className="page-header">
-        <h2>Danh sách bài chờ duyệt</h2>
+        <h2>Bài viết chờ duyệt</h2>
         <div className="header-stats">
           <div className="stat-item">
-            <span className="stat-number">{posts.filter(p => p.status === 'pending').length}</span>
+            <span className="stat-number">{posts.length}</span>
             <span className="stat-label">Bài cần duyệt</span>
           </div>
         </div>
       </div>
 
-      {/* Filters and Actions */}
+      {/* Filters */}
       <div className="filters-section">
         <div className="search-filter">
           <div className="search-input-container">
@@ -221,28 +239,14 @@ const LostItemsManagement = () => {
             <button 
               type="button"
               className="search-btn"
-              onClick={() => {
-                // Trigger search functionality
-                console.log('Searching for:', searchTerm);
-              }}
               title="Tìm kiếm"
             >
               <SearchIcon />
             </button>
           </div>
           <select
-            value={filterStatus}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="status-filter"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="active">Đã duyệt</option>
-            <option value="rejected">Từ chối</option>
-          </select>
-          <select
             value={filterType}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="type-filter"
           >
             <option value="all">Tất cả loại</option>
@@ -250,49 +254,42 @@ const LostItemsManagement = () => {
             <option value="found">Đồ tìm thấy</option>
           </select>
         </div>
-
-        {selectedPosts.length > 0 && (
-          <div className="bulk-actions">
-            <span className="selected-count">
-              Đã chọn {selectedPosts.length} bài đăng
-            </span>
-            <button 
-              className="bulk-btn approve"
-              onClick={() => handleBulkAction('approve')}
-            >
-              Duyệt bài
-            </button>
-            <button 
-              className="bulk-btn reject"
-              onClick={() => handleBulkAction('reject')}
-            >
-              Từ chối
-            </button>
-            <button 
-              className="bulk-btn delete"
-              onClick={() => handleBulkAction('delete')}
-            >
-              Xóa bài
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Posts Grid */}
       <div className="posts-grid">
         {filteredPosts.map(post => (
-          <div key={post.id} className={`post-card ${selectedPosts.includes(post.id) ? 'selected' : ''}`}>
+          <div 
+            key={post.id} 
+            className={`post-card ${selectedPosts.includes(post.id) ? 'selected' : ''}`}
+            onClick={(e) => {
+              // Chỉ mở modal nếu không click vào button hoặc checkbox
+              if (!e.target.closest('.post-actions') && !e.target.closest('.post-checkbox') && !e.target.closest('input')) {
+                setSelectedPost(post);
+              }
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="post-header">
               <div className="post-type">{getTypeBadge(post.type)}</div>
               <input
                 type="checkbox"
                 checked={selectedPosts.includes(post.id)}
-                onChange={() => handleSelectPost(post.id)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  handleSelectPost(post.id);
+                }}
                 className="post-checkbox"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
             
             <div className="post-content">
+              {post.image && (
+                <div className="post-image-preview">
+                  <img src={post.image} alt={post.title} />
+                </div>
+              )}
               <h3 className="post-title">{post.title}</h3>
               <p className="post-description">{post.description}</p>
               
@@ -307,58 +304,31 @@ const LostItemsManagement = () => {
                 </div>
                 <div className="detail-item">
                   <span className="detail-label"><CalendarIcon /> ngày đăng</span>
-                  <span className="detail-value">{new Date(post.date).toLocaleDateString('vi-VN')}</span>
+                  <span className="detail-value">
+                    {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : 
+                     post.date ? new Date(post.date).toLocaleDateString('vi-VN') : 'N/A'}
+                  </span>
                 </div>
                 <div className="detail-item">
                   <span className="detail-label"><PersonIcon /> người đăng</span>
-                  <span className="detail-value">{post.reporter}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label"><EmailIcon /> email</span>
-                  <span className="detail-value">{post.reporterEmail}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label"><PhoneIcon /> liên hệ</span>
-                  <span className="detail-value">{post.contactInfo}</span>
+                  <span className="detail-value">{post.author || post.reporter}</span>
                 </div>
               </div>
-
-              {post.images.length > 0 && (
-                <div className="post-images">
-                  <span className="images-label">Hình ảnh:</span>
-                  <div className="images-list">
-                    {post.images.map((image, index) => (
-                      <span key={index} className="image-item">{image}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="post-footer">
-              <div className="post-status">
-                {getStatusBadge(post.status)}
-              </div>
-              <div className="post-actions">
+              <div className="post-actions" onClick={(e) => e.stopPropagation()}>
                 <button 
                   className="action-btn approve"
-                  onClick={() => handleStatusChange(post.id, 'active')}
-                  disabled={post.status === 'active'}
+                  onClick={() => handleApprovePost(post.id)}
                 >
-                  <ApproveIcon /> Duyệt
-                </button>
-                <button 
-                  className="action-btn reject"
-                  onClick={() => handleStatusChange(post.id, 'rejected')}
-                  disabled={post.status === 'rejected'}
-                >
-                  <RejectIcon /> Từ chối
+                  <ApproveIcon /> Duyệt bài
                 </button>
                 <button 
                   className="action-btn delete"
-                  onClick={() => handleDeletePost(post.id)}
+                  onClick={() => handleOpenDeleteModal(post.id, post.title)}
                 >
-                  <DeleteIcon /> Xóa
+                  <DeleteIcon /> Xóa bài
                 </button>
               </div>
             </div>
@@ -368,8 +338,26 @@ const LostItemsManagement = () => {
 
       {filteredPosts.length === 0 && (
         <div className="no-results">
-          <p>Không tìm thấy bài đăng nào phù hợp với tiêu chí tìm kiếm.</p>
+          <p>Không có bài đăng nào chờ duyệt.</p>
         </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, postId: null, postTitle: '' })}
+        onConfirm={handleConfirmDelete}
+        postTitle={deleteModal.postTitle}
+      />
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          currentTab={selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được"}
+          categoryPath={selectedPost.category}
+        />
       )}
     </div>
   );
