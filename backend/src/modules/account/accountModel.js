@@ -1,0 +1,80 @@
+import { supabase } from '../../config/db.js';
+
+class AccountModel {
+  // ==============================
+  // 🔍 Lấy user theo email
+  // ==============================
+  async getByEmail(email) {
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .select(
+          'account_id, email, password, role, user_name, avatar, phone_number'
+        )
+        .eq('email', email)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 = record not found → không lỗi
+        throw error;
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('❌ Error getting account by email:', err.message);
+      throw err;
+    }
+  }
+
+  // ==============================
+  // ➕ Tạo user mới
+  // ==============================
+  async create(userData) {
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .insert({
+          email: userData.email,
+          password: userData.password,
+          user_name: userData.user_name || 'Anonymous',
+          phone_number: userData.phone_number || null,
+          role: 'Student',
+        })
+        .select('account_id, email, role')
+        .single();
+
+      if (error) throw error;
+
+      return data || null;
+    } catch (err) {
+      console.error('❌ Error creating account:', err.message);
+      throw err;
+    }
+  }
+
+  // ==============================
+  // 👤 Lấy user theo ID
+  // ==============================
+  async getById(accountId) {
+    try {
+      const { data, error } = await supabase
+        .from('Account')
+        .select(
+          'account_id, email, user_name, phone_number, avatar, role, created_at'
+        )
+        .eq('account_id', accountId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('❌ Error getting account by ID:', err.message);
+      throw err;
+    }
+  }
+}
+
+export default new AccountModel();

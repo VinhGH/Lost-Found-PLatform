@@ -1,0 +1,311 @@
+/* NotificationsButton.css */
+.notifications-btn {
+  position: fixed !important; /* ✅ Cố định vị trí khi cuộn trang */
+  right: 18px;
+  bottom: 76px; /* ✅ Nằm trên ThemeToggle (48px button + 10px gap = 58px từ bottom, nhưng để 76px để có khoảng cách) */
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: #dc143c; /* Red color */
+  color: white;
+  border: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.notifications-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  background-color: #b22222; /* Darker red on hover */
+}
+
+.notifications-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+
+.notification-badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  border: 2px solid #ffffff;
+}
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+  position: fixed !important; /* ✅ Cố định vị trí khi cuộn trang */
+  right: 18px;
+  bottom: 134px; /* ✅ Nằm trên button Thông báo (48px button + 10px gap) */
+  width: 380px;
+  max-width: calc(100vw - 36px);
+  max-height: 500px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropdown-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex: 1;
+}
+
+.mark-all-read-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mark-all-read-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.close-dropdown-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-dropdown-btn:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+}
+
+.notifications-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.notifications-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.notification-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background: #f1f5f9;
+  transform: translateX(-2px);
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-item.unread {
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-content h5 {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.notification-content p {
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.no-notifications {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.no-notifications p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .notifications-dropdown {
+    width: calc(100vw - 36px);
+    right: 18px;
+    max-height: 400px;
+  }
+}
+
+/* Dark Mode Styles */
+[data-theme='dark'] .notifications-dropdown {
+  background: #0f172a;
+  border-color: #1f2937;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .dropdown-header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .dropdown-header h4 {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .mark-all-read-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+[data-theme='dark'] .mark-all-read-btn:hover {
+  background: #2563eb;
+}
+
+[data-theme='dark'] .close-dropdown-btn {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .close-dropdown-btn:hover {
+  background: #374151;
+  color: #ef4444;
+}
+
+[data-theme='dark'] .notifications-list::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .notifications-list::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+[data-theme='dark'] .notifications-list::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+[data-theme='dark'] .notification-item {
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .notification-item:hover {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .notification-item.clickable:hover {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .notification-item.unread {
+  background: #1e3a5f;
+  border-left-color: #3b82f6;
+}
+
+[data-theme='dark'] .notification-content h5 {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .notification-content p {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .notification-time {
+  color: #6b7280;
+}
+
+[data-theme='dark'] .no-notifications p {
+  color: #9ca3af;
+}

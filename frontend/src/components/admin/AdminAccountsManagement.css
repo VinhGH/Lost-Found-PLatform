@@ -1,0 +1,609 @@
+/* Admin Accounts Management Styles */
+.admin-accounts-management {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.page-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.add-admin-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.add-admin-btn:hover {
+  background: linear-gradient(135deg, #218838, #1ea085);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+
+/* Filters Section */
+.filters-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.search-filter {
+  display: flex;
+  gap: 15px;
+  flex: 1;
+  min-width: 500px;
+}
+
+.search-input-container {
+  display: flex;
+  flex: 1;
+  position: relative;
+  min-width: 400px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 90px 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.search-btn {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.search-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.search-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.role-filter {
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.role-filter:focus {
+  outline: none;
+  border-color: #8B0000;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.selected-count {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.bulk-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.bulk-btn.activate {
+  background: #28a745;
+  color: white;
+}
+
+.bulk-btn.activate:hover {
+  background: #218838;
+}
+
+.bulk-btn.lock {
+  background: #ffc107;
+  color: #212529;
+}
+
+.bulk-btn.lock:hover {
+  background: #e0a800;
+}
+
+.bulk-btn.unlock {
+  background: #28a745;
+  color: white;
+}
+
+.bulk-btn.unlock:hover {
+  background: #218838;
+}
+
+.bulk-btn.delete {
+  background: #dc3545;
+  color: white;
+}
+
+.bulk-btn.delete:hover {
+  background: #c82333;
+}
+
+/* Table Container */
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: white;
+}
+
+.admins-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.admins-table th {
+  background: #f8f9fa;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.admins-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.admins-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.admins-table tr.selected {
+  background-color: #e3f2fd;
+}
+
+/* Checkboxes */
+.select-all-checkbox,
+.admin-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Admin Info */
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B0000, #DC143C);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.admin-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.admin-email {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Username */
+.username {
+  font-weight: 600;
+  color: #2c3e50;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Email Cell */
+.admin-email-cell {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.email-text {
+  font-size: 0.9rem;
+  color: #007bff;
+  font-weight: 500;
+  word-break: break-all;
+  text-decoration: none;
+}
+
+.email-text:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Lock Status Cell */
+.lock-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.lock-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.lock-toggle-btn:hover {
+  background: #f8f9fa;
+  transform: scale(1.1);
+}
+
+.lock-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.lock-toggle-btn.lock {
+  color: #ffc107;
+}
+
+.lock-toggle-btn.unlock {
+  color: #28a745;
+}
+
+/* Role Badges */
+.role-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+.role-admin {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.role-manager {
+  background: #d4edda;
+  color: #155724;
+}
+
+.role-support {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: #10B981;
+  color: #ffffff;
+}
+
+.status-inactive {
+  background: #9CA3AF;
+  color: #ffffff;
+}
+
+.status-suspended {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Lock Badge */
+.lock-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.lock-badge.locked {
+  background: #9CA3AF;
+  color: #ffffff;
+}
+
+.lock-badge.unlocked {
+  background: #3B82F6;
+  color: #ffffff;
+}
+
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: white;
+  cursor: pointer;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.action-btn.edit {
+  background: #007bff;
+  color: white;
+}
+
+.action-btn.edit:hover {
+  background: #0056b3;
+}
+
+.action-btn.delete {
+  background: #dc3545;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #c82333;
+}
+
+.action-btn.delete.disabled {
+  background: #6c757d;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-btn.delete.disabled:hover {
+  background: #6c757d;
+  transform: none;
+}
+
+.action-btn.lock {
+  background: #ffc107;
+  color: #212529;
+}
+
+.action-btn.lock:hover {
+  background: #e0a800;
+}
+
+.action-btn.unlock {
+  background: #28a745;
+  color: white;
+}
+
+.action-btn.unlock:hover {
+  background: #218838;
+}
+
+.action-btn.lock.disabled,
+.action-btn.unlock.disabled {
+  background: #6c757d;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-btn.lock.disabled:hover,
+.action-btn.unlock.disabled:hover {
+  background: #6c757d;
+  transform: none;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+}
+
+@media (max-width: 768px) {
+  .admin-accounts-management {
+    margin: 0;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-filter {
+    flex-direction: column;
+    min-width: auto;
+  }
+
+  .bulk-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admins-table {
+    font-size: 0.85rem;
+  }
+
+  .admins-table th,
+  .admins-table td {
+    padding: 10px 8px;
+  }
+
+  .admin-info {
+    gap: 8px;
+  }
+
+  .admin-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .action-btn {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-accounts-management {
+    margin: 0;
+  }
+
+  .page-header h2 {
+    font-size: 1.4rem;
+  }
+
+
+  .admins-table th,
+  .admins-table td {
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+
+  .admin-details {
+    min-width: 120px;
+  }
+
+  .admin-name {
+    font-size: 0.9rem;
+  }
+
+  .admin-email {
+    font-size: 0.8rem;
+  }
+
+  .email-text {
+    font-size: 0.8rem;
+  }
+
+  .lock-toggle-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+}
