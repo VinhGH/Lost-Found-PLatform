@@ -3,6 +3,7 @@ import "./UserProfile.css";
 import EditPostModal from "./EditPostModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import ConfirmLogoutModal from "./ConfirmLogoutModal";
+import ChangePasswordModal from "./ChangePasswordModal";
 import userApi from "../../services/userApi";
 import {
   Article as ArticleIcon,
@@ -12,7 +13,8 @@ import {
   Person as PersonIcon,
   ExitToApp as LogoutIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Settings as SettingsIcon
 } from "@mui/icons-material";
 
 // 🔹 Đồng bộ cách hiển thị thời gian với các trang Lost/Found
@@ -32,13 +34,26 @@ const getTimeAgo = (timestamp) => {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
-const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", onProfileUpdate, onNavigateToPost }) => {
-  const [activeTab, setActiveTab] = useState(defaultTab);
+const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", onProfileUpdate, onNavigateToPost, onShowToast }) => {
+  // 🔹 Khởi tạo activeTab từ localStorage hoặc defaultTab
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem("userProfileActiveTab");
+      if (savedTab && ["profile", "posts", "settings"].includes(savedTab)) {
+        console.log("✅ Đã load profile tab:", savedTab, "từ localStorage");
+        return savedTab;
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi load profile tab từ localStorage:", error);
+    }
+    return defaultTab;
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [deletingPost, setDeletingPost] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   // 🔹 Khởi tạo profileData từ localStorage hoặc user prop
   const [profileData, setProfileData] = useState(() => {
@@ -116,6 +131,29 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
 
   // 🔹 Lọc bài đăng của user hiện tại
   const userPosts = posts.filter((p) => p.author === profileData.name);
+
+  // 🔹 Lưu activeTab vào localStorage khi thay đổi
+  useEffect(() => {
+    if (activeTab && ["profile", "posts", "settings"].includes(activeTab)) {
+      try {
+        localStorage.setItem("userProfileActiveTab", activeTab);
+        console.log("💾 Đã lưu profile tab:", activeTab, "vào localStorage");
+      } catch (error) {
+        console.error("❌ Lỗi khi lưu profile tab vào localStorage:", error);
+      }
+    }
+  }, [activeTab]);
+
+  // 🔹 Lắng nghe event để chuyển sang tab settings từ UserHeader
+  useEffect(() => {
+    const handleSwitchToSettings = () => {
+      setActiveTab("settings");
+    };
+    window.addEventListener('switchToSettingsTab', handleSwitchToSettings);
+    return () => {
+      window.removeEventListener('switchToSettingsTab', handleSwitchToSettings);
+    };
+  }, []);
 
   // ======================= PROFILE =======================
   const handleInputChange = (field) => (e) => {
@@ -385,6 +423,29 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
     </div>
   );
 
+  // ======================= GIAO DIỆN SETTINGS TAB =======================
+  const renderSettingsTab = () => (
+    <div className="settings-tab">
+      <div className="settings-header">
+        <h3 className="section-title">Cài đặt</h3>
+      </div>
+      <div className="settings-content">
+        <div className="settings-item">
+          <div className="settings-item-label">
+            <span>Đổi mật khẩu</span>
+            <span className="settings-item-description">Thay đổi mật khẩu tài khoản của bạn</span>
+          </div>
+          <button
+            className="settings-action-btn"
+            onClick={() => setShowChangePasswordModal(true)}
+          >
+            Đổi mật khẩu
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ======================= GIAO DIỆN POSTS TAB =======================
   const renderPostsTab = () => (
     <div className="posts-tab">
@@ -474,15 +535,27 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
             <div className="sidebar-nav">
               <button
                 className={`nav-item ${activeTab === "profile" ? "active" : ""}`}
-                onClick={() => setActiveTab("profile")}
+                onClick={() => {
+                  setActiveTab("profile");
+                }}
               >
                 <PersonIcon /> Thông tin cá nhân
               </button>
               <button
                 className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
-                onClick={() => setActiveTab("posts")}
+                onClick={() => {
+                  setActiveTab("posts");
+                }}
               >
                 <ArticleIcon /> Bài đăng của tôi
+              </button>
+              <button
+                className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveTab("settings");
+                }}
+              >
+                <SettingsIcon /> Cài đặt
               </button>
             </div>
 
@@ -497,6 +570,7 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
           <div className="profile-main">
             {activeTab === "profile" && renderProfileTab()}
             {activeTab === "posts" && renderPostsTab()}
+            {activeTab === "settings" && renderSettingsTab()}
           </div>
         </div>
       </div>
@@ -508,6 +582,24 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
           onConfirm={() => {
             setShowLogoutModal(false);
             onLogout();
+          }}
+        />
+      )}
+
+      {/* Modal đổi mật khẩu */}
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePasswordModal(false)}
+          onSuccess={(message) => {
+            setShowChangePasswordModal(false);
+            // ✅ Hiển thị toast notification
+            if (onShowToast) {
+              onShowToast({
+                type: 'success',
+                title: 'Thành công',
+                message: message || 'Đổi mật khẩu thành công'
+              });
+            }
           }}
         />
       )}

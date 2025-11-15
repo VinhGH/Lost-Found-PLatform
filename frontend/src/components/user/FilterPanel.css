@@ -64,16 +64,20 @@
   justify-content: flex-end;
   gap: 8px;
 }
-.btn-cancel {
-  background: #90a4ae; /* darker gray */
-  color: #ffffff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 10px;
+/* ✅ Scope vào filter-panel để tránh xung đột với UserUI.css */
+.filter-panel .btn-cancel {
+  background: #90a4ae !important; /* darker gray */
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
   cursor: pointer;
   transition: background 120ms ease;
+  min-width: auto !important;
+  width: auto !important;
 }
-.btn-apply {
+
+.filter-panel .btn-apply {
   background: #198754;
   color: white;
   border: none;
@@ -81,8 +85,9 @@
   border-radius: 10px;
   cursor: pointer;
 }
-.btn-cancel:hover {
-  background: #78909c; /* darker on hover */
+
+.filter-panel .btn-cancel:hover {
+  background: #78909c !important; /* darker on hover */
 }
 
 

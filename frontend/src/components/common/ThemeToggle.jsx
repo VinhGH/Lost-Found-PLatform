@@ -36,7 +36,9 @@ const ThemeToggle = () => {
 
   const toggle = () => {
     if (window.__toggleTheme) {
-      window.__toggleTheme();
+      // ✅ Xác định context dựa trên component được render ở đâu
+      const context = document.querySelector('.admin-dashboard') ? 'admin' : 'user';
+      window.__toggleTheme(context);
       setTheme(window.__getTheme ? window.__getTheme() : theme === 'dark' ? 'light' : 'dark');
     }
   };

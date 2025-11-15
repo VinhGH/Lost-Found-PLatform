@@ -381,3 +381,77 @@
     padding: 32px 20px;
   }
 }
+
+/* ✅ Force Admin Dashboard luôn ở Light Mode - Override mọi dark mode styles */
+.admin-mode .admin-dashboard,
+.admin-light-mode,
+.admin-light-mode * {
+  /* Override dark mode background colors */
+}
+
+/* ✅ Override dark mode cho admin dashboard với specificity cao */
+.admin-mode .admin-dashboard,
+.admin-light-mode,
+[data-theme="dark"] .admin-dashboard,
+[data-theme="dark"] .admin-light-mode {
+  background: #f8fafc !important;
+}
+
+.admin-mode .admin-dashboard .admin-main,
+.admin-light-mode .admin-main,
+[data-theme="dark"] .admin-dashboard .admin-main,
+[data-theme="dark"] .admin-light-mode .admin-main {
+  background: #f8fafc !important;
+}
+
+.admin-mode .admin-dashboard .admin-content,
+.admin-light-mode .admin-content,
+[data-theme="dark"] .admin-dashboard .admin-content,
+[data-theme="dark"] .admin-light-mode .admin-content {
+  background: transparent !important;
+}
+
+/* ✅ Override dark mode cho các elements trong admin */
+.admin-mode .admin-dashboard .page-header h2,
+.admin-light-mode .page-header h2,
+[data-theme="dark"] .admin-dashboard .page-header h2,
+[data-theme="dark"] .admin-light-mode .page-header h2 {
+  color: #1e293b !important;
+}
+
+.admin-mode .admin-dashboard .stat-card,
+.admin-light-mode .stat-card,
+[data-theme="dark"] .admin-dashboard .stat-card,
+[data-theme="dark"] .admin-light-mode .stat-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .admin-dashboard .stat-content h3,
+.admin-light-mode .stat-content h3,
+[data-theme="dark"] .admin-dashboard .stat-content h3,
+[data-theme="dark"] .admin-light-mode .stat-content h3 {
+  color: #1e293b !important;
+}
+
+.admin-mode .admin-dashboard .content-card,
+.admin-light-mode .content-card,
+[data-theme="dark"] .admin-dashboard .content-card,
+[data-theme="dark"] .admin-light-mode .content-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .admin-dashboard .card-header h3,
+.admin-light-mode .card-header h3,
+[data-theme="dark"] .admin-dashboard .card-header h3,
+[data-theme="dark"] .admin-light-mode .card-header h3 {
+  color: #1e293b !important;
+}
+
+.admin-mode .admin-dashboard .activity-content p,
+.admin-light-mode .activity-content p,
+[data-theme="dark"] .admin-dashboard .activity-content p,
+[data-theme="dark"] .admin-light-mode .activity-content p {
+  color: #1e293b !important;
+}

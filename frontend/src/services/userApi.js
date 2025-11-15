@@ -557,6 +557,48 @@ class UserApi {
       };
     }
   }
+
+  // Change password
+  async changePassword({ currentPassword, newPassword }) {
+    try {
+      if (!this.isAuthenticated()) {
+        return {
+          success: false,
+          error: 'Chưa đăng nhập'
+        };
+      }
+
+      // For demo purposes, simulate API call
+      // In real app, this would call backend API
+      
+      // ✅ Nếu có currentPassword, kiểm tra mật khẩu hiện tại
+      // ✅ Nếu không có currentPassword (đã xác nhận OTP), bỏ qua bước này
+      if (currentPassword !== undefined) {
+        // Check current password (demo: default is "user123")
+        if (currentPassword !== 'user123') {
+          return {
+            success: false,
+            error: 'Mật khẩu hiện tại không đúng'
+          };
+        }
+      }
+
+      // Simulate successful password change
+      // In real app, you would update password in backend
+      console.log('✅ Password changed successfully');
+      
+      return {
+        success: true,
+        message: 'Đổi mật khẩu thành công'
+      };
+    } catch (error) {
+      console.error('Change password error:', error);
+      return {
+        success: false,
+        error: 'Không thể đổi mật khẩu. Vui lòng thử lại.'
+      };
+    }
+  }
 }
 
 // Create and export singleton instance

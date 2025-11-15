@@ -14,6 +14,13 @@ import NotificationsButton from "../common/NotificationsButton.jsx";
 import ToastNotification from "../common/ToastNotification.jsx";
 
 const UserUI = ({ onLogout, user: initialUser }) => {
+  // 🔹 Load theme cho User khi component mount
+  useEffect(() => {
+    if (window.__loadTheme) {
+      window.__loadTheme('user');
+    }
+  }, []);
+
   // 🔹 Load user từ localStorage (merge với profile) và state
   const [user, setUser] = useState(() => {
     // Ưu tiên load từ userApi (đã merge với profile)
@@ -356,6 +363,8 @@ const UserUI = ({ onLogout, user: initialUser }) => {
               el.scrollIntoView({ behavior: "smooth", block: "center" });
             }
           }, 120);
+        }} onShowToast={(toast) => {
+          setToastNotification(toast);
         }} />;        
       case "profile":
         return <UserProfile user={user} posts={posts} setPosts={setPosts} onLogout={onLogout} onProfileUpdate={handleProfileUpdate} onNavigateToPost={(postId, type) => {
@@ -366,6 +375,8 @@ const UserUI = ({ onLogout, user: initialUser }) => {
               el.scrollIntoView({ behavior: "smooth", block: "center" });
             }
           }, 120);
+        }} onShowToast={(toast) => {
+          setToastNotification(toast);
         }} />;        
       default:
         return <UserHome searchQuery={searchQuery} />;
@@ -447,8 +458,8 @@ const UserUI = ({ onLogout, user: initialUser }) => {
         />
       )}
 
-      {/* Dark mode toggle - only show on Home, Found, Lost */}
-      {["home", "found", "lost"].includes(activeTab) && <ThemeToggle />}
+      {/* Dark mode toggle - show on Home, Found, Lost, Profile, Posts */}
+      {["home", "found", "lost", "profile", "posts"].includes(activeTab) && <ThemeToggle />}
 
       {/* Toast Notification - hiển thị tự động */}
       {toastNotification && (

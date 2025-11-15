@@ -450,7 +450,7 @@
 }
 
 .detail-value {
-  color: #1e293b;
+  color: #64748b;
   font-weight: 400;
 }
 
@@ -658,4 +658,64 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ✅ Force Admin luôn ở Light Mode - Override dark mode cho post cards */
+.admin-mode .post-card,
+.admin-light-mode .post-card,
+[data-theme="dark"] .admin-dashboard .post-card,
+[data-theme="dark"] .admin-light-mode .post-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .post-title,
+.admin-light-mode .post-title,
+[data-theme="dark"] .admin-dashboard .post-title,
+[data-theme="dark"] .admin-light-mode .post-title {
+  color: #1e293b !important;
+}
+
+.admin-mode .post-description,
+.admin-light-mode .post-description,
+[data-theme="dark"] .admin-dashboard .post-description,
+[data-theme="dark"] .admin-light-mode .post-description {
+  color: #64748b !important;
+}
+
+.admin-mode .detail-value,
+.admin-light-mode .detail-value,
+[data-theme="dark"] .admin-dashboard .detail-value,
+[data-theme="dark"] .admin-light-mode .detail-value {
+  color: #64748b !important;
+}
+
+.admin-mode .filters-section,
+.admin-light-mode .filters-section,
+[data-theme="dark"] .admin-dashboard .filters-section,
+[data-theme="dark"] .admin-light-mode .filters-section {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .search-input,
+.admin-light-mode .search-input,
+[data-theme="dark"] .admin-dashboard .search-input,
+[data-theme="dark"] .admin-light-mode .search-input {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+.admin-mode .type-filter,
+.admin-light-mode .type-filter,
+.admin-mode .status-filter,
+.admin-light-mode .status-filter,
+[data-theme="dark"] .admin-dashboard .type-filter,
+[data-theme="dark"] .admin-light-mode .type-filter,
+[data-theme="dark"] .admin-dashboard .status-filter,
+[data-theme="dark"] .admin-light-mode .status-filter {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
 }

@@ -431,7 +431,62 @@
 /* Settings Tab */
 .settings-tab {
   padding: 40px;
-  text-align: center;
+}
+
+.settings-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.settings-item-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-item-label > span:first-child {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.settings-item-description {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.settings-action-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #92070C 0%, #DC143C 50%, #FF6B6B 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(146, 7, 12, 0.3);
 }
 
 .settings-tab p {
@@ -496,7 +551,8 @@
 }
 
 [data-theme='dark'] .profile-header,
-[data-theme='dark'] .posts-header {
+[data-theme='dark'] .posts-header,
+[data-theme='dark'] .settings-header {
   border-bottom-color: #1f2937;
 }
 
@@ -541,9 +597,33 @@
 }
 
 [data-theme='dark'] .posts-tab,
-[data-theme='dark'] .profile-tab,
-[data-theme='dark'] .settings-tab {
+[data-theme='dark'] .profile-tab {
   background: transparent;
+}
+
+[data-theme='dark'] .settings-tab {
+  background: #0b1220;
+}
+
+[data-theme='dark'] .settings-item {
+  background: #111c2e;
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .settings-item-label > span:first-child {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .settings-item-description {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .settings-action-btn {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .settings-action-btn:hover {
+  box-shadow: 0 6px 20px rgba(146, 7, 12, 0.5);
 }
 
 /* Responsive */

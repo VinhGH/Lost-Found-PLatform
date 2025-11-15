@@ -95,7 +95,6 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
       </div>
 
       <div className="filter-actions">
-        <button className="btn-cancel" onClick={onClose}>Đóng</button>
         <button className="btn-apply" onClick={apply}>Áp dụng</button>
       </div>
     </div>

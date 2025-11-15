@@ -607,3 +607,80 @@
     font-size: 0.9rem;
   }
 }
+
+/* ✅ Force Admin Accounts Management luôn ở Light Mode - Override dark mode */
+.admin-mode .admin-accounts-management,
+.admin-light-mode .admin-accounts-management,
+[data-theme="dark"] .admin-dashboard .admin-accounts-management,
+[data-theme="dark"] .admin-light-mode .admin-accounts-management {
+  background: transparent !important;
+}
+
+.admin-mode .page-header h2,
+.admin-light-mode .page-header h2,
+[data-theme="dark"] .admin-dashboard .page-header h2,
+[data-theme="dark"] .admin-light-mode .page-header h2 {
+  color: #333 !important;
+}
+
+.admin-mode .table-container,
+.admin-light-mode .table-container,
+[data-theme="dark"] .admin-dashboard .table-container,
+[data-theme="dark"] .admin-light-mode .table-container {
+  background: white !important;
+  border-color: #e0e0e0 !important;
+}
+
+.admin-mode .admins-table th,
+.admin-light-mode .admins-table th,
+[data-theme="dark"] .admin-dashboard .admins-table th,
+[data-theme="dark"] .admin-light-mode .admins-table th {
+  background: #f8f9fa !important;
+  color: #333 !important;
+}
+
+.admin-mode .admins-table td,
+.admin-light-mode .admins-table td,
+[data-theme="dark"] .admin-dashboard .admins-table td,
+[data-theme="dark"] .admin-light-mode .admins-table td {
+  color: #333 !important;
+}
+
+.admin-mode .admin-name,
+.admin-light-mode .admin-name,
+[data-theme="dark"] .admin-dashboard .admin-name,
+[data-theme="dark"] .admin-light-mode .admin-name {
+  color: #333 !important;
+}
+
+.admin-mode .admin-email,
+.admin-light-mode .admin-email,
+[data-theme="dark"] .admin-dashboard .admin-email,
+[data-theme="dark"] .admin-light-mode .admin-email {
+  color: #666 !important;
+}
+
+.admin-mode .filters-section,
+.admin-light-mode .filters-section,
+[data-theme="dark"] .admin-dashboard .filters-section,
+[data-theme="dark"] .admin-light-mode .filters-section {
+  background: transparent !important;
+}
+
+.admin-mode .search-input,
+.admin-light-mode .search-input,
+[data-theme="dark"] .admin-dashboard .search-input,
+[data-theme="dark"] .admin-light-mode .search-input {
+  background: white !important;
+  color: #333 !important;
+  border-color: #ddd !important;
+}
+
+.admin-mode .role-filter,
+.admin-light-mode .role-filter,
+[data-theme="dark"] .admin-dashboard .role-filter,
+[data-theme="dark"] .admin-light-mode .role-filter {
+  background: white !important;
+  color: #333 !important;
+  border-color: #ddd !important;
+}

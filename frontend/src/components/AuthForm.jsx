@@ -3,6 +3,7 @@ import './AuthForm.css';
 import adminApi from '../services/adminApi.js';
 import userApi from '../services/userApi.js';
 import ThemeToggle from './common/ThemeToggle';
+import ToastNotification from './common/ToastNotification';
 import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -33,6 +34,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
+  const [toastNotification, setToastNotification] = useState(null);
   
   // ✅ State cho tính năng "Quên mật khẩu"
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -132,8 +134,15 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
 
     // ✅ Nếu là đăng ký và chưa xác minh OTP, chuyển sang bước OTP
     if (!isLogin && !showRegisterOtp) {
-      // Tạo mã OTP ngẫu nhiên 6 số
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      // ✅ Tạo mã OTP ngẫu nhiên 6 số
+      // 🔹 Mã OTP giả để test: 123456
+      const generatedOtp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // ✅ Hiển thị mã OTP trong console và alert để test
+      console.log('🔐 Mã OTP đăng ký:', generatedOtp);
+      if (process.env.NODE_ENV === 'development') {
+        alert(`🔐 Mã OTP đăng ký: ${generatedOtp}\n\n(Chỉ hiển thị trong môi trường development)`);
+      }
       
       // Lưu OTP và thông tin đăng ký vào localStorage
       localStorage.setItem('registerOtp', JSON.stringify({
@@ -263,8 +272,15 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       }
 
       // ✅ Tạo mã OTP ngẫu nhiên 6 số
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      // 🔹 Mã OTP giả để test: 123456
+      const generatedOtp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
       setOtpCode(generatedOtp);
+      
+      // ✅ Hiển thị mã OTP trong console và alert để test
+      console.log('🔐 Mã OTP quên mật khẩu:', generatedOtp);
+      if (process.env.NODE_ENV === 'development') {
+        alert(`🔐 Mã OTP quên mật khẩu: ${generatedOtp}\n\n(Chỉ hiển thị trong môi trường development)`);
+      }
       
       // ✅ Lưu OTP vào localStorage (trong thực tế sẽ gửi qua email)
       localStorage.setItem('forgotPasswordOtp', JSON.stringify({
@@ -305,8 +321,12 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         }
 
         if (email === forgotPasswordEmail && otp === enteredOtp) {
-          // ✅ Mã OTP đúng - hiển thị thông báo thành công
-          alert('✅ Mã OTP xác nhận thành công! Vui lòng kiểm tra email để đặt lại mật khẩu.');
+          // ✅ Mã OTP đúng - hiển thị toast notification thành công
+          setToastNotification({
+            type: 'success',
+            title: 'Xác nhận thành công',
+            message: 'Mã OTP xác nhận thành công! Vui lòng kiểm tra email để đặt lại mật khẩu.'
+          });
           // ✅ Reset form
           setShowForgotPassword(false);
           setForgotPasswordStep('email');
@@ -442,10 +462,29 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
           });
 
           if (response.success) {
-            userApi.setAuthData(response.token, response.data);
             // ✅ Xóa OTP đã dùng
             localStorage.removeItem('registerOtp');
-            onUserLoginSuccess(response.data);
+            
+            // ✅ Hiển thị toast notification thành công
+            setToastNotification({
+              type: 'success',
+              title: 'Đăng ký thành công',
+              message: 'Tài khoản của bạn đã được tạo thành công! Vui lòng đăng nhập để tiếp tục.'
+            });
+            
+            // ✅ Chuyển về form đăng nhập thay vì tự động đăng nhập
+            setIsLoading(false);
+            setShowRegisterOtp(false);
+            setRegisterOtpInputs(['', '', '', '', '', '']);
+            setRegisterFormData(null);
+            setIsLogin(true);
+            setFormData({
+              email: savedFormData.email,
+              password: '',
+              confirmPassword: ''
+            });
+            setError('');
+            setValidationErrors({});
             return;
           } else {
             throw new Error(response.error || 'Đăng ký thất bại');
@@ -798,6 +837,14 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         </div>
 
       </div>
+
+      {/* Toast Notification */}
+      {toastNotification && (
+        <ToastNotification
+          notification={toastNotification}
+          onClose={() => setToastNotification(null)}
+        />
+      )}
     </div>
   );
 };
