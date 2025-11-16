@@ -1,7 +1,7 @@
 // Admin API Service
 class AdminApi {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     this.authToken = localStorage.getItem('adminToken');
     this.adminData = JSON.parse(localStorage.getItem('adminData') || 'null');
   }
@@ -40,29 +40,53 @@ class AdminApi {
   // Login admin
   async loginAdmin(credentials) {
     try {
-      // For demo purposes, simulate API call
-      if (credentials.username === 'admin' && credentials.password === 'admin123') {
-        const adminData = {
-          id: 1,
-          username: 'admin',
-          name: 'Admin User',
-          email: 'admin@dtu.edu.vn',
-          role: 'Admin',
-          permissions: ['all']
-        };
-        
-        const token = 'demo-admin-token-' + Date.now();
-        this.setAuthData(token, adminData);
-        
-        return {
-          success: true,
-          data: adminData,
-          token: token
-        };
+      // Convert username to full email if needed
+      const email = credentials.username.includes('@') 
+        ? credentials.username 
+        : `${credentials.username}@dtu.edu.vn`;
+
+      // Call real backend API
+      const response = await fetch(`${this.baseURL}/accounts/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: credentials.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Invalid credentials');
       }
-      
-      // For other admin accounts, you would make real API calls here
-      throw new Error('Invalid credentials');
+
+      // Check if user is actually an admin
+      if (data.user.role !== 'Admin') {
+        throw new Error('Access denied: Admin privileges required');
+      }
+
+      // Map backend response to admin format
+      const adminData = {
+        id: data.user.account_id,
+        username: data.user.email.split('@')[0],
+        name: data.user.user_name || 'Admin User',
+        email: data.user.email,
+        role: data.user.role,
+        phone: data.user.phone_number,
+        avatar: data.user.avatar,
+        permissions: ['all']
+      };
+
+      this.setAuthData(data.token, adminData);
+
+      return {
+        success: true,
+        data: adminData,
+        token: data.token
+      };
     } catch (error) {
       return {
         success: false,

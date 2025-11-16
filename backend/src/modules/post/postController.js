@@ -11,21 +11,27 @@ export const getAllPosts = async (req, res, next) => {
       location,
       status,
       search,
+      type,  // 'lost' or 'found'
       page = 1,
       limit = 10,
-      sortBy = 'created_at',
+      sortBy = 'Created_at',
       sortOrder = 'desc'
     } = req.query;
+
+    // 🔹 Check if user is admin
+    const isAdmin = req.user?.role === 'Admin';
 
     const filters = {
       category,
       location,
       status,
       search,
+      type,
       page: parseInt(page),
       limit: parseInt(limit),
       sortBy,
-      sortOrder
+      sortOrder,
+      isAdmin // Pass admin flag to model
     };
 
     const result = await postModel.getAllPosts(filters);
@@ -54,10 +60,12 @@ export const getAllPosts = async (req, res, next) => {
 /**
  * GET /api/posts/:id
  * Get post by ID
+ * Query params: ?type=lost|found (required)
  */
 export const getPostById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { type } = req.query;
 
     if (!id) {
       return res.status(400).json({
@@ -66,7 +74,14 @@ export const getPostById = async (req, res, next) => {
       });
     }
 
-    const result = await postModel.getPostById(id);
+    if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required (lost or found)'
+      });
+    }
+
+    const result = await postModel.getPostById(id, type.toLowerCase());
 
     if (!result.success) {
       return res.status(500).json({
@@ -99,14 +114,14 @@ export const getPostById = async (req, res, next) => {
  */
 export const createPost = async (req, res, next) => {
   try {
-    const { title, description, category, location, images, found_date } = req.body;
+    const { type, title, description, category, location, images, date } = req.body;
     const accountId = req.user?.accountId;
 
     // Validation
-    if (!title || !description || !category || !location) {
+    if (!title || !description || !type) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: title, description, category, location'
+        message: 'Missing required fields: type, title, description'
       });
     }
 
@@ -117,12 +132,11 @@ export const createPost = async (req, res, next) => {
       });
     }
 
-    // Validate category
-    const validCategories = ['lost', 'found', 'Lost', 'Found'];
-    if (!validCategories.includes(category)) {
+    // Validate type
+    if (!['lost', 'found'].includes(type.toLowerCase())) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid category. Must be "lost" or "found"'
+        message: 'Invalid type. Must be "lost" or "found"'
       });
     }
 
@@ -143,13 +157,13 @@ export const createPost = async (req, res, next) => {
 
     const postData = {
       account_id: accountId,
+      type: type.toLowerCase(),
       title: title.trim(),
       description: description.trim(),
-      category,
-      location: location.trim(),
-      images: images || [],
-      found_date,
-      status: 'active'
+      category: category || 'Khác',
+      location: location || '',
+      images: images || []
+      // Note: 'date' field is ignored, we use created_at instead
     };
 
     const result = await postModel.createPost(postData);
@@ -165,7 +179,7 @@ export const createPost = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Post created successfully',
-      post: result.data
+      data: result.data
     });
   } catch (error) {
     next(error);
@@ -175,11 +189,13 @@ export const createPost = async (req, res, next) => {
 /**
  * PUT /api/posts/:id
  * Update post (requires authentication and ownership)
+ * Query params: ?type=lost|found (required)
  */
 export const updatePost = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, description, category, location, image_url, status } = req.body;
+    const { type: typeFromQuery } = req.query;
+    const { title, description, category, location, status } = req.body;
     const accountId = req.user?.accountId;
     const userRole = req.user?.role;
 
@@ -190,9 +206,17 @@ export const updatePost = async (req, res, next) => {
       });
     }
 
+    const type = (typeFromQuery || '').toLowerCase();
+    if (!['lost', 'found'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required in query params (lost or found)'
+      });
+    }
+
     // Check ownership (unless admin)
     if (userRole !== 'Admin') {
-      const isOwner = await postModel.isPostOwner(id, accountId);
+      const isOwner = await postModel.isPostOwner(id, type, accountId);
       if (!isOwner) {
         return res.status(403).json({
           success: false,
@@ -216,35 +240,31 @@ export const updatePost = async (req, res, next) => {
       });
     }
 
-    if (category) {
-      const validCategories = ['lost', 'found', 'Lost', 'Found'];
-      if (!validCategories.includes(category)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid category. Must be "lost" or "found"'
-        });
-      }
+    if (type && !['lost', 'found'].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid type. Must be "lost" or "found"'
+      });
     }
 
     if (status) {
-      const validStatuses = ['active', 'matched', 'closed'];
-      if (!validStatuses.includes(status)) {
+      const validStatuses = ['pending', 'active', 'approved', 'rejected', 'resolved'];
+      if (!validStatuses.includes(status.toLowerCase())) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid status. Must be "active", "matched", or "closed"'
+          message: 'Invalid status. Must be "pending", "active", "approved", "rejected", or "resolved"'
         });
       }
     }
 
     const updateData = {};
-    if (title) updateData.title = title.trim();
-    if (description) updateData.description = description.trim();
-    if (category) updateData.category = category;
-    if (location) updateData.location = location.trim();
-    if (image_url) updateData.image_url = image_url;
-    if (status) updateData.status = status;
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (category !== undefined) updateData.category = category;
+    if (location !== undefined) updateData.location = location;
+    if (status !== undefined) updateData.status = status.toLowerCase();
 
-    const result = await postModel.updatePost(id, updateData);
+    const result = await postModel.updatePost(id, type, updateData);
 
     if (!result.success) {
       return res.status(500).json({
@@ -257,7 +277,7 @@ export const updatePost = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Post updated successfully',
-      post: result.data
+      data: result.data
     });
   } catch (error) {
     next(error);
@@ -267,10 +287,12 @@ export const updatePost = async (req, res, next) => {
 /**
  * DELETE /api/posts/:id
  * Delete post (requires authentication and ownership or admin)
+ * Query params: ?type=lost|found (required)
  */
 export const deletePost = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { type: typeFromQuery } = req.query;
     const accountId = req.user?.accountId;
     const userRole = req.user?.role;
 
@@ -281,9 +303,17 @@ export const deletePost = async (req, res, next) => {
       });
     }
 
+    const type = (typeFromQuery || '').toLowerCase();
+    if (!['lost', 'found'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required in query params (lost or found)'
+      });
+    }
+
     // Check ownership (unless admin)
     if (userRole !== 'Admin') {
-      const isOwner = await postModel.isPostOwner(id, accountId);
+      const isOwner = await postModel.isPostOwner(id, type, accountId);
       if (!isOwner) {
         return res.status(403).json({
           success: false,
@@ -292,7 +322,7 @@ export const deletePost = async (req, res, next) => {
       }
     }
 
-    const result = await postModel.deletePost(id);
+    const result = await postModel.deletePost(id, type);
 
     if (!result.success) {
       return res.status(500).json({
@@ -347,113 +377,26 @@ export const getMyPosts = async (req, res, next) => {
 };
 
 /**
- * GET /api/posts/:id/image
- * Get image by post ID
- */
-export const getImageByPostId = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Post ID is required'
-      });
-    }
-
-    const result = await postModel.getImageByPostId(id);
-
-    if (!result.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve image',
-        error: result.error
-      });
-    }
-
-    if (!result.data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-
-    if (!result.data.image_url) {
-      return res.status(404).json({
-        success: false,
-        message: 'No image found for this post'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Image retrieved successfully',
-      data: {
-        post_id: result.data.post_id,
-        title: result.data.title,
-        image_url: result.data.image_url
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/posts/:id/images
- * Get all images for a post
- */
-export const getPostImages = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Post ID is required'
-      });
-    }
-
-    const result = await postModel.getPostImages(id);
-
-    if (!result.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve images',
-        error: result.error
-      });
-    }
-
-    if (!result.data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Images retrieved successfully',
-      data: result.data
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/posts/type/:postType
+ * GET /api/posts/type/:type
  * Get posts by post type
  */
 export const getPostsByType = async (req, res, next) => {
   try {
-    const { postType } = req.params;
-    const { page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
+    const { type } = req.params;
+    const { page = 1, limit = 10, sortBy = 'Created_at', sortOrder = 'desc' } = req.query;
 
-    if (!postType) {
+    if (!type) {
       return res.status(400).json({
         success: false,
         message: 'Post type is required'
+      });
+    }
+
+    // Validate type
+    if (!['lost', 'found'].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid type. Must be "lost" or "found"'
       });
     }
 
@@ -468,7 +411,7 @@ export const getPostsByType = async (req, res, next) => {
       });
     }
 
-    const result = await postModel.getPostsByType(postType, {
+    const result = await postModel.getPostsByType(type.toLowerCase(), {
       page: pageNum,
       limit: limitNum,
       sortBy,
@@ -485,7 +428,7 @@ export const getPostsByType = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Posts of type '${postType}' retrieved successfully`,
+      message: `Posts of type '${type}' retrieved successfully`,
       data: {
         posts: result.data,
         pagination: result.pagination
@@ -522,3 +465,79 @@ export const getPostTypes = async (req, res, next) => {
   }
 };
 
+/**
+ * PATCH /api/posts/:id/approve
+ * Approve a post (Admin only)
+ * Query params: ?type=lost|found (required)
+ */
+export const approvePost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query;
+
+    if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required (lost or found)'
+      });
+    }
+
+    const result = await postModel.updatePost(id, type.toLowerCase(), { status: 'Approved' });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to approve post',
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Post approved successfully',
+      data: result.data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/posts/:id/reject
+ * Reject a post (Admin only)
+ * Query params: ?type=lost|found (required)
+ */
+export const rejectPost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query;
+    const { reason } = req.body;
+
+    if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required (lost or found)'
+      });
+    }
+
+    const result = await postModel.updatePost(id, type.toLowerCase(), { status: 'Rejected' });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to reject post',
+        error: result.error
+      });
+    }
+
+    // TODO: Send notification to user about rejection (with reason)
+
+    res.status(200).json({
+      success: true,
+      message: 'Post rejected successfully',
+      data: result.data
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,7 +1,7 @@
 // User API Service
 class UserApi {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     this.authToken = localStorage.getItem('userToken');
     this.userData = JSON.parse(localStorage.getItem('userData') || 'null');
   }
