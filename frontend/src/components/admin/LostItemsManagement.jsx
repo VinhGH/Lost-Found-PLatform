@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './LostItemsManagement.css';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import PostDetailModal from '../user/PostDetailModal';
+import userApi from '../../services/realApi'; // ✅ REAL API
 import {
   Search as SearchIcon,
   Search as LostIcon,
@@ -23,21 +24,33 @@ const LostItemsManagement = ({ onPostChange }) => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, postId: null, postTitle: '' });
   const [selectedPost, setSelectedPost] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Load posts từ localStorage và chỉ hiển thị pending
+  // ✅ Load posts từ API (admin sẽ thấy tất cả bài pending)
   useEffect(() => {
-    const loadPosts = () => {
+    const loadPosts = async () => {
       try {
-        const saved = localStorage.getItem("posts");
-        if (saved) {
-          const allPosts = JSON.parse(saved);
-          // Chỉ lấy bài đăng có status = 'pending'
+        setLoading(true);
+        console.log('📋 Admin loading posts from API...');
+        
+        // Call API to get all posts (backend will check if user is admin)
+        const response = await userApi.getAllPosts({ status: 'pending' });
+        
+        if (response.success && response.data) {
+          const allPosts = response.data.posts || response.data;
+          // Filter only pending posts
           const pendingPosts = allPosts.filter(p => p.status === 'pending');
           setPosts(pendingPosts);
+          console.log('✅ Loaded pending posts:', pendingPosts.length);
+        } else {
+          console.error('❌ Failed to load posts:', response.error);
+          setPosts([]);
         }
       } catch (error) {
         console.error("❌ Lỗi khi load posts:", error);
         setPosts([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -81,48 +94,52 @@ const LostItemsManagement = ({ onPostChange }) => {
     }
   };
 
-  // ✅ Duyệt bài đăng
-  const handleApprovePost = (postId) => {
+  // ✅ Duyệt bài đăng qua API
+  const handleApprovePost = async (postId) => {
     try {
-      const saved = localStorage.getItem("posts");
-      if (saved) {
-        const allPosts = JSON.parse(saved);
-        const postToApprove = allPosts.find(p => p.id === postId);
-        
-        if (postToApprove) {
-          // ✅ Cập nhật status bài đăng
-          const updatedPosts = allPosts.map(post => 
-            post.id === postId ? { ...post, status: 'active' } : post
-          );
-          localStorage.setItem("posts", JSON.stringify(updatedPosts));
-          
-          // ✅ Gửi thông báo đến user
-          const notification = {
-            id: Date.now(),
-            type: 'success',
-            title: 'Bài đăng đã được duyệt',
-            message: 'Bài viết của bạn đã được duyệt',
-            time: new Date().toISOString(),
-            read: false,
-            userId: postToApprove.author || postToApprove.reporter,
-            postId: postId, // ✅ Lưu postId để có thể navigate
-            postType: postToApprove.type, // ✅ Lưu postType để navigate đúng tab
-            createdAt: Date.now() // ✅ Lưu timestamp để tính 3 ngày
-          };
+      const postToApprove = posts.find(p => p.id === postId);
+      if (!postToApprove) {
+        alert('❌ Không tìm thấy bài đăng');
+        return;
+      }
 
-          const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-          existingNotifications.unshift(notification);
-          localStorage.setItem("notifications", JSON.stringify(existingNotifications));
-          
-          // ✅ Trigger event để NotificationsButton reload và hiển thị toast
-          window.dispatchEvent(new CustomEvent('notificationAdded', { detail: notification }));
-          
-          setPosts(prev => prev.filter(p => p.id !== postId));
-          window.dispatchEvent(new Event('postsUpdated'));
-          if (onPostChange) onPostChange();
-          
-          alert("✅ Đã duyệt bài đăng và gửi thông báo đến người dùng!");
-        }
+      console.log(`✅ Approving post ${postId} (type: ${postToApprove.type})`);
+
+      // Call API to approve post
+      const response = await userApi.approvePost(postId, postToApprove.type);
+      
+      if (response.success) {
+        console.log('✅ Post approved successfully');
+        
+        // ✅ Gửi thông báo đến user
+        const notification = {
+          id: Date.now(),
+          type: 'success',
+          title: 'Bài đăng đã được duyệt',
+          message: 'Bài viết của bạn đã được duyệt',
+          time: new Date().toISOString(),
+          read: false,
+          userId: postToApprove.author || postToApprove.reporter,
+          postId: postId,
+          postType: postToApprove.type,
+          createdAt: Date.now()
+        };
+
+        const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+        existingNotifications.unshift(notification);
+        localStorage.setItem("notifications", JSON.stringify(existingNotifications));
+        
+        // ✅ Trigger event
+        window.dispatchEvent(new CustomEvent('notificationAdded', { detail: notification }));
+        
+        // Remove from pending list
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        window.dispatchEvent(new Event('postsUpdated'));
+        if (onPostChange) onPostChange();
+        
+        alert("✅ Đã duyệt bài đăng và gửi thông báo đến người dùng!");
+      } else {
+        alert('❌ Không thể duyệt bài: ' + (response.error || 'Lỗi không xác định'));
       }
     } catch (error) {
       console.error("❌ Lỗi khi duyệt bài đăng:", error);

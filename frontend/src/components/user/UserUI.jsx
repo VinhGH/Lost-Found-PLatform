@@ -7,7 +7,7 @@ import LostPage from "./LostPage";
 import ChatPage from "./ChatPage";
 import CreatePostModal from "./CreatePostModal";
 import PostDetailModal from "./PostDetailModal";
-import userApi from "../../services/userApi";
+import userApi from "../../services/realApi"; // ✅ REAL API - Connects to Supabase
 import "./UserUI.css";
 import ThemeToggle from "../common/ThemeToggle.jsx";
 import NotificationsButton from "../common/NotificationsButton.jsx";
@@ -247,100 +247,95 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     }
   }, [posts, isInitialized]);
 
-  // 🟢 Xử lý tạo bài đăng mới
-  const handleCreatePost = (data) => {
-    // Xử lý images array (mới) hoặc image đơn lẻ (cũ) để tương thích
-    const handleImages = () =>
-      new Promise((resolve) => {
-        // Nếu có images array (từ CreatePostModal mới)
-        if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-          const imagePromises = data.images
-            .filter(img => img instanceof File)
-            .map(img => {
-              return new Promise((res) => {
+  // 🟢 Xử lý tạo bài đăng mới - GỌI API THẬT
+  const handleCreatePost = async (data) => {
+    try {
+      console.log('📝 Creating post via API:', data);
+      
+      // Convert images to base64 for API
+      const imagePromises = [];
+      if (data.images && Array.isArray(data.images)) {
+        for (const img of data.images) {
+          if (img instanceof File) {
+            imagePromises.push(
+              new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onloadend = () => res(reader.result);
+                reader.onloadend = () => resolve(reader.result);
                 reader.readAsDataURL(img);
-              });
-            });
-          Promise.all(imagePromises).then(results => {
-            // Lấy ảnh đầu tiên làm ảnh chính (hoặc có thể dùng imagePreviews)
-            resolve(data.imagePreviews?.[0] || results[0] || "");
-          });
-        } 
-        // Nếu có image đơn lẻ (backward compatibility)
-        else if (data.image instanceof File) {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(data.image);
-        } 
-        // Nếu có imagePreviews (từ CreatePostModal mới)
-        else if (data.imagePreviews && Array.isArray(data.imagePreviews) && data.imagePreviews.length > 0) {
-          resolve(data.imagePreviews[0]);
+              })
+            );
+          }
         }
-        // Fallback
-        else {
-          resolve(data.image || "");
-        }
-      });
-
-    handleImages().then((imageBase64) => {
-      const now = Date.now();
-      const newPost = {
-        id: now,
+      }
+      
+      const imageBase64Array = await Promise.all(imagePromises);
+      
+      // Prepare API data
+      const postData = {
         type: data.postType,
         title: data.title,
         description: data.description,
-        location: data.location,
         category: data.category,
-        date: data.date,
-        contact: data.contact,
-        author: user?.name || data.author,
-        image: imageBase64,
-        time: "Vừa đăng",
-        createdAt: now, // 🔹 Lưu timestamp để tính thời gian real-time
-        status: "pending", // ✅ Mặc định là pending - cần admin duyệt
-        views: 0,
+        location: data.location,
+        images: imageBase64Array, // Send all images
+        contact: data.contact || user?.phone,
       };
-
-      const updated = [newPost, ...posts];
-      setPosts(updated);
-      console.log("🆕 Danh sách bài đăng:", updated);
-      // Không cần lưu trực tiếp, useEffect sẽ tự động lưu khi posts thay đổi
-
-      // ✅ Tạo thông báo trong localStorage
-      const notification = {
-        id: Date.now(),
-        type: 'info',
-        title: 'Bài đăng đã được tạo',
-        message: 'Bài viết của bạn đang chờ duyệt !',
-        time: new Date().toISOString(),
-        read: false,
-        userId: user?.name || data.author,
-        postId: now, // ✅ Lưu postId để có thể navigate
-        postType: data.postType, // ✅ Lưu postType để navigate đúng tab
-        createdAt: Date.now() // ✅ Lưu timestamp để tính 3 ngày
-      };
-
-      const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-      existingNotifications.unshift(notification);
-      localStorage.setItem("notifications", JSON.stringify(existingNotifications));
       
-      // ✅ Trigger event để NotificationsButton reload
-      window.dispatchEvent(new Event('notificationAdded'));
-
-      // ✅ Hiển thị toast notification tự động
+      console.log('🔄 Sending to API:', postData);
+      
+      // Call real API
+      const response = await userApi.createPost(postData);
+      
+      if (response.success) {
+        console.log('✅ Post created successfully:', response.data);
+        
+        // Add new post to local state (for immediate UI update)
+        const newPost = response.data.post || response.data;
+        setPosts(prevPosts => [newPost, ...prevPosts]);
+        
+        // Show success notification
+        setToastNotification({
+          type: 'success',
+          title: 'Thành công!',
+          message: 'Bài đăng đã được tạo và gửi lên Supabase',
+        });
+      } else {
+        throw new Error(response.error || 'Không thể tạo bài đăng');
+      }
+    } catch (error) {
+      console.error('❌ Create post error:', error);
       setToastNotification({
-        type: 'info',
-        title: 'Bài đăng đã được tạo',
-        message: 'Bài viết của bạn đang chờ duyệt !',
-        postId: now, // ✅ Lưu postId để có thể navigate
-        postType: data.postType // ✅ Lưu postType để navigate đúng tab
+        type: 'error',
+        title: 'Lỗi!',
+        message: error.message || 'Không thể tạo bài đăng',
       });
+      return;
+    }
 
-      setActiveTab(data.postType === "lost" ? "lost" : "found");
-      setShowCreateModal(false);
-    });
+    
+    // ✅ Tạo thông báo trong localStorage
+    const notification = {
+      id: Date.now(),
+      type: 'info',
+      title: 'Bài đăng đã được tạo',
+      message: 'Bài viết của bạn đã được gửi lên Supabase và đang chờ duyệt!',
+      time: new Date().toISOString(),
+      read: false,
+      userId: user?.name || data.author,
+      postId: Date.now(),
+      postType: data.postType,
+      createdAt: Date.now()
+    };
+
+    const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
+    existingNotifications.unshift(notification);
+    localStorage.setItem("notifications", JSON.stringify(existingNotifications));
+    
+    // ✅ Trigger event để NotificationsButton reload
+    window.dispatchEvent(new Event('notificationAdded'));
+
+    setActiveTab(data.postType === "lost" ? "lost" : "found");
+    setShowCreateModal(false);
   };
 
   // 🧩 Render theo tab

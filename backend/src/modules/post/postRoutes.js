@@ -1,19 +1,23 @@
 import express from 'express';
-import { verifyToken } from '../../middleware/authMiddleware.js';
+import { verifyToken, requireAdmin, optionalAuth } from '../../middleware/authMiddleware.js';
 import * as controller from './postController.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/', controller.getAllPosts);
+// Public routes (with optional auth to detect admin)
+router.get('/', optionalAuth, controller.getAllPosts);
 router.get('/types', controller.getPostTypes);
-router.get('/type/:postType', controller.getPostsByType);
-router.get('/:id', controller.getPostById);
-router.get('/:id/image', controller.getImageByPostId);
-router.get('/:id/images', controller.getPostImages);
+router.get('/type/:type', optionalAuth, controller.getPostsByType);
 
-// Protected routes
-router.get('/my/posts', verifyToken, controller.getMyPosts); // Must be before /:id to avoid conflict
+// Protected routes (must be before /:id to avoid conflict)
+router.get('/my', verifyToken, controller.getMyPosts);
+
+// Admin routes (must be before /:id)
+router.patch('/:id/approve', verifyToken, requireAdmin, controller.approvePost);
+router.patch('/:id/reject', verifyToken, requireAdmin, controller.rejectPost);
+
+// Public routes with :id param (must be after specific routes)
+router.get('/:id', controller.getPostById);
 router.post('/', verifyToken, controller.createPost);
 router.put('/:id', verifyToken, controller.updatePost);
 router.delete('/:id', verifyToken, controller.deletePost);

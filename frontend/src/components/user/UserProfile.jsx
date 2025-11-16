@@ -4,7 +4,7 @@ import EditPostModal from "./EditPostModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import ConfirmLogoutModal from "./ConfirmLogoutModal";
 import ChangePasswordModal from "./ChangePasswordModal";
-import userApi from "../../services/userApi";
+import userApi from "../../services/realApi"; // ✅ REAL API - Connects to Supabase
 import {
   Article as ArticleIcon,
   Search as SearchIcon,
@@ -83,50 +83,55 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
 
   // 🔹 Load profile từ localStorage khi component mount hoặc khi user.email thay đổi
   useEffect(() => {
+    const loadProfile = async () => {
     if (!user?.email) {
       setIsInitialized(true);
       return;
     }
 
     try {
-      const profileKey = `userProfile_${user.email}`;
-      const saved = localStorage.getItem(profileKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // 🔹 Đảm bảo email luôn lấy từ user prop (không cho phép thay đổi)
-        const profileWithEmail = {
-          ...parsed,
-          email: user.email
+        // ✅ Load profile từ Supabase
+        console.log("🔄 Đang load profile từ Supabase...");
+        const response = await userApi.getProfile();
+        
+        if (response.success && response.data) {
+          const userData = response.data.user || response.data;
+          const profileFromDB = {
+            name: userData.user_name || user?.name || "Nguyễn Văn A",
+            email: userData.email || user?.email || "user@dtu.edu.vn",
+            phone: userData.phone_number || user?.phone || "",
+            address: user?.address || "", // Address không có trong DB schema
+            avatar: userData.avatar || user?.avatar || null,
         };
-        setProfileData(profileWithEmail);
-        console.log("✅ Đã load profile từ localStorage:", profileWithEmail);
+          setProfileData(profileFromDB);
+          console.log("✅ Đã load profile từ Supabase:", profileFromDB);
       } else {
-        // Nếu chưa có trong localStorage, khởi tạo từ user prop
-        const initialData = {
+          // Fallback về user prop nếu API fail
+          console.warn("⚠️ Không load được profile từ Supabase, dùng user prop");
+          setProfileData({
           name: user?.name || "Nguyễn Văn A",
           email: user?.email || "user@dtu.edu.vn",
-          phone: user?.phone || "0901234567",
-          address: user?.address || "Đại học Duy Tân, Đà Nẵng",
+            phone: user?.phone || "",
+            address: user?.address || "",
           avatar: user?.avatar || null,
-        };
-        // Lưu vào localStorage để lần sau có thể load
-        localStorage.setItem(profileKey, JSON.stringify(initialData));
-        setProfileData(initialData);
-        console.log("ℹ️ Khởi tạo profile từ user prop và lưu vào localStorage");
+          });
       }
     } catch (error) {
-      console.error("❌ Lỗi khi load profile từ localStorage:", error);
+        console.error("❌ Lỗi khi load profile từ Supabase:", error);
       // Fallback về user prop nếu có lỗi
       setProfileData({
         name: user?.name || "Nguyễn Văn A",
         email: user?.email || "user@dtu.edu.vn",
-        phone: user?.phone || "0901234567",
-        address: user?.address || "Đại học Duy Tân, Đà Nẵng",
+          phone: user?.phone || "",
+          address: user?.address || "",
         avatar: user?.avatar || null,
       });
     } finally {
       setIsInitialized(true);
     }
+    };
+
+    loadProfile();
   }, [user?.email]); // Chạy khi user.email thay đổi
 
   // 🔹 Lọc bài đăng của user hiện tại
@@ -180,10 +185,8 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      const profileKey = `userProfile_${user?.email || 'default'}`;
-      
       // 🔹 Đảm bảo email luôn lấy từ user prop (không cho phép thay đổi)
       const profileToSave = {
         ...profileData,
@@ -192,95 +195,53 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
       
       // Lấy tên cũ TRƯỚC KHI lưu dữ liệu mới
       let oldName = user?.name || "Nguyễn Văn A";
-      const savedProfile = localStorage.getItem(profileKey);
-      if (savedProfile) {
-        try {
-          const parsed = JSON.parse(savedProfile);
-          oldName = parsed.name || oldName;
-        } catch (e) {
-          // Ignore, dùng oldName từ user prop
-        }
-      }
-      
-      // Lưu profile mới vào localStorage (không bao gồm email có thể thay đổi)
-      localStorage.setItem(profileKey, JSON.stringify(profileToSave));
-      console.log("💾 Đã lưu profile vào localStorage:", profileToSave);
-      
-      // 🔹 Cập nhật userData trong localStorage để sync với header (không cập nhật email)
-      userApi.updateUserData({
-        name: profileToSave.name,
-        phone: profileToSave.phone,
-        address: profileToSave.address,
-        avatar: profileToSave.avatar
-        // 🔹 Không cập nhật email - email luôn lấy từ userData gốc
+
+      // ✅ Gọi API để lưu vào Supabase
+      console.log("🔄 Đang cập nhật profile vào Supabase...");
+      const response = await userApi.updateProfile({
+        user_name: profileToSave.name,
+        phone_number: profileToSave.phone,
+        avatar: profileToSave.avatar,
       });
-      console.log("✅ Đã cập nhật userData trong userApi");
-      
-      // 🔹 Thông báo cho UserUI để cập nhật user state
-      if (onProfileUpdate) {
-        const updatedUser = userApi.getCurrentUser();
-        onProfileUpdate(updatedUser);
-      }
-      
-      // Cập nhật tên author trong các posts nếu name thay đổi
-      if (profileToSave.name && profileToSave.name !== oldName) {
-        setPosts((prevPosts) => {
-          const updatedPosts = prevPosts.map((post) => {
-            // Cập nhật tất cả posts có author trùng với tên cũ
-            if (post.author === oldName) {
-              return { ...post, author: profileToSave.name };
-            }
-            return post;
-          });
-          localStorage.setItem("posts", JSON.stringify(updatedPosts));
-          console.log("✅ Đã cập nhật author trong posts từ", oldName, "sang", profileToSave.name);
-          return updatedPosts;
-        });
-      }
-      
-      // 🔹 Cập nhật avatar và tên trong các cuộc trò chuyện (chatConversations)
-      try {
-        const savedConversations = localStorage.getItem("chatConversations");
-        if (savedConversations) {
-          let conversations = JSON.parse(savedConversations);
-          const newName = profileToSave.name;
-          const newAvatar = profileToSave.avatar;
 
-          // Cập nhật thông tin user trong danh sách cuộc trò chuyện
-          conversations = conversations.map(conv => {
-            if (conv.user.name === oldName) {
-              return {
-                ...conv,
-                user: {
-                  ...conv.user,
-                  name: newName,
-                  avatar: newAvatar || conv.user.avatar, // Giữ avatar cũ nếu avatar mới là null
-                },
+      if (!response.success) {
+        alert("⚠️ " + (response.error || "Không thể cập nhật thông tin"));
+        return;
+      }
+
+      console.log("✅ Profile đã được lưu vào Supabase:", response.data);
+      
+      // 🔹 Lấy user data mới từ backend response
+      const updatedUserData = response.data?.user || response.data;
+      
+      // 🔹 Format lại để match với frontend expectations
+      const formattedUser = {
+        account_id: updatedUserData.account_id,
+        email: updatedUserData.email,
+        name: updatedUserData.user_name || profileToSave.name,
+        user_name: updatedUserData.user_name || profileToSave.name,
+        phone: updatedUserData.phone_number || profileToSave.phone,
+        phone_number: updatedUserData.phone_number || profileToSave.phone,
+        avatar: updatedUserData.avatar || profileToSave.avatar,
+        role: updatedUserData.role,
+        created_at: updatedUserData.created_at,
               };
-            }
-            return conv;
-          });
-
-          localStorage.setItem("chatConversations", JSON.stringify(conversations));
-          console.log("✅ Đã cập nhật avatar/tên trong chatConversations localStorage.");
-        }
-      } catch (error) {
-        console.error("❌ Lỗi khi cập nhật chatConversations:", error);
+      
+      console.log("📤 Syncing user data to header:", formattedUser);
+      
+      // 🔹 Thông báo cho UserUI để cập nhật user state (sync header)
+      if (onProfileUpdate) {
+        onProfileUpdate(formattedUser);
       }
 
       // 🔹 Cập nhật profileData state với email đúng
       setProfileData(profileToSave);
       
-      alert("✅ Thông tin hồ sơ đã được cập nhật!");
+      alert("✅ Thông tin hồ sơ đã được cập nhật vào Supabase!");
       setIsEditing(false);
     } catch (error) {
       console.error("❌ Lỗi khi lưu profile:", error);
-      // Kiểm tra nếu lỗi do localStorage đầy
-      if (error.name === 'QuotaExceededError' || error.code === 22) {
-        alert("⚠️ Bộ nhớ đầy. Vui lòng xóa một số dữ liệu cũ hoặc liên hệ hỗ trợ.");
-      } else {
         alert("⚠️ Có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại.");
-      }
     }
   };
 

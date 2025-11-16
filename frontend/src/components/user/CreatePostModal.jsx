@@ -220,10 +220,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
   const validateForm = () => {
     const newErrors = {};
     
-    // Validation cho tên người đăng
-    if (!formData.author || formData.author.trim().length < 2) {
-      newErrors.author = "Tên người đăng không được để trống và phải có ít nhất 2 ký tự.";
-    }
+    // Tên người đăng tự động lấy từ user prop, không cần validate
 
     // Validation cho tiêu đề
     if (!formData.title || formData.title.trim().length < 5) {
@@ -362,26 +359,8 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             </div>
           )}
 
-          {/* Tên người đăng */}
-          <div className="form-group">
-            <label>Tên người đăng <span className="required-star">*</span></label>
-            <input
-              type="text"
-              name="author"
-              placeholder="Nhập tên người đăng..."
-              value={formData.author}
-              onChange={handleChange}
-              readOnly
-              disabled
-              required
-              style={{
-                backgroundColor: "#f5f5f5",
-                cursor: "not-allowed",
-                color: "#6c757d"
-              }}
-            />
-            {errors.author && <p className="field-error">{errors.author}</p>}
-          </div>
+          {/* Tên người đăng - Hidden (auto từ user) */}
+          <input type="hidden" name="author" value={formData.author} />
 
           {/* Tiêu đề */}
           <div className="form-group">

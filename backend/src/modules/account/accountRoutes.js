@@ -1,17 +1,15 @@
-// 📂 backend/src/modules/account/accountRoutes.js
 import express from 'express';
-import { login, register, getProfile } from './accountController.js';
 import { verifyToken } from '../../middleware/authMiddleware.js';
+import { login, register, getProfile, updateProfile } from './accountController.js';
 
 const router = express.Router();
 
-// 🔐 Đăng nhập
+// Public routes
+router.post('/register', register);
 router.post('/login', login);
 
-// 📝 Đăng ký
-router.post('/register', register);
-
-// 👤 Lấy thông tin người dùng (bắt buộc token)
+// Protected routes
 router.get('/profile', verifyToken, getProfile);
+router.put('/profile', verifyToken, updateProfile);
 
 export default router;
