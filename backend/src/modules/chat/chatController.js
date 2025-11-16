@@ -9,7 +9,6 @@ import notificationModel from '../notification/notificationModel.js';
 export const createConversation = async (req, res, next) => {
   try {
     const { match_id } = req.body;
-    const accountId = req.user?.accountId;
 
     if (!match_id) {
       return res.status(400).json({

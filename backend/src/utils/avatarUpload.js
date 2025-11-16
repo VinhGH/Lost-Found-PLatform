@@ -14,7 +14,7 @@ export async function uploadAvatar(base64String, accountId) {
     }
 
     // Extract base64 data and mime type
-    const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const matches = base64String.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
       return { success: false, error: 'Invalid base64 string' };
     }
@@ -34,7 +34,7 @@ export async function uploadAvatar(base64String, accountId) {
     console.log('📦 Bucket: Images');
 
     // Upload to Supabase Storage bucket 'Images' (case-sensitive!)
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('Images')
       .upload(filePath, buffer, {
         contentType: mimeType,

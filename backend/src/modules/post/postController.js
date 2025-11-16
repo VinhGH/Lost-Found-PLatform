@@ -114,7 +114,7 @@ export const getPostById = async (req, res, next) => {
  */
 export const createPost = async (req, res, next) => {
   try {
-    const { type, title, description, category, location, images, date } = req.body;
+    const { type, title, description, category, location, images } = req.body;
     const accountId = req.user?.accountId;
 
     // Validation
@@ -511,7 +511,6 @@ export const rejectPost = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { type } = req.query;
-    const { reason } = req.body;
 
     if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
       return res.status(400).json({
