@@ -51,7 +51,11 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
   // ✅ Load dữ liệu bài viết
   useEffect(() => {
     if (postData) {
-      const existingImage = postData.imageUrl || postData.image || null;
+      // Load tất cả ảnh từ postData.images hoặc fallback về postData.image
+      const existingImages = postData.images && Array.isArray(postData.images) && postData.images.length > 0
+        ? postData.images
+        : (postData.imageUrl || postData.image ? [postData.imageUrl || postData.image] : []);
+      
       setFormData({
         postType: postData.type || "lost",
         author: postData.author || "",
@@ -79,13 +83,14 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         contact: postData.contact || "",
         image: null,
       });
-      // Load ảnh cũ vào images array nếu có
-      if (existingImage) {
-        setImages([{
-          file: null,
-          preview: existingImage,
-          id: Date.now()
-        }]);
+      
+      // Load tất cả ảnh vào images array
+      if (existingImages.length > 0) {
+        setImages(existingImages.map((img, index) => ({
+          file: null, // Ảnh cũ không có file object
+          preview: img,
+          id: Date.now() + index
+        })));
       } else {
         setImages([]);
       }
@@ -240,11 +245,28 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     
     // Xử lý ảnh: nếu có ảnh mới thì dùng ảnh mới, nếu không thì giữ ảnh cũ
     let finalImage = postData.image || postData.imageUrl; // Giữ ảnh cũ mặc định
+    let finalImages = postData.images && Array.isArray(postData.images) && postData.images.length > 0
+      ? postData.images
+      : (postData.image || postData.imageUrl ? [postData.image || postData.imageUrl] : []);
+    
+    // Nếu có ảnh mới (có file hoặc preview), dùng ảnh mới
     if (images.length > 0) {
-      // Lấy ảnh đầu tiên làm ảnh chính
-      finalImage = images[0].preview;
+      // Kiểm tra xem có ảnh mới (có file) hay chỉ là ảnh cũ (chỉ có preview)
+      const hasNewImages = images.some(img => img.file instanceof File);
+      
+      if (hasNewImages) {
+        // Có ảnh mới - dùng preview của tất cả ảnh (bao gồm cả ảnh mới và ảnh cũ chưa thay đổi)
+        finalImages = images.map(img => img.preview);
+      } else {
+        // Chỉ có ảnh cũ - giữ nguyên
+        finalImages = images.map(img => img.preview);
+      }
+      
+      // Lấy ảnh đầu tiên làm ảnh chính (để backward compatibility)
+      finalImage = finalImages[0];
     }
-    // Nếu images.length === 0, giữ nguyên finalImage (ảnh cũ)
+    // Nếu images.length === 0, giữ nguyên finalImage và finalImages (ảnh cũ)
+    
     const parts = [];
     if (formData.building) {
       parts.push(`Tòa ${formData.building}`);
@@ -269,13 +291,13 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       date: formData.date,
       contact: formData.contact,
       author: formData.author || postData.author, // Giữ author nếu không có
-      image: finalImage, // Dùng ảnh mới nếu có, nếu không thì giữ ảnh cũ
-      images: images.length > 0 ? images.map(img => img.file) : undefined, // Gửi file ảnh mới nếu có
-      imagePreviews: images.length > 0 ? images.map(img => img.preview) : undefined, // Gửi preview ảnh mới nếu có
+      image: finalImage, // Ảnh chính (để backward compatibility)
+      images: finalImages, // ✅ Lưu tất cả ảnh
       time: postData.time || "Vừa đăng", // Giữ time cũ
       status: postData.status || "active", // Giữ status cũ
       views: postData.views || 0, // Giữ views cũ
-      updatedAt: new Date().toISOString(),
+      createdAt: postData.createdAt || postData.id, // Giữ createdAt
+      updatedAt: Date.now(), // Cập nhật thời gian chỉnh sửa
     };
     
     onUpdate(updatedPost);

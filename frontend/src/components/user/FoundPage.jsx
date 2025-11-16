@@ -11,6 +11,7 @@ import PostDetailModal from "./PostDetailModal";
 import RecentPosts from "./RecentPosts";
 import FilterPanel from "./FilterPanel";
 import { FilterList as FilterIcon } from "@mui/icons-material";
+import ImageCarousel from "./ImageCarousel";
 
 const ITEMS_PER_PAGE = 16; // 4 hàng × 4 cột
 
@@ -227,10 +228,16 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
       )}
 
       <div className="found-posts-grid">
-        {currentPageItems.map((post) => (
+        {currentPageItems.map((post) => {
+          // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+          const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+            ? post.images
+            : (post.image ? [post.image] : []);
+          
+          return (
           <div key={post.id} id={`post-${post.id}`} className="found-post-card">
-            <div className="post-image">
-              <img src={post.image} alt={post.title} />
+            <div className="post-image-wrapper">
+              <ImageCarousel images={postImages} postId={post.id} />
               <div className="post-badge found">Nhặt được</div>
             </div>
 
@@ -283,7 +290,8 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pagination cho olderList - luôn hiển thị dù chỉ có 1 trang */}

@@ -7,51 +7,47 @@ import LostPage from "./LostPage";
 import ChatPage from "./ChatPage";
 import CreatePostModal from "./CreatePostModal";
 import PostDetailModal from "./PostDetailModal";
-import userApi from "../../services/realApi"; // ✅ REAL API - Connects to Supabase
+
+import userApi from "../../services/realApi";     // ✅ GIỮ API THẬT
+import aiMatchingService from "../../services/aiMatchingService";  // ✅ GIỮ AI MATCHING
+
 import "./UserUI.css";
 import ThemeToggle from "../common/ThemeToggle.jsx";
 import NotificationsButton from "../common/NotificationsButton.jsx";
 import ToastNotification from "../common/ToastNotification.jsx";
 
 const UserUI = ({ onLogout, user: initialUser }) => {
-  // 🔹 Load theme cho User khi component mount
   useEffect(() => {
-    if (window.__loadTheme) {
-      window.__loadTheme('user');
-    }
+    if (window.__loadTheme) window.__loadTheme("user");
   }, []);
 
-  // 🔹 Load user từ localStorage (merge với profile) và state
   const [user, setUser] = useState(() => {
-    // Ưu tiên load từ userApi (đã merge với profile)
     const currentUser = userApi.getCurrentUser();
     return currentUser || initialUser;
   });
-  
-  // 🔹 Khởi tạo activeTab từ localStorage ngay từ đầu (lazy initialization)
+
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const savedTab = localStorage.getItem("userActiveTab");
-      if (savedTab && ["home", "found", "lost", "chat", "profile", "posts"].includes(savedTab)) {
-        console.log("✅ Đã load tab:", savedTab, "từ localStorage (lazy init)");
+      if (
+        savedTab &&
+        ["home", "found", "lost", "chat", "profile", "posts"].includes(savedTab)
+      ) {
         return savedTab;
       }
-    } catch (error) {
-      console.error("❌ Lỗi khi load activeTab từ localStorage:", error);
-    }
-    console.log("ℹ️ Sử dụng tab mặc định: home");
+    } catch {}
     return "home";
   });
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [chatTarget, setChatTarget] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [posts, setPosts] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [tabInitialized, setTabInitialized] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null); // State cho PostDetailModal
-  const [isSearching, setIsSearching] = useState(false); // Flag để phân biệt khi đang search
-  const [toastNotification, setToastNotification] = useState(null); // State cho toast notification
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [toastNotification, setToastNotification] = useState(null);
 
   const handlePostViewed = (postId) => {
     setPosts((prev) =>
@@ -61,147 +57,90 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     );
   };
 
-  // 🔹 Load user từ localStorage khi component mount (merge với profile)
   useEffect(() => {
     const currentUser = userApi.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      console.log("✅ Đã load user từ userApi (đã merge với profile):", currentUser);
-    } else if (initialUser) {
-      setUser(initialUser);
-    }
+    if (currentUser) setUser(currentUser);
+    else if (initialUser) setUser(initialUser);
   }, [initialUser]);
 
-  // 🔹 Handler để cập nhật user khi profile thay đổi
-  const handleProfileUpdate = (updatedUser) => {
-    setUser(updatedUser);
-    console.log("✅ Đã cập nhật user state từ profile update:", updatedUser);
-  };
-
-  // 🔹 Đánh dấu đã khởi tạo xong tab (sau lần render đầu tiên)
   useEffect(() => {
-    setTabInitialized(true);
+    aiMatchingService.startScanning();
+    return () => aiMatchingService.stopScanning();
   }, []);
 
-  // 🔹 Lưu activeTab vào localStorage khi thay đổi (chỉ sau khi đã khởi tạo xong)
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  useEffect(() => setTabInitialized(true), []);
+
   useEffect(() => {
-    if (activeTab && tabInitialized) {
-      try {
-        localStorage.setItem("userActiveTab", activeTab);
-        console.log("💾 Đã lưu tab:", activeTab, "vào localStorage");
-      } catch (error) {
-        console.error("❌ Lỗi khi lưu activeTab vào localStorage:", error);
-      }
-    }
+    if (activeTab && tabInitialized)
+      localStorage.setItem("userActiveTab", activeTab);
   }, [activeTab, tabInitialized]);
 
-  // ✅ Clear search input khi chuyển tab (trừ khi đang search)
   useEffect(() => {
-    if (tabInitialized && !isSearching) {
-      // Chỉ clear khi không phải là action search
-      setSearchQuery("");
-    }
-  }, [activeTab, tabInitialized, isSearching]); // Chạy khi activeTab thay đổi
+    if (tabInitialized && !isSearching) setSearchQuery("");
+  }, [activeTab, tabInitialized, isSearching]);
 
-  // ✅ Reset flag isSearching sau khi tab đã chuyển xong
   useEffect(() => {
     if (isSearching) {
-      // Reset flag sau một khoảng thời gian ngắn để đảm bảo tab đã chuyển xong
-      const timer = setTimeout(() => {
-        setIsSearching(false);
-      }, 100);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setIsSearching(false), 100);
+      return () => clearTimeout(t);
     }
   }, [isSearching, activeTab]);
 
-  // ✅ Lắng nghe event để hiển thị toast khi admin duyệt bài
   useEffect(() => {
     const handleShowToast = (event) => {
       if (event.detail) {
         setToastNotification({
-          type: event.detail.type || 'success',
-          title: event.detail.title || 'Bài đăng đã được duyệt',
-          message: event.detail.message || 'Bài viết của bạn đã được duyệt',
-          postId: event.detail.postId, // ✅ Lưu postId để có thể navigate
-          postType: event.detail.postType // ✅ Lưu postType để navigate đúng tab
+          type: event.detail.type || "success",
+          title: event.detail.title || "Bài đăng đã được duyệt",
+          message: event.detail.message || "Bài viết của bạn đã được duyệt",
+          postId: event.detail.postId,
+          postType: event.detail.postType,
         });
       }
     };
-
-    window.addEventListener('showToast', handleShowToast);
-    return () => {
-      window.removeEventListener('showToast', handleShowToast);
-    };
+    window.addEventListener("showToast", handleShowToast);
+    return () => window.removeEventListener("showToast", handleShowToast);
   }, []);
 
-  // ✅ Hàm xử lý search - tự động chuyển sang tab có kết quả
   const handleSearch = (query) => {
-    if (!query || !query.trim()) {
-      return; // Không làm gì nếu query rỗng
-    }
+    if (!query?.trim()) return;
 
-    setIsSearching(true); // Đánh dấu đang search để không clear input
+    setIsSearching(true);
     const keyword = query.toLowerCase().trim();
 
-    // Tìm kiếm trong posts
-    const foundResults = posts.filter((p) => {
-      if (p.type !== "found") return false;
-      const searchableText = [
-        p.title || "",
-        p.description || "",
-        p.location || "",
-        p.author || "",
-        p.category || ""
-      ].join(" ").toLowerCase();
-      return searchableText.includes(keyword);
-    });
+    const foundResults = posts.filter(
+      (p) =>
+        p.type === "found" &&
+        `${p.title} ${p.description} ${p.location} ${p.author} ${p.category}`
+          .toLowerCase()
+          .includes(keyword)
+    );
 
-    const lostResults = posts.filter((p) => {
-      if (p.type !== "lost") return false;
-      const searchableText = [
-        p.title || "",
-        p.description || "",
-        p.location || "",
-        p.author || "",
-        p.category || ""
-      ].join(" ").toLowerCase();
-      return searchableText.includes(keyword);
-    });
+    const lostResults = posts.filter(
+      (p) =>
+        p.type === "lost" &&
+        `${p.title} ${p.description} ${p.location} ${p.author} ${p.category}`
+          .toLowerCase()
+          .includes(keyword)
+    );
 
-    // Tự động chuyển sang tab có kết quả
-    if (foundResults.length > 0 && lostResults.length > 0) {
-      // Nếu cả 2 tab đều có kết quả, ưu tiên "Đồ nhặt được"
-      setActiveTab("found");
-    } else if (foundResults.length > 0) {
-      setActiveTab("found");
-    } else if (lostResults.length > 0) {
-      setActiveTab("lost");
-    } else {
-      // Nếu không có kết quả, chuyển sang tab "Đồ nhặt được" để hiển thị "Không tìm thấy"
-      setActiveTab("found");
-    }
+    if (foundResults.length > 0) setActiveTab("found");
+    else if (lostResults.length > 0) setActiveTab("lost");
+    else setActiveTab("found");
   };
 
-  // 🔹 Load bài đăng từ localStorage khi component mount
   const loadPosts = () => {
     try {
       const saved = localStorage.getItem("posts");
       if (saved) {
-        const parsedPosts = JSON.parse(saved);
-        if (Array.isArray(parsedPosts)) {
-          setPosts(parsedPosts);
-          console.log("✅ Đã load", parsedPosts.length, "bài đăng từ localStorage");
-        } else {
-          console.warn("⚠️ Dữ liệu posts trong localStorage không hợp lệ, khởi tạo mảng rỗng");
-          setPosts([]);
-        }
-      } else {
-        console.log("ℹ️ Chưa có dữ liệu posts trong localStorage");
-        setPosts([]);
-      }
-    } catch (error) {
-      console.error("❌ Lỗi khi load posts từ localStorage:", error);
-      // Nếu có lỗi, khởi tạo mảng rỗng để tránh crash
+        const parsed = JSON.parse(saved);
+        setPosts(Array.isArray(parsed) ? parsed : []);
+      } else setPosts([]);
+    } catch {
       setPosts([]);
     } finally {
       setIsInitialized(true);
@@ -211,168 +150,169 @@ const UserUI = ({ onLogout, user: initialUser }) => {
   useEffect(() => {
     loadPosts();
 
-    // ✅ Lắng nghe sự thay đổi từ admin (khi admin xóa/duyệt bài đăng)
-    const handlePostsUpdated = () => {
-      console.log("🔄 Phát hiện thay đổi posts từ admin, reload lại...");
-      loadPosts();
-    };
+    const handlePostsUpdated = () => loadPosts();
 
-    // Lắng nghe custom event từ admin
-    window.addEventListener('postsUpdated', handlePostsUpdated);
-    
-    // Lắng nghe storage event (từ tab/window khác)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'posts') {
-        handlePostsUpdated();
-      }
+    window.addEventListener("postsUpdated", handlePostsUpdated);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "posts") handlePostsUpdated();
     });
 
     return () => {
-      window.removeEventListener('postsUpdated', handlePostsUpdated);
-      window.removeEventListener('storage', handlePostsUpdated);
+      window.removeEventListener("postsUpdated", handlePostsUpdated);
+      window.removeEventListener("storage", handlePostsUpdated);
     };
   }, []);
 
-  // 🔹 Lưu lại localStorage (chỉ khi đã khởi tạo xong để tránh ghi đè dữ liệu khi mount)
   useEffect(() => {
-    if (isInitialized) {
-      try {
-        localStorage.setItem("posts", JSON.stringify(posts));
-        console.log("💾 Đã lưu", posts.length, "bài đăng vào localStorage");
-      } catch (error) {
-        console.error("❌ Lỗi khi lưu posts vào localStorage:", error);
-        // Nếu localStorage đầy, thử xóa một số dữ liệu cũ hoặc thông báo lỗi
-        alert("⚠️ Không thể lưu dữ liệu. Vui lòng thử lại.");
-      }
-    }
+    if (isInitialized)
+      localStorage.setItem("posts", JSON.stringify(posts));
   }, [posts, isInitialized]);
 
-  // 🟢 Xử lý tạo bài đăng mới - GỌI API THẬT
+  // 📌 Tạo bài đăng → API thật
   const handleCreatePost = async (data) => {
     try {
-      console.log('📝 Creating post via API:', data);
-      
-      // Convert images to base64 for API
       const imagePromises = [];
-      if (data.images && Array.isArray(data.images)) {
+
+      if (Array.isArray(data.images)) {
         for (const img of data.images) {
           if (img instanceof File) {
             imagePromises.push(
               new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(img);
+                const r = new FileReader();
+                r.onloadend = () => resolve(r.result);
+                r.readAsDataURL(img);
               })
             );
           }
         }
       }
-      
+
       const imageBase64Array = await Promise.all(imagePromises);
-      
-      // Prepare API data
+
       const postData = {
         type: data.postType,
         title: data.title,
         description: data.description,
         category: data.category,
         location: data.location,
-        images: imageBase64Array, // Send all images
+        images: imageBase64Array,
         contact: data.contact || user?.phone,
       };
-      
-      console.log('🔄 Sending to API:', postData);
-      
-      // Call real API
+
       const response = await userApi.createPost(postData);
-      
-      if (response.success) {
-        console.log('✅ Post created successfully:', response.data);
-        
-        // Add new post to local state (for immediate UI update)
-        const newPost = response.data.post || response.data;
-        setPosts(prevPosts => [newPost, ...prevPosts]);
-        
-        // Show success notification
-        setToastNotification({
-          type: 'success',
-          title: 'Thành công!',
-          message: 'Bài đăng đã được tạo và gửi lên Supabase',
-        });
-      } else {
-        throw new Error(response.error || 'Không thể tạo bài đăng');
-      }
-    } catch (error) {
-      console.error('❌ Create post error:', error);
+
+      if (!response.success)
+        throw new Error(response.error || "Không thể tạo bài đăng");
+
+      const newPost = response.data.post || response.data;
+      setPosts((prev) => [newPost, ...prev]);
+
       setToastNotification({
-        type: 'error',
-        title: 'Lỗi!',
-        message: error.message || 'Không thể tạo bài đăng',
+        type: "success",
+        title: "Thành công!",
+        message: "Bài đăng đã được tạo và gửi lên Supabase",
+      });
+    } catch (err) {
+      setToastNotification({
+        type: "error",
+        title: "Lỗi!",
+        message: err.message,
       });
       return;
     }
 
-    
-    // ✅ Tạo thông báo trong localStorage
-    const notification = {
+    const notif = {
       id: Date.now(),
-      type: 'info',
-      title: 'Bài đăng đã được tạo',
-      message: 'Bài viết của bạn đã được gửi lên Supabase và đang chờ duyệt!',
+      type: "info",
+      title: "Bài đăng đã được tạo",
+      message: "Đang chờ admin duyệt!",
       time: new Date().toISOString(),
       read: false,
-      userId: user?.name || data.author,
+      userId: user?.name,
       postId: Date.now(),
       postType: data.postType,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
-    const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-    existingNotifications.unshift(notification);
-    localStorage.setItem("notifications", JSON.stringify(existingNotifications));
-    
-    // ✅ Trigger event để NotificationsButton reload
-    window.dispatchEvent(new Event('notificationAdded'));
+    const ex = JSON.parse(localStorage.getItem("notifications") || "[]");
+    ex.unshift(notif);
+    localStorage.setItem("notifications", JSON.stringify(ex));
+
+    window.dispatchEvent(new Event("notificationAdded"));
 
     setActiveTab(data.postType === "lost" ? "lost" : "found");
     setShowCreateModal(false);
   };
 
-  // 🧩 Render theo tab
   const renderContent = () => {
-    console.log("🔄 Render tab:", activeTab, "| Tổng bài:", posts.length);
     switch (activeTab) {
       case "found":
-        return <FoundPage posts={posts} setActiveTab={setActiveTab} setChatTarget={setChatTarget} searchQuery={searchQuery} onViewPost={handlePostViewed} />;
+        return (
+          <FoundPage
+            posts={posts}
+            setActiveTab={setActiveTab}
+            setChatTarget={setChatTarget}
+            searchQuery={searchQuery}
+            onViewPost={handlePostViewed}
+          />
+        );
       case "lost":
-        return <LostPage posts={posts} setActiveTab={setActiveTab} setChatTarget={setChatTarget} searchQuery={searchQuery} onViewPost={handlePostViewed} />;
+        return (
+          <LostPage
+            posts={posts}
+            setActiveTab={setActiveTab}
+            setChatTarget={setChatTarget}
+            searchQuery={searchQuery}
+            onViewPost={handlePostViewed}
+          />
+        );
       case "chat":
-        return <ChatPage user={user} chatTarget={chatTarget} setActiveTab={setActiveTab} posts={posts} onOpenPostDetail={setSelectedPost} />;
+        return (
+          <ChatPage
+            user={user}
+            chatTarget={chatTarget}
+            setActiveTab={setActiveTab}
+            posts={posts}
+            onOpenPostDetail={setSelectedPost}
+          />
+        );
       case "posts":
-        return <UserProfile user={user} posts={posts} setPosts={setPosts} onLogout={onLogout} defaultTab="posts" onProfileUpdate={handleProfileUpdate} onNavigateToPost={(postId, type) => {
-          setActiveTab(type === "lost" ? "lost" : "found");
-          // Đợi tab render xong rồi scroll đến bài viết
-          setTimeout(() => {
-            const el = document.getElementById(`post-${postId}`);
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-          }, 120);
-        }} onShowToast={(toast) => {
-          setToastNotification(toast);
-        }} />;        
+        return (
+          <UserProfile
+            user={user}
+            posts={posts}
+            setPosts={setPosts}
+            onLogout={onLogout}
+            defaultTab="posts"
+            onProfileUpdate={handleProfileUpdate}
+            onNavigateToPost={(postId, type) => {
+              setActiveTab(type === "lost" ? "lost" : "found");
+              setTimeout(() => {
+                const el = document.getElementById(`post-${postId}`);
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }, 120);
+            }}
+            onShowToast={setToastNotification}
+          />
+        );
       case "profile":
-        return <UserProfile user={user} posts={posts} setPosts={setPosts} onLogout={onLogout} onProfileUpdate={handleProfileUpdate} onNavigateToPost={(postId, type) => {
-          setActiveTab(type === "lost" ? "lost" : "found");
-          setTimeout(() => {
-            const el = document.getElementById(`post-${postId}`);
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-          }, 120);
-        }} onShowToast={(toast) => {
-          setToastNotification(toast);
-        }} />;        
+        return (
+          <UserProfile
+            user={user}
+            posts={posts}
+            setPosts={setPosts}
+            onLogout={onLogout}
+            onProfileUpdate={handleProfileUpdate}
+            onNavigateToPost={(postId, type) => {
+              setActiveTab(type === "lost" ? "lost" : "found");
+              setTimeout(() => {
+                const el = document.getElementById(`post-${postId}`);
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }, 120);
+            }}
+            onShowToast={setToastNotification}
+          />
+        );
       default:
         return <UserHome searchQuery={searchQuery} />;
     }
@@ -387,14 +327,13 @@ const UserUI = ({ onLogout, user: initialUser }) => {
         setSearchQuery={setSearchQuery}
         user={user}
         onLogout={onLogout}
-        onCreatePostClick={() => setShowCreateModal(true)} // ✅ truyền callback mở modal
-        onSearch={handleSearch} // ✅ Truyền hàm xử lý search
+        onCreatePostClick={() => setShowCreateModal(true)}
+        onSearch={handleSearch}
       />
 
       <main className="user-main">
         {renderContent()}
 
-        {/* ✅ Popup "Đăng tin" */}
         {showCreateModal && (
           <CreatePostModal
             mode="create"
@@ -404,87 +343,59 @@ const UserUI = ({ onLogout, user: initialUser }) => {
           />
         )}
 
-        {/* ✅ PostDetailModal - Hiển thị khi có selectedPost */}
         {selectedPost && (
           <PostDetailModal
             post={selectedPost}
             onClose={() => setSelectedPost(null)}
-            currentTab={selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được"}
+            currentTab={
+              selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được"
+            }
             categoryPath={selectedPost.category}
-            onNavigate={(path) => {
-              if (path === (selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được")) {
-                setSelectedPost(null);
-              }
-            }}
+            onNavigate={() => setSelectedPost(null)}
           />
         )}
       </main>
-      
-      {/* Notifications bell - show on all tabs except Chat */}
+
       {activeTab !== "chat" && (
-        <NotificationsButton 
+        <NotificationsButton
           onNotificationClick={(postId, postType) => {
-            // ✅ Navigate đến bài đăng khi click vào thông báo
-            if (postType === "lost") {
-              setActiveTab("lost");
-            } else if (postType === "found") {
-              setActiveTab("found");
-            }
-            // Đợi tab render xong rồi scroll đến bài viết
+            setActiveTab(postType === "lost" ? "lost" : "found");
             setTimeout(() => {
               const el = document.getElementById(`post-${postId}`);
               if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                // Highlight bài đăng
+                el.scrollIntoView({ behavior: "smooth" });
                 el.style.transition = "box-shadow 0.3s";
-                el.style.boxShadow = "0 0 0 3px rgba(25, 118, 210, 0.3)";
-                setTimeout(() => {
-                  el.style.boxShadow = "";
-                }, 2000);
+                el.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.3)";
+                setTimeout(() => (el.style.boxShadow = ""), 2000);
               } else {
-                // Nếu không tìm thấy trong list, mở PostDetailModal
-                const post = posts.find(p => p.id === postId);
-                if (post) {
-                  setSelectedPost(post);
-                }
+                const post = posts.find((p) => p.id === postId);
+                if (post) setSelectedPost(post);
               }
             }, 300);
           }}
         />
       )}
 
-      {/* Dark mode toggle - show on Home, Found, Lost, Profile, Posts */}
-      {["home", "found", "lost", "profile", "posts"].includes(activeTab) && <ThemeToggle />}
+      {["home", "found", "lost", "profile", "posts"].includes(activeTab) && (
+        <ThemeToggle />
+      )}
 
-      {/* Toast Notification - hiển thị tự động */}
       {toastNotification && (
         <ToastNotification
           notification={toastNotification}
           onClose={() => setToastNotification(null)}
           onClick={(postId, postType) => {
-            // ✅ Navigate đến bài đăng khi click vào toast
-            if (postType === "lost") {
-              setActiveTab("lost");
-            } else if (postType === "found") {
-              setActiveTab("found");
-            }
-            // Đợi tab render xong rồi scroll đến bài viết
+            setActiveTab(postType === "lost" ? "lost" : "found");
             setTimeout(() => {
               const el = document.getElementById(`post-${postId}`);
               if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                // Highlight bài đăng
+                el.scrollIntoView({ behavior: "smooth" });
                 el.style.transition = "box-shadow 0.3s";
-                el.style.boxShadow = "0 0 0 3px rgba(25, 118, 210, 0.3)";
-                setTimeout(() => {
-                  el.style.boxShadow = "";
-                }, 2000);
+                el.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.3)";
+                setTimeout(() => (el.style.boxShadow = ""), 2000);
               } else {
-                // Nếu không tìm thấy trong list, mở PostDetailModal
-                const post = posts.find(p => p.id === postId);
-                if (post) {
-                  setSelectedPost(post);
-                }
+                const post = posts.find((p) => p.id === postId);
+                if (post) setSelectedPost(post);
               }
             }, 300);
           }}

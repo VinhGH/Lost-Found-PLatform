@@ -128,6 +128,53 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
     };
   }, []);
 
+  // ✅ Đồng bộ avatar từ user prop với conversations
+  useEffect(() => {
+    if (!user || !user.avatar || !isInitialized) return;
+    
+    // Cập nhật avatar của user hiện tại trong conversations nếu có
+    setConversations((prevConversations) => {
+      const updatedConversations = prevConversations.map(conv => {
+        // Nếu conversation có user.name trùng với user hiện tại
+        if (conv.user.name === user.name) {
+          return {
+            ...conv,
+            user: {
+              ...conv.user,
+              avatar: user.avatar || conv.user.avatar,
+            },
+          };
+        }
+        return conv;
+      });
+      
+      // Chỉ cập nhật nếu có thay đổi
+      const hasChanged = updatedConversations.some((conv, index) => 
+        conv.user.avatar !== prevConversations[index]?.user.avatar
+      );
+      
+      if (hasChanged) {
+        // Lưu vào localStorage
+        try {
+          localStorage.setItem("chatConversations", JSON.stringify(updatedConversations));
+          console.log("✅ Đã đồng bộ avatar từ user prop với conversations");
+        } catch (error) {
+          console.error("❌ Lỗi khi lưu conversations sau khi đồng bộ avatar:", error);
+        }
+        
+        // Cập nhật active conversation nếu nó cũng bị ảnh hưởng
+        if (activeConversation) {
+          const updatedActive = updatedConversations.find(c => c.id === activeConversation.id);
+          if (updatedActive && updatedActive.user.avatar !== activeConversation.user.avatar) {
+            setActiveConversation(updatedActive);
+          }
+        }
+      }
+      
+      return updatedConversations;
+    });
+  }, [user?.avatar, user?.name, isInitialized, activeConversation]);
+
   // ✅ Lắng nghe thay đổi từ localStorage để cập nhật conversations và chatPostData
   useEffect(() => {
     const handleStorageChange = (event) => {
@@ -514,13 +561,21 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                 }}
               >
                 <img
-                  src={conv.user.avatar}
+                  src={
+                    // Nếu đang chat với chính mình (user.name === conv.user.name), 
+                    // dùng avatar từ user prop (đã được cập nhật từ profile)
+                    user && user.name === conv.user.name && user.avatar
+                      ? user.avatar
+                      : conv.user.avatar
+                  }
                   alt={conv.user.name}
                   style={{
-                    width: "40px",
-                    height: "40px",
+                    width: "56px",
+                    height: "56px",
                     borderRadius: "50%",
-                    marginRight: "10px",
+                    marginRight: "12px",
+                    objectFit: "cover",
+                    flexShrink: 0,
                   }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -557,7 +612,16 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             <>
               <div className="chat-header">
                 <div className="chat-user-info">
-                  <img src={activeConversation.user.avatar} alt="" />
+                  <img 
+                    src={
+                      // Nếu đang chat với chính mình (user.name === activeConversation.user.name), 
+                      // dùng avatar từ user prop (đã được cập nhật từ profile)
+                      user && user.name === activeConversation.user.name && user.avatar
+                        ? user.avatar
+                        : activeConversation.user.avatar
+                    } 
+                    alt="" 
+                  />
                   <div>
                     <h3>{activeConversation.user.name}</h3>
                     <span>

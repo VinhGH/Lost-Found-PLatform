@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './ApprovedPostsView.css';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import PostDetailModal from '../user/PostDetailModal';
+import ImageCarousel from '../user/ImageCarousel';
 import {
   Search as SearchIcon,
   Search as LostIcon,
@@ -189,7 +190,13 @@ const ApprovedPostsView = ({ onPostChange }) => {
 
       {/* Posts Grid */}
       <div className="posts-grid">
-        {filteredPosts.map(post => (
+        {filteredPosts.map(post => {
+          // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+          const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+            ? post.images
+            : (post.image ? [post.image] : []);
+          
+          return (
           <div 
             key={post.id} 
             className="post-card"
@@ -206,9 +213,9 @@ const ApprovedPostsView = ({ onPostChange }) => {
             </div>
             
             <div className="post-content">
-              {post.image && (
+              {postImages.length > 0 && (
                 <div className="post-image-preview">
-                  <img src={post.image} alt={post.title} />
+                  <ImageCarousel images={postImages} postId={post.id} />
                 </div>
               )}
               <h3 className="post-title">{post.title}</h3>
@@ -248,7 +255,8 @@ const ApprovedPostsView = ({ onPostChange }) => {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredPosts.length === 0 && (

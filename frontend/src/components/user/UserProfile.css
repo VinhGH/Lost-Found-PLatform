@@ -323,12 +323,26 @@
   border-radius: 8px;
   border: 1px solid #e9ecef;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.post-item-image-wrapper {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.post-item-image-wrapper .post-image {
+  height: 200px;
 }
 
 .post-info {
   flex: 1;
+  min-width: 0;
 }
 
 .post-header {
@@ -381,6 +395,8 @@
 .post-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .btn-edit-post {

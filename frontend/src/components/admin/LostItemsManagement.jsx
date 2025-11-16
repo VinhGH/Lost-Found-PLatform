@@ -3,6 +3,8 @@ import './LostItemsManagement.css';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import PostDetailModal from '../user/PostDetailModal';
 import userApi from '../../services/realApi'; // ✅ REAL API
+import ImageCarousel from '../user/ImageCarousel';
+
 import {
   Search as SearchIcon,
   Search as LostIcon,
@@ -32,13 +34,11 @@ const LostItemsManagement = ({ onPostChange }) => {
       try {
         setLoading(true);
         console.log('📋 Admin loading posts from API...');
-        
-        // Call API to get all posts (backend will check if user is admin)
+
         const response = await userApi.getAllPosts({ status: 'pending' });
-        
+
         if (response.success && response.data) {
           const allPosts = response.data.posts || response.data;
-          // Filter only pending posts
           const pendingPosts = allPosts.filter(p => p.status === 'pending');
           setPosts(pendingPosts);
           console.log('✅ Loaded pending posts:', pendingPosts.length);
@@ -56,7 +56,6 @@ const LostItemsManagement = ({ onPostChange }) => {
 
     loadPosts();
 
-    // ✅ Lắng nghe thay đổi từ localStorage
     const handleStorageChange = () => {
       loadPosts();
     };
@@ -79,8 +78,8 @@ const LostItemsManagement = ({ onPostChange }) => {
   };
 
   const handleSelectPost = (postId) => {
-    setSelectedPosts(prev => 
-      prev.includes(postId) 
+    setSelectedPosts(prev =>
+      prev.includes(postId)
         ? prev.filter(id => id !== postId)
         : [...prev, postId]
     );
@@ -105,13 +104,11 @@ const LostItemsManagement = ({ onPostChange }) => {
 
       console.log(`✅ Approving post ${postId} (type: ${postToApprove.type})`);
 
-      // Call API to approve post
       const response = await userApi.approvePost(postId, postToApprove.type);
-      
+
       if (response.success) {
         console.log('✅ Post approved successfully');
-        
-        // ✅ Gửi thông báo đến user
+
         const notification = {
           id: Date.now(),
           type: 'success',
@@ -128,15 +125,13 @@ const LostItemsManagement = ({ onPostChange }) => {
         const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
         existingNotifications.unshift(notification);
         localStorage.setItem("notifications", JSON.stringify(existingNotifications));
-        
-        // ✅ Trigger event
+
         window.dispatchEvent(new CustomEvent('notificationAdded', { detail: notification }));
-        
-        // Remove from pending list
+
         setPosts(prev => prev.filter(p => p.id !== postId));
         window.dispatchEvent(new Event('postsUpdated'));
         if (onPostChange) onPostChange();
-        
+
         alert("✅ Đã duyệt bài đăng và gửi thông báo đến người dùng!");
       } else {
         alert('❌ Không thể duyệt bài: ' + (response.error || 'Lỗi không xác định'));
@@ -162,38 +157,34 @@ const LostItemsManagement = ({ onPostChange }) => {
       if (saved) {
         const allPosts = JSON.parse(saved);
         const postToDelete = allPosts.find(p => p.id === postId);
-        
+
         if (postToDelete) {
-          // ✅ Xóa bài đăng
           const updatedPosts = allPosts.filter(post => post.id !== postId);
           localStorage.setItem("posts", JSON.stringify(updatedPosts));
-          
-          // ✅ Gửi thông báo đến user
+
           const notification = {
             id: Date.now(),
             type: 'warning',
             title: 'Bài đăng đã bị xóa',
-            message: 'Bài viết của bạn đã xóa vì vi phạm tiêu chuẩn cộng đồng của chúng tôi.',
+            message: 'Bài viết của bạn đã xóa vì vi phạm tiêu chuẩn cộng đồng.',
             time: new Date().toISOString(),
             read: false,
             userId: postToDelete.author || postToDelete.reporter,
-            createdAt: Date.now() // ✅ Lưu timestamp để tính 3 ngày
+            createdAt: Date.now()
           };
 
-          // ✅ Lưu thông báo vào localStorage
           const existingNotifications = JSON.parse(localStorage.getItem("notifications") || "[]");
           existingNotifications.unshift(notification);
           localStorage.setItem("notifications", JSON.stringify(existingNotifications));
-          
-          // ✅ Trigger event để NotificationsButton reload
+
           window.dispatchEvent(new Event('notificationAdded'));
-          
+
           setPosts(prev => prev.filter(p => p.id !== postId));
           setDeleteModal({ isOpen: false, postId: null, postTitle: '' });
           window.dispatchEvent(new Event('postsUpdated'));
           if (onPostChange) onPostChange();
-          
-          alert("✅ Đã xóa bài đăng và gửi thông báo đến người dùng!");
+
+          alert("✅ Đã xóa bài đăng và gửi thông báo!");
         }
       }
     } catch (error) {
@@ -204,34 +195,32 @@ const LostItemsManagement = ({ onPostChange }) => {
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (post.reporter || post.author)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.location?.toLowerCase().includes(searchTerm.toLowerCase());
+      post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.reporter || post.author)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesType = filterType === 'all' || post.type === filterType;
     return matchesSearch && matchesType;
   });
 
-  const getTypeBadge = (type) => {
-    return (
-      <span className={`type-badge ${type === 'lost' ? 'type-lost' : 'type-found'}`}>
-        {type === 'lost' ? (
-          <>
-            <LostIcon style={{ fontSize: '14px', marginRight: '4px', verticalAlign: 'middle' }} />
-            Mất
-          </>
-        ) : (
-          <>
-            <FoundIcon style={{ fontSize: '14px', marginRight: '4px', verticalAlign: 'middle' }} />
-            Tìm thấy
-          </>
-        )}
-      </span>
-    );
-  };
+  const getTypeBadge = (type) => (
+    <span className={`type-badge ${type === 'lost' ? 'type-lost' : 'type-found'}`}>
+      {type === 'lost' ? (
+        <>
+          <LostIcon style={{ fontSize: '14px', marginRight: '4px', verticalAlign: 'middle' }} />
+          Mất
+        </>
+      ) : (
+        <>
+          <FoundIcon style={{ fontSize: '14px', marginRight: '4px', verticalAlign: 'middle' }} />
+          Tìm thấy
+        </>
+      )}
+    </span>
+  );
 
   return (
     <div className="lost-items-management">
-      {/* Header */}
       <div className="page-header">
         <h2>Bài viết chờ duyệt</h2>
         <div className="header-stats">
@@ -253,14 +242,11 @@ const LostItemsManagement = ({ onPostChange }) => {
               onChange={handleSearch}
               className="search-input"
             />
-            <button 
-              type="button"
-              className="search-btn"
-              title="Tìm kiếm"
-            >
+            <button type="button" className="search-btn" title="Tìm kiếm">
               <SearchIcon />
             </button>
           </div>
+
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
@@ -275,82 +261,86 @@ const LostItemsManagement = ({ onPostChange }) => {
 
       {/* Posts Grid */}
       <div className="posts-grid">
-        {filteredPosts.map(post => (
-          <div 
-            key={post.id} 
-            className={`post-card ${selectedPosts.includes(post.id) ? 'selected' : ''}`}
-            onClick={(e) => {
-              // Chỉ mở modal nếu không click vào button hoặc checkbox
-              if (!e.target.closest('.post-actions') && !e.target.closest('.post-checkbox') && !e.target.closest('input')) {
-                setSelectedPost(post);
-              }
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="post-header">
-              <div className="post-type">{getTypeBadge(post.type)}</div>
-              <input
-                type="checkbox"
-                checked={selectedPosts.includes(post.id)}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleSelectPost(post.id);
-                }}
-                className="post-checkbox"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            
-            <div className="post-content">
-              {post.image && (
-                <div className="post-image-preview">
-                  <img src={post.image} alt={post.title} />
-                </div>
-              )}
-              <h3 className="post-title">{post.title}</h3>
-              <p className="post-description">{post.description}</p>
-              
-              <div className="post-details">
-                <div className="detail-item">
-                  <span className="detail-label"><FolderIcon /> danh mục</span>
-                  <span className="detail-value">{post.category}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label"><LocationIcon /> địa điểm</span>
-                  <span className="detail-value">{post.location}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label"><CalendarIcon /> ngày đăng</span>
-                  <span className="detail-value">
-                    {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : 
-                     post.date ? new Date(post.date).toLocaleDateString('vi-VN') : 'N/A'}
-                  </span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label"><PersonIcon /> người đăng</span>
-                  <span className="detail-value">{post.author || post.reporter}</span>
-                </div>
-              </div>
-            </div>
+        {filteredPosts.map(post => {
+          const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+            ? post.images
+            : (post.image ? [post.image] : []);
 
-            <div className="post-footer">
-              <div className="post-actions" onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="action-btn approve"
-                  onClick={() => handleApprovePost(post.id)}
-                >
-                  <ApproveIcon /> Duyệt bài
-                </button>
-                <button 
-                  className="action-btn delete"
-                  onClick={() => handleOpenDeleteModal(post.id, post.title)}
-                >
-                  <DeleteIcon /> Xóa bài
-                </button>
+          return (
+            <div
+              key={post.id}
+              className={`post-card ${selectedPosts.includes(post.id) ? 'selected' : ''}`}
+              onClick={(e) => {
+                if (!e.target.closest('.post-actions') &&
+                    !e.target.closest('.post-checkbox') &&
+                    !e.target.closest('input')) {
+                  setSelectedPost(post);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="post-header">
+                <div className="post-type">{getTypeBadge(post.type)}</div>
+                <input
+                  type="checkbox"
+                  checked={selectedPosts.includes(post.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleSelectPost(post.id);
+                  }}
+                  className="post-checkbox"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              <div className="post-content">
+                {postImages.length > 0 && (
+                  <div className="post-image-preview">
+                    <ImageCarousel images={postImages} postId={post.id} />
+                  </div>
+                )}
+                <h3 className="post-title">{post.title}</h3>
+                <p className="post-description">{post.description}</p>
+
+                <div className="post-details">
+                  <div className="detail-item">
+                    <span className="detail-label"><FolderIcon /> danh mục</span>
+                    <span className="detail-value">{post.category}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label"><LocationIcon /> địa điểm</span>
+                    <span className="detail-value">{post.location}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label"><CalendarIcon /> ngày đăng</span>
+                    <span className="detail-value">
+                      {post.createdAt
+                        ? new Date(post.createdAt).toLocaleDateString('vi-VN')
+                        : post.date
+                          ? new Date(post.date).toLocaleDateString('vi-VN')
+                          : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label"><PersonIcon /> người đăng</span>
+                    <span className="detail-value">{post.author || post.reporter}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="post-footer">
+                <div className="post-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="action-btn approve" onClick={() => handleApprovePost(post.id)}>
+                    <ApproveIcon /> Duyệt bài
+                  </button>
+                  <button className="action-btn delete" onClick={() => handleOpenDeleteModal(post.id, post.title)}>
+                    <DeleteIcon /> Xóa bài
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredPosts.length === 0 && (
@@ -359,7 +349,6 @@ const LostItemsManagement = ({ onPostChange }) => {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
       <ConfirmDeleteModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, postId: null, postTitle: '' })}
@@ -367,7 +356,6 @@ const LostItemsManagement = ({ onPostChange }) => {
         postTitle={deleteModal.postTitle}
       />
 
-      {/* Post Detail Modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}

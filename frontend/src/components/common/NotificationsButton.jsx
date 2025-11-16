@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Notifications as NotificationsIcon } from "@mui/icons-material";
+import { AutoAwesome as AIIcon } from "@mui/icons-material";
 import "./NotificationsButton.css";
 
 export default function NotificationsButton({ onNotificationClick }) {
@@ -156,8 +157,35 @@ export default function NotificationsButton({ onNotificationClick }) {
                   }}
                 >
                   <div className="notification-content">
-                    <h5>{notification.title}</h5>
+                    <div className="notification-header-row">
+                      {notification.type === "ai_matching" && (
+                        <AIIcon className="ai-icon" style={{ fontSize: "18px", marginRight: "6px", color: "#667eea" }} />
+                      )}
+                      <h5>{notification.title}</h5>
+                      {notification.similarity && (
+                        <span className="similarity-badge">
+                          {Math.round(notification.similarity * 100)}%
+                        </span>
+                      )}
+                    </div>
                     <p>{notification.message}</p>
+                    {notification.type === "ai_matching" && notification.matchedPost && (
+                      <div className="ai-match-preview">
+                        <div className="match-post-info">
+                          <span className="match-post-type">
+                            {notification.matchedPost.type === "found" ? "🔵 Nhặt được" : "🔴 Tìm đồ"}
+                          </span>
+                          <span className="match-post-title">{notification.matchedPost.title}</span>
+                        </div>
+                        {notification.matchedPost.images && notification.matchedPost.images.length > 0 && (
+                          <img 
+                            src={notification.matchedPost.images[0]} 
+                            alt="Preview"
+                            className="match-post-image"
+                          />
+                        )}
+                      </div>
+                    )}
                     <span className="notification-time">
                       {notification.time ? new Date(notification.time).toLocaleString('vi-VN') : 'Vừa xong'}
                     </span>

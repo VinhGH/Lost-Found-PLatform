@@ -4,7 +4,9 @@ import EditPostModal from "./EditPostModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import ConfirmLogoutModal from "./ConfirmLogoutModal";
 import ChangePasswordModal from "./ChangePasswordModal";
-import userApi from "../../services/realApi"; // ✅ REAL API - Connects to Supabase
+import ImageCarousel from "./ImageCarousel";
+import userApi from "../../services/realApi"; // REAL API – Supabase
+
 import {
   Article as ArticleIcon,
   Search as SearchIcon,
@@ -17,7 +19,7 @@ import {
   Settings as SettingsIcon
 } from "@mui/icons-material";
 
-// 🔹 Đồng bộ cách hiển thị thời gian với các trang Lost/Found
+// 🔹 Đồng bộ cách hiển thị thời gian
 const getTimeAgo = (timestamp) => {
   if (!timestamp) return "Vừa đăng";
   const now = Date.now();
@@ -30,241 +32,138 @@ const getTimeAgo = (timestamp) => {
   if (minutes < 60) return `${minutes} phút trước`;
   if (hours < 24) return `${hours} giờ trước`;
   if (days < 7) return `${days} ngày trước`;
-  const date = new Date(timestamp);
-  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(timestamp).toLocaleDateString("vi-VN");
 };
 
-const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", onProfileUpdate, onNavigateToPost, onShowToast }) => {
-  // 🔹 Khởi tạo activeTab từ localStorage hoặc defaultTab
+const UserProfile = ({
+  user,
+  onLogout,
+  posts,
+  setPosts,
+  defaultTab = "profile",
+  onProfileUpdate,
+  onNavigateToPost,
+  onShowToast
+}) => {
+  // 🔹 Tab hiện tại
   const [activeTab, setActiveTab] = useState(() => {
-    try {
-      const savedTab = localStorage.getItem("userProfileActiveTab");
-      if (savedTab && ["profile", "posts", "settings"].includes(savedTab)) {
-        console.log("✅ Đã load profile tab:", savedTab, "từ localStorage");
-        return savedTab;
-      }
-    } catch (error) {
-      console.error("❌ Lỗi khi load profile tab từ localStorage:", error);
-    }
-    return defaultTab;
+    const saved = localStorage.getItem("userProfileActiveTab");
+    return ["profile", "posts", "settings"].includes(saved)
+      ? saved
+      : defaultTab;
   });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [deletingPost, setDeletingPost] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
-  // 🔹 Khởi tạo profileData từ localStorage hoặc user prop
+  // 🔹 Khởi tạo profile
   const [profileData, setProfileData] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`userProfile_${user?.email || 'default'}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log("✅ Đã load profile từ localStorage:", parsed);
-        // 🔹 Đảm bảo email luôn lấy từ user prop (không cho phép thay đổi)
-        return {
-          ...parsed,
-          email: user?.email || parsed.email || "user@dtu.edu.vn"
-        };
-      }
-    } catch (error) {
-      console.error("❌ Lỗi khi load profile từ localStorage:", error);
+    const saved = localStorage.getItem(`userProfile_${user?.email}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...parsed, email: user?.email };
     }
-    // Fallback về user prop hoặc giá trị mặc định
     return {
       name: user?.name || "Nguyễn Văn A",
-      email: user?.email || "user@dtu.edu.vn",
-      phone: user?.phone || "0901234567",
-      address: user?.address || "Đại học Duy Tân, Đà Nẵng",
-      avatar: user?.avatar || null,
+      email: user?.email,
+      phone: user?.phone || "",
+      address: user?.address || "",
+      avatar: user?.avatar || null
     };
   });
 
-  // 🔹 Load profile từ localStorage khi component mount hoặc khi user.email thay đổi
+  // 🔹 Load profile từ Supabase
   useEffect(() => {
-    const loadProfile = async () => {
-    if (!user?.email) {
-      setIsInitialized(true);
-      return;
-    }
+    const load = async () => {
+      if (!user?.email) return;
 
-    try {
-        // ✅ Load profile từ Supabase
-        console.log("🔄 Đang load profile từ Supabase...");
+      try {
         const response = await userApi.getProfile();
-        
-        if (response.success && response.data) {
-          const userData = response.data.user || response.data;
-          const profileFromDB = {
-            name: userData.user_name || user?.name || "Nguyễn Văn A",
-            email: userData.email || user?.email || "user@dtu.edu.vn",
-            phone: userData.phone_number || user?.phone || "",
-            address: user?.address || "", // Address không có trong DB schema
-            avatar: userData.avatar || user?.avatar || null,
-        };
-          setProfileData(profileFromDB);
-          console.log("✅ Đã load profile từ Supabase:", profileFromDB);
-      } else {
-          // Fallback về user prop nếu API fail
-          console.warn("⚠️ Không load được profile từ Supabase, dùng user prop");
+        if (response.success) {
+          const u = response.data.user || response.data;
           setProfileData({
-          name: user?.name || "Nguyễn Văn A",
-          email: user?.email || "user@dtu.edu.vn",
-            phone: user?.phone || "",
-            address: user?.address || "",
-          avatar: user?.avatar || null,
+            name: u.user_name,
+            email: u.email,
+            phone: u.phone_number || "",
+            address: u.address || "",
+            avatar: u.avatar || null
           });
+        }
+      } catch (err) {
+        console.error("Lỗi load profile:", err);
       }
-    } catch (error) {
-        console.error("❌ Lỗi khi load profile từ Supabase:", error);
-      // Fallback về user prop nếu có lỗi
-      setProfileData({
-        name: user?.name || "Nguyễn Văn A",
-        email: user?.email || "user@dtu.edu.vn",
-          phone: user?.phone || "",
-          address: user?.address || "",
-        avatar: user?.avatar || null,
-      });
-    } finally {
-      setIsInitialized(true);
-    }
     };
+    load();
+  }, [user?.email]);
 
-    loadProfile();
-  }, [user?.email]); // Chạy khi user.email thay đổi
-
-  // 🔹 Lọc bài đăng của user hiện tại
+  // 🔹 Bài đăng của user
   const userPosts = posts.filter((p) => p.author === profileData.name);
 
-  // 🔹 Lưu activeTab vào localStorage khi thay đổi
+  // 🔹 Lưu tab
   useEffect(() => {
-    if (activeTab && ["profile", "posts", "settings"].includes(activeTab)) {
-      try {
-        localStorage.setItem("userProfileActiveTab", activeTab);
-        console.log("💾 Đã lưu profile tab:", activeTab, "vào localStorage");
-      } catch (error) {
-        console.error("❌ Lỗi khi lưu profile tab vào localStorage:", error);
-      }
-    }
+    localStorage.setItem("userProfileActiveTab", activeTab);
   }, [activeTab]);
 
-  // 🔹 Lắng nghe event để chuyển sang tab settings từ UserHeader
-  useEffect(() => {
-    const handleSwitchToSettings = () => {
-      setActiveTab("settings");
-    };
-    window.addEventListener('switchToSettingsTab', handleSwitchToSettings);
-    return () => {
-      window.removeEventListener('switchToSettingsTab', handleSwitchToSettings);
-    };
-  }, []);
-
-  // ======================= PROFILE =======================
+  // 🔹 Chỉnh sửa input
   const handleInputChange = (field) => (e) => {
-    // 🔹 Không cho phép thay đổi email
-    if (field === 'email') {
-      return;
-    }
+    if (field === "email") return;
     setProfileData({ ...profileData, [field]: e.target.value });
   };
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Chuyển file sang base64 để lưu vào localStorage
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setProfileData({
-          ...profileData,
-          avatar: base64String,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onloadend = () =>
+      setProfileData({ ...profileData, avatar: reader.result });
+    reader.readAsDataURL(file);
   };
 
+  // 🔹 Lưu profile
   const handleSave = async () => {
     try {
-      // 🔹 Đảm bảo email luôn lấy từ user prop (không cho phép thay đổi)
-      const profileToSave = {
-        ...profileData,
-        email: user?.email || profileData.email
-      };
-      
-      // Lấy tên cũ TRƯỚC KHI lưu dữ liệu mới
-      let oldName = user?.name || "Nguyễn Văn A";
-
-      // ✅ Gọi API để lưu vào Supabase
-      console.log("🔄 Đang cập nhật profile vào Supabase...");
-      const response = await userApi.updateProfile({
-        user_name: profileToSave.name,
-        phone_number: profileToSave.phone,
-        avatar: profileToSave.avatar,
+      const res = await userApi.updateProfile({
+        user_name: profileData.name,
+        phone_number: profileData.phone,
+        avatar: profileData.avatar
       });
 
-      if (!response.success) {
-        alert("⚠️ " + (response.error || "Không thể cập nhật thông tin"));
+      if (!res.success) {
+        alert("Không thể cập nhật");
         return;
       }
 
-      console.log("✅ Profile đã được lưu vào Supabase:", response.data);
-      
-      // 🔹 Lấy user data mới từ backend response
-      const updatedUserData = response.data?.user || response.data;
-      
-      // 🔹 Format lại để match với frontend expectations
-      const formattedUser = {
-        account_id: updatedUserData.account_id,
-        email: updatedUserData.email,
-        name: updatedUserData.user_name || profileToSave.name,
-        user_name: updatedUserData.user_name || profileToSave.name,
-        phone: updatedUserData.phone_number || profileToSave.phone,
-        phone_number: updatedUserData.phone_number || profileToSave.phone,
-        avatar: updatedUserData.avatar || profileToSave.avatar,
-        role: updatedUserData.role,
-        created_at: updatedUserData.created_at,
-              };
-      
-      console.log("📤 Syncing user data to header:", formattedUser);
-      
-      // 🔹 Thông báo cho UserUI để cập nhật user state (sync header)
-      if (onProfileUpdate) {
-        onProfileUpdate(formattedUser);
-      }
-
-      // 🔹 Cập nhật profileData state với email đúng
-      setProfileData(profileToSave);
-      
-      alert("✅ Thông tin hồ sơ đã được cập nhật vào Supabase!");
+      if (onProfileUpdate) onProfileUpdate(res.data.user);
       setIsEditing(false);
-    } catch (error) {
-      console.error("❌ Lỗi khi lưu profile:", error);
-        alert("⚠️ Có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại.");
+      alert("Cập nhật thành công!");
+    } catch (e) {
+      alert("Lỗi khi lưu profile.");
+      console.error(e);
     }
   };
 
-  // ======================= POSTS =======================
-  const handleUpdatePost = (updatedPost) => {
+  // 🔹 Update / Delete post
+  const handleUpdatePost = (updated) => {
     setPosts((prev) => {
-      const newList = prev.map((p) => (p.id === updatedPost.id ? updatedPost : p));
-      localStorage.setItem("posts", JSON.stringify(newList)); // ✅ lưu ngay
-      return newList;
+      const list = prev.map((p) => (p.id === updated.id ? updated : p));
+      localStorage.setItem("posts", JSON.stringify(list));
+      return list;
     });
     setEditingPost(null);
   };
 
   const handleDeletePost = (id) => {
     setPosts((prev) => {
-      const newList = prev.filter((p) => p.id !== id);
-      localStorage.setItem("posts", JSON.stringify(newList)); // ✅ lưu ngay
-      return newList;
+      const list = prev.filter((p) => p.id !== id);
+      localStorage.setItem("posts", JSON.stringify(list));
+      return list;
     });
     setDeletingPost(null);
   };
 
-  // ======================= GIAO DIỆN PROFILE TAB =======================
+  // ======================= TAB PROFILE =======================
   const renderProfileTab = () => (
     <div className="profile-tab">
       <div className="profile-header">
@@ -281,9 +180,8 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarUpload}
-                  className="avatar-input"
                 />
-                <EditIcon style={{ fontSize: "14px" }} />
+                <EditIcon style={{ fontSize: 14 }} />
               </label>
             )}
           </div>
@@ -294,43 +192,9 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
         <div className="profile-actions">
           {isEditing ? (
             <div className="edit-actions">
-              <button 
-                className="btn-cancel" 
-                onClick={() => {
-                  // Khôi phục dữ liệu từ localStorage khi hủy
-                  try {
-                    const profileKey = `userProfile_${user?.email || 'default'}`;
-                    const saved = localStorage.getItem(profileKey);
-                    if (saved) {
-                      const parsed = JSON.parse(saved);
-                      // 🔹 Đảm bảo email luôn lấy từ user prop
-                      setProfileData({
-                        ...parsed,
-                        email: user?.email || parsed.email
-                      });
-                    } else {
-                      // Nếu không có trong localStorage, khôi phục từ user prop
-                      setProfileData({
-                        name: user?.name || "Nguyễn Văn A",
-                        email: user?.email || "user@dtu.edu.vn",
-                        phone: user?.phone || "0901234567",
-                        address: user?.address || "Đại học Duy Tân, Đà Nẵng",
-                        avatar: user?.avatar || null,
-                      });
-                    }
-                  } catch (error) {
-                    console.error("❌ Lỗi khi khôi phục profile:", error);
-                    // Fallback về user prop nếu có lỗi
-                    setProfileData({
-                      name: user?.name || "Nguyễn Văn A",
-                      email: user?.email || "user@dtu.edu.vn",
-                      phone: user?.phone || "0901234567",
-                      address: user?.address || "Đại học Duy Tân, Đà Nẵng",
-                      avatar: user?.avatar || null,
-                    });
-                  }
-                  setIsEditing(false);
-                }}
+              <button
+                className="btn-cancel"
+                onClick={() => setIsEditing(false)}
               >
                 Hủy
               </button>
@@ -350,31 +214,26 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
         <div className="info-section">
           <h3 className="section-title">Thông tin cá nhân</h3>
           <div className="info-grid">
-            {["name", "email", "phone", "address"].map((field) => (
-              <div className="info-item" key={field}>
+            {["name", "email", "phone", "address"].map((f) => (
+              <div className="info-item" key={f}>
                 <label className="info-label">
                   {{
                     name: "Họ và tên",
                     email: "Email",
                     phone: "Số điện thoại",
-                    address: "Địa chỉ",
-                  }[field]}
+                    address: "Địa chỉ"
+                  }[f]}
                 </label>
+
                 {isEditing ? (
                   <input
-                    type={field === "email" ? "email" : "text"}
-                    className="info-input"
-                    value={field === "email" ? (user?.email || profileData[field]) : profileData[field]}
-                    onChange={handleInputChange(field)}
-                    disabled={field === "email"} // 🔹 Vô hiệu hóa trường email khi chỉnh sửa
-                    style={field === "email" ? { 
-                      backgroundColor: "#f5f5f5", 
-                      cursor: "not-allowed",
-                      color: "#6c757d"
-                    } : {}}
+                    type={f === "email" ? "email" : "text"}
+                    value={profileData[f]}
+                    onChange={handleInputChange(f)}
+                    disabled={f === "email"}
                   />
                 ) : (
-                  <span className="info-value">{field === "email" ? (user?.email || profileData[field]) : profileData[field]}</span>
+                  <span className="info-value">{profileData[f]}</span>
                 )}
               </div>
             ))}
@@ -384,22 +243,20 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
     </div>
   );
 
-  // ======================= GIAO DIỆN SETTINGS TAB =======================
+  // ======================= TAB SETTINGS =======================
   const renderSettingsTab = () => (
     <div className="settings-tab">
-      <div className="settings-header">
-        <h3 className="section-title">Cài đặt</h3>
-      </div>
+      <h3 className="section-title">Cài đặt</h3>
+
       <div className="settings-content">
         <div className="settings-item">
           <div className="settings-item-label">
             <span>Đổi mật khẩu</span>
-            <span className="settings-item-description">Thay đổi mật khẩu tài khoản của bạn</span>
+            <span className="settings-item-description">
+              Thay đổi mật khẩu tài khoản của bạn
+            </span>
           </div>
-          <button
-            className="settings-action-btn"
-            onClick={() => setShowChangePasswordModal(true)}
-          >
+          <button onClick={() => setShowChangePasswordModal(true)}>
             Đổi mật khẩu
           </button>
         </div>
@@ -407,67 +264,78 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
     </div>
   );
 
-  // ======================= GIAO DIỆN POSTS TAB =======================
+  // ======================= TAB POSTS =======================
   const renderPostsTab = () => (
     <div className="posts-tab">
       <div className="posts-header">
         <h3 className="section-title">Bài đăng của tôi</h3>
-        <div className="posts-stats">Tổng cộng {userPosts.length} bài đăng</div>
+        <div className="posts-stats">{userPosts.length} bài đăng</div>
       </div>
 
       <div className="posts-list">
-        {userPosts.map((post) => (
-          <div key={post.id} className="post-item">
-            <div className="post-info">
-              <div className="post-header">
-                <h4 className="post-title">{post.title}</h4>
-                <div className={`post-status ${post.status}`}>
-                  {post.status === "resolved" ? "Đã giải quyết" : "Đang hoạt động"}
+        {userPosts.map((post) => {
+          const imgs =
+            post.images?.length > 0 ? post.images : post.image ? [post.image] : [];
+
+          return (
+            <div key={post.id} className="post-item">
+              {imgs.length > 0 && (
+                <div className="post-item-image-wrapper">
+                  <ImageCarousel images={imgs} postId={post.id} />
+                </div>
+              )}
+
+              <div className="post-info">
+                <div className="post-header">
+                  <h4 className="post-title">{post.title}</h4>
+                  <div className={`post-status ${post.status}`}>
+                    {post.status === "resolved" ? "Đã giải quyết" : "Đang hoạt động"}
+                  </div>
+                </div>
+
+                <div className="post-meta">
+                  <span className="post-type">
+                    {post.type === "lost" ? (
+                      <>
+                        <SearchIcon style={{ fontSize: 14 }} /> Tìm đồ
+                      </>
+                    ) : (
+                      <>
+                        <FoundIcon style={{ fontSize: 14 }} /> Nhặt được
+                      </>
+                    )}
+                  </span>
+
+                  <span className="post-time">
+                    <TimeIcon style={{ fontSize: 14 }} />
+                    {getTimeAgo(post.createdAt || post.id)}
+                  </span>
+
+                  <span className="post-views">
+                    <VisibilityIcon style={{ fontSize: 14 }} />
+                    {post.views} lượt xem
+                  </span>
                 </div>
               </div>
 
-              <div className="post-meta">
-                <span className="post-type">
-                  {post.type === "lost" ? (
-                    <>
-                      <SearchIcon style={{ fontSize: "14px" }} /> Tìm đồ
-                    </>
-                  ) : (
-                    <>
-                      <FoundIcon style={{ fontSize: "14px" }} /> Nhặt được
-                    </>
-                  )}
-                </span>
-                <span className="post-time">
-                  <TimeIcon style={{ fontSize: "14px", marginRight: "4px" }} />
-                  {getTimeAgo(post.createdAt || post.id)}
-                </span>
-                <span className="post-views">
-                  <VisibilityIcon style={{ fontSize: "14px", marginRight: "4px" }} />
-                  {post.views} lượt xem
-                </span>
+              <div className="post-actions">
+                <button
+                  className="btn-go-post"
+                  onClick={() =>
+                    onNavigateToPost && onNavigateToPost(post.id, post.type)
+                  }
+                >
+                  Đi tới bài đăng
+                </button>
+
+                <button onClick={() => setEditingPost(post)}>Chỉnh sửa</button>
+                <button onClick={() => setDeletingPost(post)}>Xóa</button>
               </div>
             </div>
-
-            <div className="post-actions">
-              <button
-                className="btn-go-post"
-                onClick={() => onNavigateToPost && onNavigateToPost(post.id, post.type)}
-              >
-                Di chuyển đến bài đăng
-              </button>
-              <button className="btn-edit-post" onClick={() => setEditingPost(post)}>
-                Chỉnh sửa
-              </button>
-              <button className="btn-delete-post" onClick={() => setDeletingPost(post)}>
-                Xóa
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Modal chỉnh sửa bài đăng */}
       {editingPost && (
         <EditPostModal
           postData={editingPost}
@@ -476,7 +344,6 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
         />
       )}
 
-      {/* Modal xác nhận xóa */}
       {deletingPost && (
         <ConfirmDeleteModal
           onCancel={() => setDeletingPost(null)}
@@ -496,38 +363,33 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
             <div className="sidebar-nav">
               <button
                 className={`nav-item ${activeTab === "profile" ? "active" : ""}`}
-                onClick={() => {
-                  setActiveTab("profile");
-                }}
+                onClick={() => setActiveTab("profile")}
               >
                 <PersonIcon /> Thông tin cá nhân
               </button>
+
               <button
                 className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
-                onClick={() => {
-                  setActiveTab("posts");
-                }}
+                onClick={() => setActiveTab("posts")}
               >
                 <ArticleIcon /> Bài đăng của tôi
               </button>
+
               <button
                 className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
-                onClick={() => {
-                  setActiveTab("settings");
-                }}
+                onClick={() => setActiveTab("settings")}
               >
                 <SettingsIcon /> Cài đặt
               </button>
             </div>
 
             <div className="sidebar-footer">
-              <button className="btn-logout" onClick={() => setShowLogoutModal(true)}>
+              <button onClick={() => setShowLogoutModal(true)}>
                 <LogoutIcon /> Đăng xuất
               </button>
             </div>
           </div>
 
-          {/* Nội dung chính */}
           <div className="profile-main">
             {activeTab === "profile" && renderProfileTab()}
             {activeTab === "posts" && renderPostsTab()}
@@ -536,7 +398,6 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
         </div>
       </div>
 
-      {/* Modal xác nhận đăng xuất */}
       {showLogoutModal && (
         <ConfirmLogoutModal
           onCancel={() => setShowLogoutModal(false)}
@@ -547,21 +408,16 @@ const UserProfile = ({ user, onLogout, posts, setPosts, defaultTab = "profile", 
         />
       )}
 
-      {/* Modal đổi mật khẩu */}
       {showChangePasswordModal && (
         <ChangePasswordModal
           onClose={() => setShowChangePasswordModal(false)}
-          onSuccess={(message) => {
-            setShowChangePasswordModal(false);
-            // ✅ Hiển thị toast notification
-            if (onShowToast) {
-              onShowToast({
-                type: 'success',
-                title: 'Thành công',
-                message: message || 'Đổi mật khẩu thành công'
-              });
-            }
-          }}
+          onSuccess={(msg) =>
+            onShowToast?.({
+              type: "success",
+              title: "Thành công",
+              message: msg || "Đổi mật khẩu thành công"
+            })
+          }
         />
       )}
     </div>
