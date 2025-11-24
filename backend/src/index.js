@@ -13,25 +13,30 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS - Allow both Vite (5173) and Create React App (3000)
+// =======================================
+// 🔥 FIX CORS CHUẨN RENDER + VERCEL
+// =======================================
+
 app.use(
   cors({
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
+      "https://dtu-lostandfound-victor.vercel.app",
       process.env.CORS_ORIGIN,
+      "*"
     ].filter(Boolean),
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "PreferUserToken"],
     credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "PreferUserToken", // 🔥 THÊM DÒNG NÀY
-    ],
   })
 );
 
-// ⚙️ Helmet sau CORS
+// 🔥 Quan trọng: xử lý preflight OPTIONS
+app.options("*", cors());
+
+
+// =======================================
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -44,7 +49,7 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// 🧠 Kiểm tra kết nối Supabase
+// Test Supabase
 testConnection();
 
 // Health check
@@ -55,9 +60,7 @@ app.get("/health", async (req, res) => {
       .select("account_id")
       .limit(1);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     res.json({
       status: "OK",
@@ -65,13 +68,11 @@ app.get("/health", async (req, res) => {
       data: { count: data?.length || 0 },
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        status: "Error",
-        database: "Disconnected",
-        message: err.message,
-      });
+    res.status(500).json({
+      status: "Error",
+      database: "Disconnected",
+      message: err.message,
+    });
   }
 });
 
@@ -98,7 +99,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Server running on port 5000");
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+  console.log("Server running on port", PORT);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
