@@ -1,105 +1,107 @@
 import React, { useState, useEffect } from "react";
 import { Notifications as NotificationsIcon } from "@mui/icons-material";
 import { AutoAwesome as AIIcon } from "@mui/icons-material";
+import realApi from "../../services/realApi";
 import "./NotificationsButton.css";
 
 export default function NotificationsButton({ onNotificationClick }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Load notifications từ localStorage và filter thông báo quá 3 ngày
-  const loadNotifications = () => {
+  // ✅ Load notifications from backend API
+  const loadNotifications = async () => {
     try {
-      const saved = localStorage.getItem("notifications");
-      if (saved) {
-        const allNotifications = JSON.parse(saved);
-        const now = Date.now();
-        const threeDaysInMs = 3 * 24 * 60 * 60 * 1000; // 3 ngày tính bằng milliseconds
-        
-        // ✅ Filter thông báo quá 3 ngày và xóa khỏi localStorage
-        const validNotifications = allNotifications.filter(notif => {
-          const createdAt = notif.createdAt || new Date(notif.time).getTime();
-          const age = now - createdAt;
-          return age <= threeDaysInMs; // Chỉ giữ thông báo <= 3 ngày
-        });
-        
-        // ✅ Cập nhật localStorage nếu có thông báo bị xóa
-        if (validNotifications.length !== allNotifications.length) {
-          localStorage.setItem("notifications", JSON.stringify(validNotifications));
-        }
-        
-        // Lấy thông báo của user hiện tại (có thể filter theo userId nếu cần)
-        setNotifications(validNotifications);
-        setUnreadCount(validNotifications.filter(n => !n.read).length);
+      setLoading(true);
+      const response = await realApi.getNotifications();
+
+      if (response.success && response.data) {
+        const backendNotifications = response.data;
+
+        // Map backend format to frontend format
+        const mappedNotifications = backendNotifications.map(notif => ({
+          id: notif.notification_id,
+          title: notif.title,
+          message: notif.message,
+          type: notif.type,
+          read: notif.is_read,
+          time: notif.created_at,
+          createdAt: notif.created_at,
+          postId: notif.post_id,
+          postType: notif.post_type,
+          // Keep other fields if they exist
+          similarity: notif.similarity,
+          matchedPost: notif.matched_post
+        }));
+
+        setNotifications(mappedNotifications);
+        setUnreadCount(mappedNotifications.filter(n => !n.read).length);
       } else {
+        console.error("❌ Failed to load notifications:", response.error);
         setNotifications([]);
         setUnreadCount(0);
       }
     } catch (error) {
-      console.error("❌ Lỗi khi load notifications:", error);
+      console.error("❌ Error loading notifications:", error);
       setNotifications([]);
       setUnreadCount(0);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Load notifications khi component mount
+  // ✅ Load notifications when component mounts
   useEffect(() => {
     loadNotifications();
 
-    // ✅ Lắng nghe event khi có thông báo mới
-    const handleNotificationAdded = (event) => {
-      loadNotifications();
-      // ✅ Nếu có detail (thông báo từ admin duyệt bài), trigger showToast event
-      if (event.detail && event.detail.type === 'success') {
-        window.dispatchEvent(new CustomEvent('showToast', { detail: event.detail }));
-      }
-    };
-
-    // ✅ Polling để reload realtime (mỗi 2 giây)
+    // ✅ Polling to reload realtime (every 5 seconds)
     const interval = setInterval(() => {
       loadNotifications();
-    }, 2000);
+    }, 5000);
+
+    // ✅ Listen for custom events (if needed for immediate updates)
+    const handleNotificationAdded = () => {
+      loadNotifications();
+    };
 
     window.addEventListener('notificationAdded', handleNotificationAdded);
-    window.addEventListener('storage', handleNotificationAdded);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('notificationAdded', handleNotificationAdded);
-      window.removeEventListener('storage', handleNotificationAdded);
     };
   }, []);
 
-  // ✅ Đánh dấu đã đọc
-  const handleMarkAsRead = (notificationId) => {
+  // ✅ Mark notification as read via API
+  const handleMarkAsRead = async (notificationId) => {
     try {
-      const saved = localStorage.getItem("notifications");
-      if (saved) {
-        const allNotifications = JSON.parse(saved);
-        const updated = allNotifications.map(n => 
-          n.id === notificationId ? { ...n, read: true } : n
-        );
-        localStorage.setItem("notifications", JSON.stringify(updated));
-        loadNotifications();
+      const response = await realApi.markNotificationAsRead(notificationId);
+
+      if (response.success) {
+        // Reload notifications to get updated state
+        await loadNotifications();
+      } else {
+        console.error("❌ Failed to mark as read:", response.error);
       }
     } catch (error) {
-      console.error("❌ Lỗi khi đánh dấu đã đọc:", error);
+      console.error("❌ Error marking notification as read:", error);
     }
   };
 
-  // ✅ Đánh dấu tất cả đã đọc
-  const handleMarkAllAsRead = () => {
+  // ✅ Mark all notifications as read via API
+  const handleMarkAllAsRead = async () => {
     try {
-      const saved = localStorage.getItem("notifications");
-      if (saved) {
-        const allNotifications = JSON.parse(saved);
-        const updated = allNotifications.map(n => ({ ...n, read: true }));
-        localStorage.setItem("notifications", JSON.stringify(updated));
-        loadNotifications();
+      const response = await realApi.markAllNotificationsAsRead();
+
+      if (response.success) {
+        // Reload notifications to get updated state
+        await loadNotifications();
+      } else {
+        console.error("❌ Failed to mark all as read:", response.error);
       }
     } catch (error) {
-      console.error("❌ Lỗi khi đánh dấu tất cả đã đọc:", error);
+      console.error("❌ Error marking all notifications as read:", error);
     }
   };
 
@@ -122,34 +124,38 @@ export default function NotificationsButton({ onNotificationClick }) {
           <div className="dropdown-header">
             <h4>Thông báo</h4>
             {unreadCount > 0 && (
-              <button 
+              <button
                 className="mark-all-read-btn"
                 onClick={handleMarkAllAsRead}
               >
                 Đánh dấu tất cả đã đọc
               </button>
             )}
-            <button 
+            <button
               className="close-dropdown-btn"
               onClick={() => setShowDropdown(false)}
             >
               ×
             </button>
           </div>
-          
+
           <div className="notifications-list">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="no-notifications">
+                <p>Đang tải...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="no-notifications">
                 <p>Không có thông báo nào</p>
               </div>
             ) : (
               notifications.map(notification => (
-                <div 
-                  key={notification.id} 
+                <div
+                  key={notification.id}
                   className={`notification-item ${!notification.read ? 'unread' : ''} ${notification.postId ? 'clickable' : ''}`}
                   onClick={() => {
                     handleMarkAsRead(notification.id);
-                    // ✅ Nếu có postId, navigate đến bài đăng
+                    // ✅ If has postId, navigate to post
                     if (notification.postId && onNotificationClick) {
                       onNotificationClick(notification.postId, notification.postType);
                       setShowDropdown(false);
@@ -178,8 +184,8 @@ export default function NotificationsButton({ onNotificationClick }) {
                           <span className="match-post-title">{notification.matchedPost.title}</span>
                         </div>
                         {notification.matchedPost.images && notification.matchedPost.images.length > 0 && (
-                          <img 
-                            src={notification.matchedPost.images[0]} 
+                          <img
+                            src={notification.matchedPost.images[0]}
                             alt="Preview"
                             className="match-post-image"
                           />

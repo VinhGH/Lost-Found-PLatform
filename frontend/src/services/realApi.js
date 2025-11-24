@@ -1092,6 +1092,127 @@ class RealApiService {
       };
     }
   }
+
+  // ==================== NOTIFICATION APIs ====================
+
+  /**
+   * Get all notifications for current user
+   * @param {Object} filters - { is_read, limit }
+   * @returns {Promise<Object>}
+   */
+  async getNotifications(filters = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (filters.is_read !== undefined) {
+        params.append('is_read', filters.is_read);
+      }
+      if (filters.limit) {
+        params.append('limit', filters.limit);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/notifications?${queryString}` : '/notifications';
+
+      const response = await httpClient.get(endpoint, {}, {}, { preferUserToken: true });
+
+      return response;
+    } catch (error) {
+      console.error("❌ Get notifications error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể lấy danh sách thông báo",
+      };
+    }
+  }
+
+  /**
+   * Get unread notification count
+   * @returns {Promise<Object>}
+   */
+  async getUnreadCount() {
+    try {
+      const response = await httpClient.get('/notifications/unread-count', {}, {}, { preferUserToken: true });
+
+      return response;
+    } catch (error) {
+      console.error("❌ Get unread count error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể lấy số lượng thông báo chưa đọc",
+      };
+    }
+  }
+
+  /**
+   * Mark notification as read
+   * @param {number} notificationId
+   * @returns {Promise<Object>}
+   */
+  async markNotificationAsRead(notificationId) {
+    try {
+      const response = await httpClient.put(
+        `/notifications/${notificationId}/read`,
+        {},
+        {},
+        { preferUserToken: true }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("❌ Mark notification as read error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể đánh dấu thông báo đã đọc",
+      };
+    }
+  }
+
+  /**
+   * Mark all notifications as read
+   * @returns {Promise<Object>}
+   */
+  async markAllNotificationsAsRead() {
+    try {
+      const response = await httpClient.put(
+        '/notifications/mark-all-read',
+        {},
+        {},
+        { preferUserToken: true }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("❌ Mark all notifications as read error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể đánh dấu tất cả thông báo đã đọc",
+      };
+    }
+  }
+
+  /**
+   * Delete a notification
+   * @param {number} notificationId
+   * @returns {Promise<Object>}
+   */
+  async deleteNotification(notificationId) {
+    try {
+      const response = await httpClient.delete(
+        `/notifications/${notificationId}`,
+        {},
+        {},
+        { preferUserToken: true }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("❌ Delete notification error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể xóa thông báo",
+      };
+    }
+  }
 }
 
 // Export singleton instance
