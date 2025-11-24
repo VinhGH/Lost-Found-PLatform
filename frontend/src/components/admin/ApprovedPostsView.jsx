@@ -35,10 +35,10 @@ const ApprovedPostsView = ({ onPostChange }) => {
       console.log("📋 Admin loading approved posts from API...");
 
       // ✅ Sử dụng httpClient để đảm bảo admin token được gửi
-      // Load posts với status='active' hoặc không filter (backend sẽ trả về Approved posts)
+      // Load posts với status='active' và limit=100 để hiển thị tất cả bài đã duyệt
       const response = await httpClient.get(
         "/posts",
-        { status: "active" },
+        { status: "active", limit: 100 },
         {},
         { preferAdmin: true }
       );
@@ -240,7 +240,7 @@ const ApprovedPostsView = ({ onPostChange }) => {
       console.error("❌ Lỗi khi xóa bài đăng:", error);
       alert(
         "❌ Có lỗi xảy ra khi xóa bài đăng: " +
-          (error.message || "Lỗi không xác định")
+        (error.message || "Lỗi không xác định")
       );
     }
   };
@@ -346,12 +346,12 @@ const ApprovedPostsView = ({ onPostChange }) => {
             // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
             const postImages =
               post.images &&
-              Array.isArray(post.images) &&
-              post.images.length > 0
+                Array.isArray(post.images) &&
+                post.images.length > 0
                 ? post.images
                 : post.image
-                ? [post.image]
-                : [];
+                  ? [post.image]
+                  : [];
 
             return (
               <div
@@ -399,8 +399,8 @@ const ApprovedPostsView = ({ onPostChange }) => {
                         {post.createdAt
                           ? new Date(post.createdAt).toLocaleDateString("vi-VN")
                           : post.date
-                          ? new Date(post.date).toLocaleDateString("vi-VN")
-                          : "N/A"}
+                            ? new Date(post.date).toLocaleDateString("vi-VN")
+                            : "N/A"}
                       </span>
                     </div>
                     <div className="detail-item">
