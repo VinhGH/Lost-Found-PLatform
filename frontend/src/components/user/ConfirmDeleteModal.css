@@ -1,0 +1,131 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+/* Nền mờ toàn màn hình */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  font-family: "Poppins", sans-serif;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Hộp chính giữa */
+.confirm-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 380px;
+  max-width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  animation: popIn 0.3s ease;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* Header */
+.confirm-header {
+  background: #dc143c;
+  color: white;
+  padding: 14px 20px;
+  font-weight: 600;
+  font-size: 18px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+/* Body */
+.confirm-body {
+  padding: 24px 28px;
+}
+
+.confirm-body p {
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* Footer */
+.confirm-footer {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.cancel-btn,
+.confirm-btn {
+  width: 100px;
+  height: 42px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.25s ease;
+}
+
+.cancel-btn {
+  background: #e5e7eb;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background: #d1d5db;
+}
+
+.confirm-btn {
+  background: #dc143c;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background: #b22222;
+  transform: translateY(-1px);
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------------- Dark Mode ---------------- */
+[data-theme='dark'] .confirm-modal {
+  background: var(--surface);
+  color: var(--text);
+}
+
+[data-theme='dark'] .confirm-body p {
+  color: var(--text);
+}
+
+[data-theme='dark'] .cancel-btn {
+  background: #374151;
+  color: var(--text);
+}
+
+[data-theme='dark'] .cancel-btn:hover {
+  background: #4b5563;
+}

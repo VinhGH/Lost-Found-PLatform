@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xóa dữ liệu giả trong localStorage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #d32f2f;
+        }
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+        .data-list {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .data-item {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Xóa dữ liệu giả trong localStorage</h1>
+        
+        <div class="info">
+            <strong>⚠️ Lưu ý:</strong> Script này sẽ xóa các dữ liệu giả (mock data) trong localStorage:
+            <ul>
+                <li><code>posts</code> - Dữ liệu bài đăng giả</li>
+                <li><code>notifications</code> - Thông báo giả (tùy chọn)</li>
+            </ul>
+            <strong>✅ Giữ lại:</strong>
+            <ul>
+                <li><code>userToken</code>, <code>userData</code> - Thông tin đăng nhập user</li>
+                <li><code>adminToken</code>, <code>adminData</code> - Thông tin đăng nhập admin</li>
+                <li>Các cài đặt khác (theme, tabs, etc.)</li>
+            </ul>
+        </div>
+
+        <div id="dataPreview" class="data-list" style="display: none;">
+            <h3>Dữ liệu hiện tại:</h3>
+            <div id="dataContent"></div>
+        </div>
+
+        <button onclick="previewData()">👁️ Xem dữ liệu hiện tại</button>
+        <button onclick="clearPosts()" style="background: #f44336;">🗑️ Xóa dữ liệu posts</button>
+        <button onclick="clearNotifications()" style="background: #ff9800;">🗑️ Xóa dữ liệu notifications</button>
+        <button onclick="clearAllMockData()" style="background: #d32f2f;">🗑️ Xóa TẤT CẢ dữ liệu giả</button>
+
+        <div id="success" class="success"></div>
+    </div>
+
+    <script>
+        function previewData() {
+            const posts = localStorage.getItem('posts');
+            const notifications = localStorage.getItem('notifications');
+            
+            let html = '';
+            if (posts) {
+                try {
+                    const postsData = JSON.parse(posts);
+                    html += `<div class="data-item"><strong>posts:</strong> ${postsData.length} bài đăng</div>`;
+                } catch(e) {
+                    html += `<div class="data-item"><strong>posts:</strong> Dữ liệu không hợp lệ</div>`;
+                }
+            } else {
+                html += `<div class="data-item"><strong>posts:</strong> Không có</div>`;
+            }
+            
+            if (notifications) {
+                try {
+                    const notifData = JSON.parse(notifications);
+                    html += `<div class="data-item"><strong>notifications:</strong> ${notifData.length} thông báo</div>`;
+                } catch(e) {
+                    html += `<div class="data-item"><strong>notifications:</strong> Dữ liệu không hợp lệ</div>`;
+                }
+            } else {
+                html += `<div class="data-item"><strong>notifications:</strong> Không có</div>`;
+            }
+            
+            document.getElementById('dataContent').innerHTML = html;
+            document.getElementById('dataPreview').style.display = 'block';
+        }
+
+        function clearPosts() {
+            if (confirm('Bạn có chắc muốn xóa dữ liệu posts trong localStorage?')) {
+                localStorage.removeItem('posts');
+                showSuccess('✅ Đã xóa dữ liệu posts!');
+                previewData();
+            }
+        }
+
+        function clearNotifications() {
+            if (confirm('Bạn có chắc muốn xóa dữ liệu notifications trong localStorage?')) {
+                localStorage.removeItem('notifications');
+                showSuccess('✅ Đã xóa dữ liệu notifications!');
+                previewData();
+            }
+        }
+
+        function clearAllMockData() {
+            if (confirm('⚠️ Bạn có chắc muốn xóa TẤT CẢ dữ liệu giả (posts + notifications)?')) {
+                localStorage.removeItem('posts');
+                localStorage.removeItem('notifications');
+                showSuccess('✅ Đã xóa tất cả dữ liệu giả!');
+                previewData();
+            }
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Auto preview on load
+        window.onload = previewData;
+    </script>
+</body>
+</html>
+

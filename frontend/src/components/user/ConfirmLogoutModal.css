@@ -1,0 +1,130 @@
+/* Confirm Logout Modal - Simple & Centered */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  margin: 0;
+  padding: 0;
+}
+
+.confirm-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  animation: modalAppear 0.3s ease;
+}
+
+.confirm-header {
+  background: linear-gradient(135deg, #dc143c 0%, #b22222 100%);
+  color: #ffffff;
+  padding: 20px 24px;
+  text-align: center;
+}
+
+.confirm-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.confirm-body {
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.confirm-body p {
+  margin: 0 0 28px 0;
+  font-size: 16px;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.confirm-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cancel-btn,
+.confirm-btn {
+  min-width: 120px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.cancel-btn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cancel-btn:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #dc143c 0%, #b22222 100%);
+  color: #ffffff;
+}
+
+.confirm-btn:hover {
+  background: linear-gradient(135deg, #b22222 0%, #8b1a1a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4);
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dark Mode */
+[data-theme='dark'] .confirm-modal {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .confirm-body p {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .cancel-btn {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .cancel-btn:hover {
+  background: #475569;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .confirm-modal {
+    width: calc(100vw - 20px);
+  }
+}

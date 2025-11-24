@@ -1,0 +1,245 @@
+/* ✅ Global CSS Overrides cho Admin - Force Light Mode */
+/* File này sẽ được import vào AdminUI.jsx để override mọi dark mode styles */
+
+/* ✅ Override tất cả dark mode styles từ index.css và global styles */
+.admin-mode .admin-dashboard,
+.admin-light-mode,
+.admin-mode .admin-dashboard *,
+.admin-light-mode * {
+  /* Force light mode colors */
+}
+
+/* ✅ Override header */
+.admin-mode .admin-header,
+.admin-light-mode .admin-header,
+[data-theme="dark"] .admin-dashboard .admin-header,
+[data-theme="dark"] .admin-light-mode .admin-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.admin-mode .admin-header .page-title h1,
+.admin-light-mode .admin-header .page-title h1,
+[data-theme="dark"] .admin-dashboard .admin-header .page-title h1,
+[data-theme="dark"] .admin-light-mode .admin-header .page-title h1 {
+  color: #1e293b !important;
+}
+
+.admin-mode .admin-header .page-title p,
+.admin-light-mode .admin-header .page-title p,
+[data-theme="dark"] .admin-dashboard .admin-header .page-title p,
+[data-theme="dark"] .admin-light-mode .admin-header .page-title p {
+  color: #64748b !important;
+}
+
+/* ✅ Override notification dropdown */
+.admin-mode .notification-dropdown,
+.admin-light-mode .notification-dropdown,
+[data-theme="dark"] .admin-dashboard .notification-dropdown,
+[data-theme="dark"] .admin-light-mode .notification-dropdown {
+  background: white !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .notification-content h5,
+.admin-light-mode .notification-content h5,
+[data-theme="dark"] .admin-dashboard .notification-content h5,
+[data-theme="dark"] .admin-light-mode .notification-content h5 {
+  color: #1e293b !important;
+}
+
+.admin-mode .notification-content p,
+.admin-light-mode .notification-content p,
+[data-theme="dark"] .admin-dashboard .notification-content p,
+[data-theme="dark"] .admin-light-mode .notification-content p {
+  color: #64748b !important;
+}
+
+/* ✅ Override user dropdown */
+.admin-mode .user-dropdown,
+.admin-light-mode .user-dropdown,
+[data-theme="dark"] .admin-dashboard .user-dropdown,
+[data-theme="dark"] .admin-light-mode .user-dropdown {
+  background: white !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .user-details h4,
+.admin-light-mode .user-details h4,
+[data-theme="dark"] .admin-dashboard .user-details h4,
+[data-theme="dark"] .admin-light-mode .user-details h4 {
+  color: #1e293b !important;
+}
+
+.admin-mode .user-details p,
+.admin-light-mode .user-details p,
+[data-theme="dark"] .admin-dashboard .user-details p,
+[data-theme="dark"] .admin-light-mode .user-details p {
+  color: #64748b !important;
+}
+
+.admin-mode .user-menu-item,
+.admin-light-mode .user-menu-item,
+[data-theme="dark"] .admin-dashboard .user-menu-item,
+[data-theme="dark"] .admin-light-mode .user-menu-item {
+  color: #1e293b !important;
+}
+
+/* ✅ Override breadcrumb */
+.admin-mode .breadcrumb,
+.admin-light-mode .breadcrumb,
+[data-theme="dark"] .admin-dashboard .breadcrumb,
+[data-theme="dark"] .admin-light-mode .breadcrumb {
+  color: #64748b !important;
+}
+
+.admin-mode .breadcrumb-item:last-child,
+.admin-light-mode .breadcrumb-item:last-child,
+[data-theme="dark"] .admin-dashboard .breadcrumb-item:last-child,
+[data-theme="dark"] .admin-light-mode .breadcrumb-item:last-child {
+  color: #1e293b !important;
+}
+
+/* ✅ Override tables */
+.admin-mode .table-container,
+.admin-light-mode .table-container,
+.admin-mode .posts-table-container,
+.admin-light-mode .posts-table-container,
+[data-theme="dark"] .admin-dashboard .table-container,
+[data-theme="dark"] .admin-light-mode .table-container,
+[data-theme="dark"] .admin-dashboard .posts-table-container,
+[data-theme="dark"] .admin-light-mode .posts-table-container {
+  background: white !important;
+  border-color: #e0e0e0 !important;
+}
+
+.admin-mode .admins-table th,
+.admin-light-mode .admins-table th,
+.admin-mode .users-table th,
+.admin-light-mode .users-table th,
+[data-theme="dark"] .admin-dashboard .admins-table th,
+[data-theme="dark"] .admin-light-mode .admins-table th,
+[data-theme="dark"] .admin-dashboard .users-table th,
+[data-theme="dark"] .admin-light-mode .users-table th {
+  background: #f8f9fa !important;
+  color: #333 !important;
+  border-bottom-color: #e0e0e0 !important;
+}
+
+.admin-mode .admins-table td,
+.admin-light-mode .admins-table td,
+.admin-mode .users-table td,
+.admin-light-mode .users-table td,
+[data-theme="dark"] .admin-dashboard .admins-table td,
+[data-theme="dark"] .admin-light-mode .admins-table td,
+[data-theme="dark"] .admin-dashboard .users-table td,
+[data-theme="dark"] .admin-light-mode .users-table td {
+  color: #333 !important;
+  border-bottom-color: #f0f0f0 !important;
+}
+
+.admin-mode .admin-name,
+.admin-light-mode .admin-name,
+.admin-mode .user-name,
+.admin-light-mode .user-name,
+[data-theme="dark"] .admin-dashboard .admin-name,
+[data-theme="dark"] .admin-light-mode .admin-name,
+[data-theme="dark"] .admin-dashboard .user-name,
+[data-theme="dark"] .admin-light-mode .user-name {
+  color: #333 !important;
+}
+
+.admin-mode .admin-email,
+.admin-light-mode .admin-email,
+.admin-mode .user-email,
+.admin-light-mode .user-email,
+[data-theme="dark"] .admin-dashboard .admin-email,
+[data-theme="dark"] .admin-light-mode .admin-email,
+[data-theme="dark"] .admin-dashboard .user-email,
+[data-theme="dark"] .admin-light-mode .user-email {
+  color: #666 !important;
+}
+
+/* ✅ Override profile */
+.admin-mode .profile-tab,
+.admin-light-mode .profile-tab,
+[data-theme="dark"] .admin-dashboard .profile-tab,
+[data-theme="dark"] .admin-light-mode .profile-tab {
+  background: white !important;
+  border-color: #e9ecef !important;
+}
+
+.admin-mode .profile-name,
+.admin-light-mode .profile-name,
+[data-theme="dark"] .admin-dashboard .profile-name,
+[data-theme="dark"] .admin-light-mode .profile-name {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .profile-email,
+.admin-light-mode .profile-email,
+[data-theme="dark"] .admin-dashboard .profile-email,
+[data-theme="dark"] .admin-light-mode .profile-email {
+  color: #6c757d !important;
+}
+
+.admin-mode .section-title,
+.admin-light-mode .section-title,
+[data-theme="dark"] .admin-dashboard .section-title,
+[data-theme="dark"] .admin-light-mode .section-title {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .info-label,
+.admin-light-mode .info-label,
+[data-theme="dark"] .admin-dashboard .info-label,
+[data-theme="dark"] .admin-light-mode .info-label {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .info-value,
+.admin-light-mode .info-value,
+[data-theme="dark"] .admin-dashboard .info-value,
+[data-theme="dark"] .admin-light-mode .info-value {
+  color: #6c757d !important;
+}
+
+.admin-mode .info-input,
+.admin-light-mode .info-input,
+[data-theme="dark"] .admin-dashboard .info-input,
+[data-theme="dark"] .admin-light-mode .info-input {
+  background: white !important;
+  border-color: #e9ecef !important;
+  color: #333 !important;
+}
+
+/* ✅ Override modal */
+.admin-mode .confirm-delete-modal,
+.admin-light-mode .confirm-delete-modal,
+[data-theme="dark"] .admin-dashboard .confirm-delete-modal,
+[data-theme="dark"] .admin-light-mode .confirm-delete-modal {
+  background: #ffffff !important;
+}
+
+.admin-mode .modal-header h3,
+.admin-light-mode .modal-header h3,
+[data-theme="dark"] .admin-dashboard .modal-header h3,
+[data-theme="dark"] .admin-light-mode .modal-header h3 {
+  color: #1e293b !important;
+}
+
+.admin-mode .modal-content p,
+.admin-light-mode .modal-content p,
+[data-theme="dark"] .admin-dashboard .modal-content p,
+[data-theme="dark"] .admin-light-mode .modal-content p {
+  color: #64748b !important;
+}
+
+/* ✅ Override no results */
+.admin-mode .no-results,
+.admin-light-mode .no-results,
+[data-theme="dark"] .admin-dashboard .no-results,
+[data-theme="dark"] .admin-light-mode .no-results {
+  color: #666 !important;
+}
+

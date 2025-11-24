@@ -1,0 +1,20 @@
+{
+  "short_name": "DTU Lost & Found",
+  "name": "DTU Lost & Found - Cộng đồng tìm kiếm đồ",
+  "icons": [
+    {
+      "src": "img/logo_dtu.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/logo_dtu.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#8B0000",
+  "background_color": "#ffffff"
+}

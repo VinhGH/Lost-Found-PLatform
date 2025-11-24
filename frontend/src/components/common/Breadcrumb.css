@@ -1,0 +1,154 @@
+.breadcrumb {
+  padding: 12px 0;
+  margin-bottom: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.breadcrumb-link {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: inherit;
+}
+
+.breadcrumb-link:hover {
+  background: #e3f2fd;
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.breadcrumb-link:disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.breadcrumb-link:disabled:hover {
+  background: none;
+  color: #6c757d;
+}
+
+.breadcrumb-text {
+  color: #6c757d;
+  padding: 4px 8px;
+}
+
+.breadcrumb-active {
+  color: #dc143c;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.breadcrumb-separator {
+  color: #adb5bd;
+  margin: 0 4px;
+  display: flex;
+  align-items: center;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .breadcrumb {
+  background: #0f172a;
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .breadcrumb-list {
+  color: #a0aec0;
+}
+
+[data-theme='dark'] .breadcrumb-link {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .breadcrumb-link:hover {
+  background: #1f2937;
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .breadcrumb-text {
+  color: #a0aec0;
+}
+
+[data-theme='dark'] .breadcrumb-active {
+  color: #f56565;
+}
+
+[data-theme='dark'] .breadcrumb-separator {
+  color: #718096;
+}
+
+/* ✅ Force Admin Breadcrumb luôn ở Light Mode - Override dark mode */
+.admin-mode .breadcrumb,
+.admin-light-mode .breadcrumb,
+[data-theme="dark"] .admin-dashboard .breadcrumb,
+[data-theme="dark"] .admin-light-mode .breadcrumb {
+  background: #f8f9fa !important;
+  border-color: #e9ecef !important;
+}
+
+.admin-mode .breadcrumb-item,
+.admin-light-mode .breadcrumb-item,
+[data-theme="dark"] .admin-dashboard .breadcrumb-item,
+[data-theme="dark"] .admin-light-mode .breadcrumb-item {
+  color: #6c757d !important;
+}
+
+.admin-mode .breadcrumb-link,
+.admin-light-mode .breadcrumb-link,
+[data-theme="dark"] .admin-dashboard .breadcrumb-link,
+[data-theme="dark"] .admin-light-mode .breadcrumb-link {
+  color: #007bff !important;
+}
+
+.admin-mode .breadcrumb-link:hover,
+.admin-light-mode .breadcrumb-link:hover,
+[data-theme="dark"] .admin-dashboard .breadcrumb-link:hover,
+[data-theme="dark"] .admin-light-mode .breadcrumb-link:hover {
+  background: #e3f2fd !important;
+  color: #0056b3 !important;
+}
+
+.admin-mode .breadcrumb-text,
+.admin-light-mode .breadcrumb-text,
+[data-theme="dark"] .admin-dashboard .breadcrumb-text,
+[data-theme="dark"] .admin-light-mode .breadcrumb-text {
+  color: #6c757d !important;
+}
+
+.admin-mode .breadcrumb-active,
+.admin-light-mode .breadcrumb-active,
+[data-theme="dark"] .admin-dashboard .breadcrumb-active,
+[data-theme="dark"] .admin-light-mode .breadcrumb-active {
+  color: #dc143c !important;
+}
+
+.admin-mode .breadcrumb-separator,
+.admin-light-mode .breadcrumb-separator,
+[data-theme="dark"] .admin-dashboard .breadcrumb-separator,
+[data-theme="dark"] .admin-light-mode .breadcrumb-separator {
+  color: #adb5bd !important;
+}
