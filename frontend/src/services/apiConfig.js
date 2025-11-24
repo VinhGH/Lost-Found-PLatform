@@ -4,7 +4,7 @@
  */
 
 // Base URL của backend API
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL =process.env.REACT_APP_API_URL || 'https://lost-found-platform.onrender.com/api';
 
 // API Endpoints
 export const API_ENDPOINTS = {
