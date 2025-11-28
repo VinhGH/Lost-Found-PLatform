@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
-import UserAccountsManagement from './UserAccountsManagement';
-import AdminAccountsManagement from './AdminAccountsManagement';
+// ✅ Đã xóa import - UserAccountsManagement và AdminAccountsManagement không được sử dụng
+// import UserAccountsManagement from './UserAccountsManagement';
+// import AdminAccountsManagement from './AdminAccountsManagement';
 import LostItemsManagement from './LostItemsManagement';
 import ApprovedPostsView from './ApprovedPostsView';
 import AdminProfile from './AdminProfile';

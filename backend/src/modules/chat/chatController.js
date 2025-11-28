@@ -9,6 +9,7 @@ import notificationModel from '../notification/notificationModel.js';
 export const createConversation = async (req, res, next) => {
   try {
     const { match_id } = req.body;
+    const accountId = req.user?.accountId;
 
     if (!match_id) {
       return res.status(400).json({
@@ -38,7 +39,7 @@ export const createConversation = async (req, res, next) => {
     }
 
     const match = matchResult.data;
-    
+
     // Extract unique participant IDs
     const participants = new Set();
     if (match.LostPost?.Account?.account_id) {
@@ -266,7 +267,7 @@ export const sendMessage = async (req, res, next) => {
       const convResult = await chatModel.getConversationById(id);
       if (convResult.success && convResult.data) {
         const participants = convResult.data.participants || [];
-        
+
         for (const participant of participants) {
           if (participant.account_id !== accountId) {
             await notificationModel.createNotification(
@@ -286,6 +287,123 @@ export const sendMessage = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
+      data: result.data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/chat/conversations/by-post
+ * Create or get conversation by post
+ */
+export const createOrGetConversationByPost = async (req, res, next) => {
+  try {
+    const { post_id, post_type, target_account_id } = req.body;
+    const accountId = req.user?.accountId;
+
+    if (!post_id || !post_type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Post ID and type are required'
+      });
+    }
+
+    if (!target_account_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target account ID is required'
+      });
+    }
+
+    // Check if conversation already exists for this user and post
+    const existingResult = await chatModel.getConversationByPost(
+      post_id,
+      post_type,
+      accountId
+    );
+
+    if (existingResult.success && existingResult.data) {
+      // Return existing conversation
+      return res.status(200).json({
+        success: true,
+        message: 'Conversation found',
+        data: existingResult.data,
+        exists: true
+      });
+    }
+
+    // Create new conversation
+    const participants = [accountId, target_account_id];
+    const createResult = await chatModel.createConversationByPost(
+      post_id,
+      post_type,
+      participants
+    );
+
+    if (!createResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create conversation',
+        error: createResult.error
+      });
+    }
+
+    // Get full conversation details
+    const fullConvResult = await chatModel.getConversationById(
+      createResult.data.conversation_id
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Conversation created successfully',
+      data: fullConvResult.data || createResult.data,
+      exists: false
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/chat/conversations/:id
+ * Soft delete conversation for current user
+ */
+export const deleteConversation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const accountId = req.user?.accountId;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Conversation ID is required'
+      });
+    }
+
+    // Check if user is a participant
+    const isParticipant = await chatModel.isParticipant(id, accountId);
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to delete this conversation'
+      });
+    }
+
+    const result = await chatModel.softDeleteConversation(id, accountId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete conversation',
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Conversation deleted successfully',
       data: result.data
     });
   } catch (error) {

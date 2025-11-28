@@ -7,10 +7,10 @@ import { formatLocationToString } from '../../utils/locationParser.js';
 class LocationModel {
   /**
    * Get all locations
-   * @param {Object} _filters - Optional filters (not used currently)
+   * @param {Object} filters - Optional filters
    * @returns {Promise<Object>}
    */
-  async getAllLocations(_filters = {}) {
+  async getAllLocations(filters = {}) {
     try {
       let query = supabase
         .from('Location')

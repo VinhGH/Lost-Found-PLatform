@@ -1,4 +1,5 @@
 import postModel from './postModel.js';
+import notificationModel from '../notification/notificationModel.js';
 
 /**
  * GET /api/posts
@@ -114,7 +115,7 @@ export const getPostById = async (req, res, next) => {
  */
 export const createPost = async (req, res, next) => {
   try {
-    const { type, title, description, category, location, images } = req.body;
+    const { type, title, description, category, location, images, date } = req.body;
     const accountId = req.user?.accountId;
 
     // Validation
@@ -174,6 +175,30 @@ export const createPost = async (req, res, next) => {
         message: 'Failed to create post',
         error: result.error
       });
+    }
+
+    // ✅ Create notification for user: "Bài đăng của bạn đang chờ duyệt"
+    try {
+      const postId = result.data.id || result.data.lost_post_id || result.data.found_post_id;
+      const postType = type.toLowerCase();
+      console.log('📬 Creating notification for post:', { accountId, postId, postType });
+
+      const notifResult = await notificationModel.createNotification(
+        accountId,
+        'post_pending',
+        'Bài đăng của bạn đang chờ duyệt',
+        `/posts/${postType}/${postId}`,
+        null
+      );
+
+      if (notifResult.success) {
+        console.log('✅ Notification created successfully:', notifResult.data);
+      } else {
+        console.error('❌ Notification creation failed:', notifResult.error);
+      }
+    } catch (notifError) {
+      console.error('❌ Failed to create notification:', notifError);
+      // Don't fail the request if notification creation fails
     }
 
     res.status(201).json({
@@ -312,14 +337,30 @@ export const deletePost = async (req, res, next) => {
     }
 
     // Check ownership (unless admin)
-    if (userRole !== 'Admin') {
+    // ✅ So sánh case-insensitive để đảm bảo Admin role được nhận diện
+    const normalizedRole = userRole ? String(userRole).trim() : '';
+    const isAdmin = normalizedRole.toLowerCase() === 'admin';
+
+    console.log('🔍 Delete post - Raw userRole:', userRole, 'Type:', typeof userRole);
+    console.log('🔍 Delete post - Normalized role:', normalizedRole);
+    console.log('🔍 Delete post - Is Admin:', isAdmin);
+    console.log('🔍 Delete post - Account ID:', accountId, 'Post ID:', id, 'Type:', type);
+    console.log('🔍 Delete post - Full req.user:', JSON.stringify(req.user, null, 2));
+
+    if (!isAdmin) {
+      console.log('⚠️ Not admin, checking ownership...');
       const isOwner = await postModel.isPostOwner(id, type, accountId);
+      console.log('🔍 Delete post - Is Owner:', isOwner);
       if (!isOwner) {
+        console.log('❌ Not owner and not admin - denying delete');
         return res.status(403).json({
           success: false,
           message: 'You do not have permission to delete this post'
         });
       }
+      console.log('✅ Owner confirmed - allowing delete');
+    } else {
+      console.log('✅ Admin detected - skipping ownership check');
     }
 
     const result = await postModel.deletePost(id, type);
@@ -330,6 +371,25 @@ export const deletePost = async (req, res, next) => {
         message: 'Failed to delete post',
         error: result.error
       });
+    }
+
+    // ✅ Create notification if admin deleted (not owner)
+    if (isAdmin) {
+      try {
+        const post = await postModel.getPostById(id, type);
+        if (post.success && post.data && post.data.accountId) {
+          await notificationModel.createNotification(
+            post.data.accountId,
+            'post_rejected',
+            'Bài đăng của bạn đã bị xóa do vi phạm tiêu chuẩn cộng đồng của chúng tôi',
+            '',
+            null
+          );
+        }
+      } catch (notifError) {
+        console.error('❌ Failed to create notification:', notifError);
+        // Don't fail the request if notification creation fails
+      }
     }
 
     res.status(200).json({
@@ -492,6 +552,23 @@ export const approvePost = async (req, res, next) => {
       });
     }
 
+    // ✅ Create notification for post owner: "Bài đăng của bạn đã được duyệt"
+    try {
+      const post = await postModel.getPostById(id, type.toLowerCase());
+      if (post.success && post.data && post.data.accountId) {
+        await notificationModel.createNotification(
+          post.data.accountId,
+          'post_approved',
+          'Bài đăng của bạn đã được duyệt',
+          `/posts/${type.toLowerCase()}/${id}`,
+          null
+        );
+      }
+    } catch (notifError) {
+      console.error('❌ Failed to create notification:', notifError);
+      // Don't fail the request if notification creation fails
+    }
+
     res.status(200).json({
       success: true,
       message: 'Post approved successfully',
@@ -511,6 +588,7 @@ export const rejectPost = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { type } = req.query;
+    const { reason } = req.body;
 
     if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
       return res.status(400).json({

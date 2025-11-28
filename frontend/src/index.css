@@ -429,3 +429,136 @@ html, body {
 .detail-header .close-modal-btn:active {
   transform: rotate(90deg) scale(0.95);
 }
+
+/* ========================================
+   RESPONSIVE DESIGN - GLOBAL FOUNDATION
+   ======================================== */
+
+/* Utility Classes */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: block !important;
+}
+
+/* Tablet Breakpoint (768px - 1024px) */
+@media (max-width: 1024px) {
+  body {
+    font-size: 14px;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+
+  /* Adjust common spacing */
+  .user-main {
+    padding-top: 70px;
+  }
+}
+
+/* Mobile Breakpoint (< 768px) */
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0 12px;
+  }
+
+  /* Utility classes */
+  .mobile-only {
+    display: block !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Adjust main content area */
+  .user-main {
+    padding-top: 60px;
+  }
+
+  /* Make buttons full-width on mobile */
+  .btn-primary,
+  .btn-secondary,
+  .btn-submit {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Card adjustments */
+  .card {
+    border-radius: 8px;
+  }
+
+  /* Modal adjustments - full screen on mobile */
+  .modal {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 120px);
+  }
+
+  /* Form inputs touch-friendly */
+  .form-input,
+  .form-textarea,
+  .form-select {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 14px 16px;
+  }
+
+  /* Touch-friendly tap targets (minimum 44px) */
+  button,
+  .btn,
+  .nav-btn,
+  a.btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Small Mobile Breakpoint (< 480px) */
+@media (max-width: 480px) {
+  body {
+    font-size: 12px;
+  }
+
+  .container {
+    padding: 0 8px;
+  }
+
+  /* Further reduce spacing */
+  .user-main {
+    padding-top: 56px;
+  }
+
+  /* Smaller cards */
+  .card {
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  /* Compact form elements */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    padding: 12px 14px;
+  }
+}

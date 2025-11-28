@@ -12,6 +12,11 @@ class UserApi {
     this.userData = userData;
     localStorage.setItem('userToken', token);
     localStorage.setItem('userData', JSON.stringify(userData));
+    
+    // ✅ KHÔNG xóa admin token khi user login - cho phép mở 2 tab cùng lúc
+    // httpClient sẽ tự động ưu tiên đúng token dựa trên context
+    // Chỉ xóa admin token khi user logout
+    console.log('✅ User token saved (admin token preserved for multi-tab support)');
   }
 
   // Clear authentication data
@@ -20,6 +25,8 @@ class UserApi {
     this.userData = null;
     localStorage.removeItem('userToken');
     localStorage.removeItem('userData');
+    // ✅ Chỉ xóa user token khi logout, không xóa admin token
+    console.log('✅ User token cleared (admin token preserved)');
   }
 
   // Get current user data (merge with saved profile if exists)
@@ -102,7 +109,12 @@ class UserApi {
 
   // Check if user is authenticated
   isAuthenticated() {
-    return !!this.authToken && !!this.userData;
+    // ✅ Đọc lại từ localStorage mỗi lần check để đảm bảo sync với multi-tab
+    const token = localStorage.getItem('userToken');
+    const data = localStorage.getItem('userData');
+    this.authToken = token;
+    this.userData = data ? JSON.parse(data) : null;
+    return !!token && !!this.userData;
   }
 
   // Login user

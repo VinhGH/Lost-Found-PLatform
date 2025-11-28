@@ -482,6 +482,9 @@
   padding: 20px;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .post-card:hover {
@@ -520,6 +523,10 @@
 
 .post-content {
   margin-bottom: 16px;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .post-image-preview {
@@ -530,9 +537,13 @@
   background: #f1f5f9;
 }
 
+.post-image-preview .post-image {
+  height: 200px;
+}
+
 .post-image-preview img {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
@@ -542,6 +553,9 @@
   font-weight: 600;
   color: #1e293b;
   margin: 0 0 8px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .post-description {
@@ -549,6 +563,14 @@
   color: #64748b;
   line-height: 1.5;
   margin: 0 0 16px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .post-details {
@@ -564,6 +586,9 @@
   gap: 8px;
   font-size: 0.85rem;
   color: #64748b;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .detail-label {
@@ -572,16 +597,23 @@
   gap: 6px;
   font-weight: 500;
   min-width: 100px;
+  flex-shrink: 0;
 }
 
 .detail-label svg {
   font-size: 1rem;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .detail-value {
   color: #64748b;
   font-weight: 400;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  max-width: 100%;
+  line-height: 1.4;
 }
 
 .post-images {

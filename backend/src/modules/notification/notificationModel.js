@@ -4,20 +4,22 @@ class NotificationModel {
   /**
    * Create a new notification
    * @param {number} accountId
-   * @param {string} type - 'match' | 'message' | 'post_update'
-   * @param {string} content
-   * @param {string} referenceId - ID of related entity (match_id, message_id, post_id)
+   * @param {string} type - 'post_pending' | 'post_approved' | 'post_rejected' | 'match' | 'message'
+   * @param {string} message - Notification message content
+   * @param {string} link - Link to related resource
+   * @param {number} matchId - Optional match_id for AI matching notifications
    * @returns {Promise<Object>}
    */
-  async createNotification(accountId, type, content, referenceId = null) {
+  async createNotification(accountId, type, message, link = '', matchId = null) {
     try {
       const { data, error } = await supabase
         .from('Notification')
         .insert([{
           account_id: accountId,
           type,
-          content,
-          reference_id: referenceId,
+          message,
+          link,
+          match_id: matchId,
           is_read: false,
           created_at: new Date().toISOString()
         }])

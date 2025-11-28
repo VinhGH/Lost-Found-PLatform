@@ -388,17 +388,40 @@
 }
 
 .form-group input {
-  width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
   transition: border-color 0.3s ease;
   box-sizing: border-box;
+  display: block;
+}
+
+.form-group input[type="email"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.password-input {
+  position: relative;
+  width: 100%;
+  display: block;
 }
 
 .password-input input {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 12px;
   padding-right: 45px; /* Tạo khoảng trống cho icon */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box;
+  display: block;
 }
 
 /* Ẩn icon password mặc định của trình duyệt */
@@ -433,13 +456,9 @@
   opacity: 0.7;
 }
 
-.password-input {
-  position: relative;
-}
-
 .password-toggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -453,6 +472,7 @@
   height: 24px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
+  z-index: 1;
 }
 
 .eye-icon {

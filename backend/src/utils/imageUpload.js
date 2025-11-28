@@ -31,7 +31,7 @@ export async function uploadPostImage(base64String, postId, type) {
     console.log(`📤 Uploading image to Supabase Storage: ${filePath}`);
 
     // Upload to Supabase Storage bucket 'Images'
-    const { error } = await supabase.storage
+    const { data, error } = await supabase.storage
       .from('Images')
       .upload(filePath, buffer, {
         contentType: `image/${imageType}`,

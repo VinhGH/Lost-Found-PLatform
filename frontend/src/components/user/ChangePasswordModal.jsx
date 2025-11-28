@@ -52,12 +52,13 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
 
   // ✅ State cho tính năng "Quên mật khẩu"
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // 'email' | 'otp'
+  const [forgotPasswordStep, setForgotPasswordStep] = useState("email"); // 'email' | 'otp' | 'newPassword'
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]); // 6 số OTP
   const otpInputRefs = useRef([]);
-  // ✅ State để track xem đã xác nhận OTP thành công chưa (sau đó chỉ hiện 2 input)
-  const [otpVerified, setOtpVerified] = useState(false);
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
 
   // ✅ Validation cho email
   const validateEmail = (email) => {
@@ -103,14 +104,10 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
     setError("");
     setValidationErrors({});
 
-    // ✅ Validate form
     const errors = {};
-    
-    // ✅ Nếu chưa xác nhận OTP (otpVerified = false), cần kiểm tra mật khẩu hiện tại
-    if (!otpVerified) {
-      const currentPasswordError = validatePassword(currentPassword);
-      if (currentPasswordError) errors.currentPassword = currentPasswordError;
-    }
+
+    const currentPasswordError = validatePassword(currentPassword);
+    if (currentPasswordError) errors.currentPassword = currentPasswordError;
 
     const newPasswordError = validatePassword(newPassword);
     if (newPasswordError) errors.newPassword = newPasswordError;
@@ -124,55 +121,32 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
       return;
     }
 
-    // ✅ Kiểm tra mật khẩu hiện tại (chỉ khi chưa xác nhận OTP)
-    if (!otpVerified) {
-      const currentUser = userApi.getCurrentUser();
-      if (!currentUser) {
-        setError("Không tìm thấy thông tin người dùng");
-        setIsLoading(false);
-        return;
-      }
-
-      // ✅ Kiểm tra mật khẩu hiện tại (demo: mật khẩu mặc định là "user123")
-      if (currentPassword !== "user123") {
-        setError("Mật khẩu hiện tại không đúng");
-        setIsLoading(false);
-        return;
-      }
-
-      // ✅ Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
-      if (currentPassword === newPassword) {
-        setError("Mật khẩu mới phải khác mật khẩu hiện tại");
-        setIsLoading(false);
-        return;
-      }
+    if (currentPassword === newPassword) {
+      setError("Mật khẩu mới phải khác mật khẩu hiện tại");
+      setIsLoading(false);
+      return;
     }
 
     try {
-      // ✅ Gọi API đổi mật khẩu
-      // Nếu đã xác nhận OTP, không cần currentPassword
       const response = await userApi.changePassword({
-        currentPassword: otpVerified ? undefined : currentPassword,
+        currentPassword,
         newPassword,
       });
 
       if (response.success) {
-        // ✅ Đổi mật khẩu thành công
         if (onSuccess) {
           onSuccess("Đổi mật khẩu thành công");
         }
-        // ✅ Reset state và đóng modal
-        setOtpVerified(false);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
         onClose();
       } else {
-        setError(response.error || "Đổi mật khẩu thất bại");
+        setError(response.error || response.message || "Đổi mật khẩu thất bại");
       }
     } catch (error) {
       console.error("❌ Change password error:", error);
-      setError("Có lỗi xảy ra. Vui lòng thử lại.");
+      setError(error.response?.data?.message || error.message || "Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -180,104 +154,120 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
 
   // ✅ Xử lý "Quên mật khẩu"
   const handleForgotPassword = () => {
+    // 🔹 Force refresh user data từ localStorage mới nhất
     const currentUser = userApi.getCurrentUser();
-    // ✅ Tự động điền email đã đăng nhập
     const userEmail = currentUser?.email || "";
+    
+    console.log('🔑 Opening forgot password with email:', userEmail);
+    
     setForgotPasswordEmail(userEmail);
     setShowForgotPassword(true);
     setForgotPasswordStep("email");
     setOtpInputs(["", "", "", "", "", ""]);
+    setForgotNewPassword("");
+    setForgotConfirmPassword("");
     setError("");
     setValidationErrors({});
   };
 
-  // ✅ Xử lý gửi mã OTP hoặc xác nhận mã OTP
-  const handleSendOtp = async () => {
+  const handleForgotPasswordAction = async () => {
+    // Bước 1: Gửi mã OTP đến email
     if (forgotPasswordStep === "email") {
-      // ✅ Bước 1: Gửi mã OTP
       const emailError = validateEmail(forgotPasswordEmail);
       if (emailError) {
         setValidationErrors({ email: emailError });
         return;
       }
 
-      // ✅ Tạo mã OTP ngẫu nhiên 6 số
-      // 🔹 Mã OTP giả để test: 123456
-      const generatedOtp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+      setIsForgotPasswordLoading(true);
+      setError("");
 
-      // ✅ Hiển thị mã OTP trong console và alert để test
-      console.log('🔐 Mã OTP quên mật khẩu:', generatedOtp);
-      if (process.env.NODE_ENV === 'development') {
-        alert(`🔐 Mã OTP quên mật khẩu: ${generatedOtp}\n\n(Chỉ hiển thị trong môi trường development)`);
-      }
+      try {
+        const response = await userApi.requestPasswordResetOtp(forgotPasswordEmail);
+        if (response.success) {
+          setForgotPasswordStep("otp");
+          setValidationErrors({});
+          setOtpInputs(["", "", "", "", "", ""]);
 
-      // ✅ Lưu OTP vào localStorage (trong thực tế sẽ gửi qua email)
-      localStorage.setItem(
-        "forgotPasswordOtp",
-        JSON.stringify({
-          email: forgotPasswordEmail,
-          otp: generatedOtp,
-          timestamp: Date.now(),
-        })
-      );
-
-      // ✅ Chuyển sang bước nhập OTP
-      setForgotPasswordStep("otp");
-      setValidationErrors({});
-
-      // ✅ Focus vào ô OTP đầu tiên
-      setTimeout(() => {
-        if (otpInputRefs.current[0]) {
-          otpInputRefs.current[0].focus();
+          setTimeout(() => {
+            if (otpInputRefs.current[0]) {
+              otpInputRefs.current[0].focus();
+            }
+          }, 100);
+        } else {
+          setError(response.error || response.message || "Không thể gửi mã OTP. Vui lòng thử lại.");
         }
-      }, 100);
-    } else {
-      // ✅ Bước 2: Xác nhận mã OTP
+      } catch (error) {
+        console.error("❌ Forgot password - request OTP error:", error);
+        setError("Không thể gửi mã OTP. Vui lòng thử lại.");
+      } finally {
+        setIsForgotPasswordLoading(false);
+      }
+    }
+    // Bước 2: Xác nhận mã OTP đã nhập (không gọi API)
+    else if (forgotPasswordStep === "otp") {
       const enteredOtp = otpInputs.join("");
       if (enteredOtp.length !== 6) {
         setError("Vui lòng nhập đầy đủ 6 số mã OTP");
         return;
       }
 
-      // ✅ Kiểm tra mã OTP
-      const savedOtpData = localStorage.getItem("forgotPasswordOtp");
-      if (savedOtpData) {
-        const { email, otp, timestamp } = JSON.parse(savedOtpData);
+      // Chỉ validate OTP đã đủ 6 số, chưa gọi API verify
+      // API verify OTP sẽ được gọi khi submit mật khẩu mới
+      if (onSuccess) {
+        onSuccess("Xác nhận mã OTP thành công. Vui lòng nhập mật khẩu mới.");
+      }
 
-        // ✅ Kiểm tra mã OTP có hết hạn không (5 phút)
-        if (Date.now() - timestamp > 5 * 60 * 1000) {
-          setError("Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.");
-          setForgotPasswordStep("email");
-          setOtpInputs(["", "", "", "", "", ""]);
-          return;
-        }
+      // Chuyển sang bước nhập mật khẩu mới
+      setForgotPasswordStep("newPassword");
+      setValidationErrors({});
+      setError("");
+    }
+    // Bước 3: Đặt lại mật khẩu mới
+    else if (forgotPasswordStep === "newPassword") {
+      const newPasswordError = validatePassword(forgotNewPassword);
+      if (newPasswordError) {
+        setValidationErrors({ newPassword: newPasswordError });
+        return;
+      }
 
-        if (email === forgotPasswordEmail && otp === enteredOtp) {
-          // ✅ Mã OTP đúng - quay lại form đổi mật khẩu nhưng chỉ hiện 2 input
-          setOtpVerified(true);
+      const confirmPasswordError = validateConfirmPassword(forgotNewPassword, forgotConfirmPassword);
+      if (confirmPasswordError) {
+        setValidationErrors({ confirmPassword: confirmPasswordError });
+        return;
+      }
+
+      setIsForgotPasswordLoading(true);
+      setError("");
+
+      try {
+        const enteredOtp = otpInputs.join("");
+        const response = await userApi.resetPassword({
+          email: forgotPasswordEmail,
+          otp: enteredOtp,
+          newPassword: forgotNewPassword
+        });
+
+        if (response.success) {
+          if (onSuccess) {
+            onSuccess("Đặt lại mật khẩu thành công");
+          }
           setShowForgotPassword(false);
           setForgotPasswordStep("email");
           setForgotPasswordEmail("");
           setOtpInputs(["", "", "", "", "", ""]);
-          setCurrentPassword(""); // Clear mật khẩu hiện tại
-          setNewPassword(""); // Reset mật khẩu mới
-          setConfirmPassword(""); // Reset xác nhận mật khẩu
+          setForgotNewPassword("");
+          setForgotConfirmPassword("");
           setError("");
           setValidationErrors({});
-          localStorage.removeItem("forgotPasswordOtp");
         } else {
-          setError("Mã OTP không đúng. Vui lòng thử lại.");
-          setOtpInputs(["", "", "", "", "", ""]);
-          setTimeout(() => {
-            if (otpInputRefs.current[0]) {
-              otpInputRefs.current[0].focus();
-            }
-          }, 100);
+          setError(response.error || response.message || "Đặt lại mật khẩu thất bại. Vui lòng thử lại.");
         }
-      } else {
-        setError("Mã OTP không hợp lệ. Vui lòng gửi lại mã mới.");
-        setForgotPasswordStep("email");
-        setOtpInputs(["", "", "", "", "", ""]);
+      } catch (error) {
+        console.error("❌ Reset password error:", error);
+        setError(error.response?.data?.message || error.message || "Đặt lại mật khẩu thất bại. Vui lòng thử lại.");
+      } finally {
+        setIsForgotPasswordLoading(false);
       }
     }
   };
@@ -328,7 +318,9 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
     setForgotPasswordStep("email");
     setForgotPasswordEmail("");
     setOtpInputs(["", "", "", "", "", ""]);
-    setOtpVerified(false); // Reset OTP verified state
+    setForgotNewPassword("");
+    setForgotConfirmPassword("");
+    setIsForgotPasswordLoading(false);
     onClose();
   };
 
@@ -352,48 +344,45 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
             )}
 
             <form onSubmit={handleChangePassword} className="change-password-form">
-              {/* ✅ Chỉ hiện input "Mật khẩu hiện tại" khi chưa xác nhận OTP */}
-              {!otpVerified && (
-                <div className="form-group">
-                  <label>Mật khẩu hiện tại</label>
-                  <div className="password-input">
-                    <input
-                      type={showCurrentPassword ? "text" : "password"}
-                      placeholder="Nhập mật khẩu hiện tại"
-                      value={currentPassword}
-                      onChange={(e) => {
-                        setCurrentPassword(e.target.value);
-                        if (validationErrors.currentPassword) {
-                          setValidationErrors({
-                            ...validationErrors,
-                            currentPassword: "",
-                          });
-                        }
-                        if (error) setError("");
-                      }}
-                      disabled={isLoading}
-                      className={validationErrors.currentPassword ? "input-error" : ""}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      disabled={isLoading}
-                    >
-                      {showCurrentPassword ? (
-                        <VisibilityOffIcon className="eye-icon" />
-                      ) : (
-                        <VisibilityIcon className="eye-icon" />
-                      )}
-                    </button>
-                  </div>
-                  {validationErrors.currentPassword && (
-                    <span className="validation-error">
-                      {validationErrors.currentPassword}
-                    </span>
-                  )}
+              <div className="form-group">
+                <label>Mật khẩu hiện tại</label>
+                <div className="password-input">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    placeholder="Nhập mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      if (validationErrors.currentPassword) {
+                        setValidationErrors({
+                          ...validationErrors,
+                          currentPassword: "",
+                        });
+                      }
+                      if (error) setError("");
+                    }}
+                    disabled={isLoading}
+                    className={validationErrors.currentPassword ? "input-error" : ""}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    disabled={isLoading}
+                  >
+                    {showCurrentPassword ? (
+                      <VisibilityOffIcon className="eye-icon" />
+                    ) : (
+                      <VisibilityIcon className="eye-icon" />
+                    )}
+                  </button>
                 </div>
-              )}
+                {validationErrors.currentPassword && (
+                  <span className="validation-error">
+                    {validationErrors.currentPassword}
+                  </span>
+                )}
+              </div>
 
               <div className="form-group">
                 <label>Mật khẩu mới</label>
@@ -475,18 +464,15 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                 )}
               </div>
 
-              {/* ✅ Chỉ hiện link "Quên mật khẩu" khi chưa xác nhận OTP */}
-              {!otpVerified && (
-                <div className="forgot-password-link">
-                  <button
-                    type="button"
-                    className="forgot-password-btn"
-                    onClick={handleForgotPassword}
-                  >
-                    Quên mật khẩu?
-                  </button>
-                </div>
-              )}
+              <div className="forgot-password-link">
+                <button
+                  type="button"
+                  className="forgot-password-btn"
+                  onClick={handleForgotPassword}
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
 
               <div className="modal-actions">
                 <button
@@ -525,9 +511,11 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     setForgotPasswordStep("email");
                     setForgotPasswordEmail("");
                     setOtpInputs(["", "", "", "", "", ""]);
+                    setForgotNewPassword("");
+                    setForgotConfirmPassword("");
                     setError("");
                     setValidationErrors({});
-                    // ✅ Quay lại form đổi mật khẩu (không reset otpVerified nếu đã xác nhận)
+                    // ✅ Quay lại form đổi mật khẩu
                   }}
                 >
                   <ArrowBackIcon className="back-icon" />
@@ -536,7 +524,9 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
               <h2>
                 {forgotPasswordStep === "email"
                   ? "Quên mật khẩu"
-                  : "Nhập mã OTP"}
+                  : forgotPasswordStep === "otp"
+                  ? "Nhập mã OTP"
+                  : "Đặt lại mật khẩu"}
               </h2>
               <button className="close-btn" onClick={handleCancel}>
                 ×
@@ -582,10 +572,10 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     )}
                   </div>
                 </>
-              ) : (
+              ) : forgotPasswordStep === "otp" ? (
                 <>
                   <p className="forgot-password-instruction">
-                    Mã OTP đã được gửi đến email <strong>{forgotPasswordEmail}</strong>
+                    Nhập mã OTP đã được gửi đến <strong>{forgotPasswordEmail}</strong>
                   </p>
                   <div className="form-group">
                     <label>Nhập mã OTP (6 số)</label>
@@ -608,14 +598,108 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     </div>
                   </div>
                 </>
+              ) : (
+                <>
+                  <p className="forgot-password-instruction">
+                    Nhập mật khẩu mới cho tài khoản <strong>{forgotPasswordEmail}</strong>
+                  </p>
+                  <div className="form-group">
+                    <label>Mật khẩu mới</label>
+                    <div className="password-input">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Nhập mật khẩu mới"
+                        value={forgotNewPassword}
+                        onChange={(e) => {
+                          setForgotNewPassword(e.target.value);
+                          if (validationErrors.newPassword) {
+                            setValidationErrors({
+                              ...validationErrors,
+                              newPassword: "",
+                            });
+                          }
+                        }}
+                        className={validationErrors.newPassword ? "input-error" : ""}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <VisibilityOffIcon className="eye-icon" />
+                        ) : (
+                          <VisibilityIcon className="eye-icon" />
+                        )}
+                      </button>
+                    </div>
+                    {validationErrors.newPassword && (
+                      <span className="validation-error">
+                        {validationErrors.newPassword}
+                      </span>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Nhập lại mật khẩu mới</label>
+                    <div className="password-input">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Nhập lại mật khẩu mới"
+                        value={forgotConfirmPassword}
+                        onChange={(e) => {
+                          setForgotConfirmPassword(e.target.value);
+                          if (validationErrors.confirmPassword) {
+                            setValidationErrors({
+                              ...validationErrors,
+                              confirmPassword: "",
+                            });
+                          }
+                        }}
+                        className={validationErrors.confirmPassword ? "input-error" : ""}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <VisibilityOffIcon className="eye-icon" />
+                        ) : (
+                          <VisibilityIcon className="eye-icon" />
+                        )}
+                      </button>
+                    </div>
+                    {validationErrors.confirmPassword && (
+                      <span className="validation-error">
+                        {validationErrors.confirmPassword}
+                      </span>
+                    )}
+                  </div>
+                </>
               )}
 
               <button
                 type="button"
                 className="btn-update"
-                onClick={handleSendOtp}
+                onClick={handleForgotPasswordAction}
+                disabled={isForgotPasswordLoading}
               >
-                {forgotPasswordStep === "email" ? "Gửi mã" : "Xác nhận"}
+                {isForgotPasswordLoading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    {forgotPasswordStep === "email"
+                      ? "Đang gửi..."
+                      : forgotPasswordStep === "otp"
+                      ? "Đang xác minh..."
+                      : "Đang xử lý..."}
+                  </>
+                ) : (
+                  forgotPasswordStep === "email"
+                    ? "Gửi mã"
+                    : forgotPasswordStep === "otp"
+                    ? "Xác nhận mã"
+                    : "Đặt lại mật khẩu"
+                )}
               </button>
             </div>
           </>

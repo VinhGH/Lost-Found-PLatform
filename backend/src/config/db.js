@@ -24,7 +24,7 @@ const testConnection = async () => {
     console.log('🔄 Đang kiểm tra kết nối Supabase...');
     
     // Thử thực hiện một query đơn giản để kiểm tra kết nối
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('Account')
       .select('account_id')
       .limit(1);

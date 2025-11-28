@@ -26,9 +26,6 @@ const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
     setShowAuthForm(false);
   };
 
-  // Check if user is authenticated
-  const isAuthenticated = userApi.isAuthenticated();
-
   return (
     <div className="landing-page">
       {/* Header */}
@@ -41,22 +38,22 @@ const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
               <span>DTU Lost & Found</span>
             </div>
           </div>
-          {!isAuthenticated && (
-            <div className="landing-header-actions">
-              <button 
-                className={`landing-btn-login ${showAuthForm && authMode === 'login' ? 'active' : ''}`}
-                onClick={() => handleOpenAuth('login')}
-              >
-                Đăng Nhập
-              </button>
-              <button 
-                className={`landing-btn-register ${showAuthForm && authMode === 'register' ? 'active' : ''}`}
-                onClick={() => handleOpenAuth('register')}
-              >
-                Đăng Ký
-              </button>
-            </div>
-          )}
+          {/* ✅ LUÔN hiển thị buttons trên landing page (không check isAuthenticated) */}
+          {/* Vì đây là landing page, user có thể muốn login lại hoặc login tài khoản khác */}
+          <div className="landing-header-actions">
+            <button 
+              className={`landing-btn-login ${showAuthForm && authMode === 'login' ? 'active' : ''}`}
+              onClick={() => handleOpenAuth('login')}
+            >
+              Đăng Nhập
+            </button>
+            <button 
+              className={`landing-btn-register ${showAuthForm && authMode === 'register' ? 'active' : ''}`}
+              onClick={() => handleOpenAuth('register')}
+            >
+              Đăng Ký
+            </button>
+          </div>
         </div>
       </header>
 
@@ -64,7 +61,7 @@ const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
       {!showAuthForm ? (
         <UserHome 
           onOpenAuth={handleOpenAuth}
-          isAuthenticated={isAuthenticated}
+          isAuthenticated={false}
         />
       ) : (
         <AuthForm

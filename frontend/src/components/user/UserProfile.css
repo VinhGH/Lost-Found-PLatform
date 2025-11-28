@@ -59,9 +59,30 @@
   border-top: 1px solid #e9ecef;
 }
 
+.sidebar-footer button {
+  width: 100%;
+  background: #dc3545; /* Màu đỏ */
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sidebar-footer button:hover {
+  background: #c82333; /* Đỏ đậm hơn khi hover */
+  transform: translateY(-1px);
+}
+
 .btn-logout {
   width: 100%;
-  background: #dc3545;
+  background: #dc3545; /* Màu đỏ */
   color: white;
   border: none;
   padding: 12px;
@@ -76,7 +97,7 @@
 }
 
 .btn-logout:hover {
-  background: #c82333;
+  background: #c82333; /* Đỏ đậm hơn khi hover */
   transform: translateY(-1px);
 }
 
@@ -134,23 +155,35 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  background: #92070C;
+  background: #007bff; /* Màu xanh nước biển */
   color: white;
-  border: none;
-  width: 35px;
-  height: 35px;
+  border: 2px solid white;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
 .avatar-upload:hover {
-  background: #DC143C;
+  background: #0056b3; /* Xanh đậm hơn khi hover */
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.avatar-upload input[type="file"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
 }
 
 .avatar-input {
@@ -175,7 +208,7 @@
 }
 
 .btn-edit {
-  background: linear-gradient(135deg, #92070C 0%, #DC143C 50%, #FF6B6B 100%);
+  background: #007bff; /* Màu xanh nước biển */
   color: white;
   border: none;
   padding: 12px 24px;
@@ -186,8 +219,9 @@
 }
 
 .btn-edit:hover {
+  background: #0056b3; /* Xanh đậm hơn khi hover */
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(146, 7, 12, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
 }
 
 .edit-actions {
@@ -218,7 +252,7 @@
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
@@ -226,6 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0; /* Prevent overflow */
 }
 
 .info-label {
@@ -246,12 +281,27 @@
   border-radius: 6px;
   font-size: 14px;
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box; /* Include padding and border in width */
+  background: white;
+  color: #2c3e50;
+}
+
+.info-input:hover {
+  border-color: #007bff; /* Xanh nước biển khi hover */
 }
 
 .info-input:focus {
   outline: none;
-  border-color: #92070C;
-  box-shadow: 0 0 0 3px rgba(146, 7, 12, 0.1);
+  border-color: #007bff; /* Xanh nước biển khi focus */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.info-input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* Stats Section */
@@ -323,12 +373,26 @@
   border-radius: 8px;
   border: 1px solid #e9ecef;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.post-item-image-wrapper {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.post-item-image-wrapper .post-image {
+  height: 200px;
 }
 
 .post-info {
   flex: 1;
+  min-width: 0;
 }
 
 .post-header {
@@ -381,10 +445,12 @@
 .post-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .btn-edit-post {
-  background: #17a2b8;
+  background: #007bff; /* Màu xanh nước biển */
   color: white;
   border: none;
   padding: 6px 12px;
@@ -395,7 +461,7 @@
 }
 
 .btn-edit-post:hover {
-  background: #138496;
+  background: #0056b3; /* Xanh đậm hơn khi hover */
 }
 
 .btn-go-post {
@@ -414,7 +480,7 @@
 }
 
 .btn-delete-post {
-  background: #dc3545;
+  background: #dc3545; /* Màu đỏ */
   color: white;
   border: none;
   padding: 6px 12px;
@@ -425,7 +491,7 @@
 }
 
 .btn-delete-post:hover {
-  background: #c82333;
+  background: #c82333; /* Đỏ đậm hơn khi hover */
 }
 
 /* Settings Tab */

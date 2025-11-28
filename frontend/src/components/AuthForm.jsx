@@ -12,9 +12,13 @@ import {
 } from '@mui/icons-material';
 
 const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'login', onBack }) => {
-  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  // ✅ Stage state: 'register' | 'otp' | 'login'
+  const [stage, setStage] = useState(initialMode === 'login' ? 'login' : 'register');
+  const [isLogin, setIsLogin] = useState(initialMode === 'login'); // Keep for backward compatibility
 
   useEffect(() => {
+    const newStage = initialMode === 'login' ? 'login' : 'register';
+    setStage(newStage);
     setIsLogin(initialMode === 'login');
     setFormData({
       email: '',
@@ -38,17 +42,19 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   
   // ✅ State cho tính năng "Quên mật khẩu"
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordStep, setForgotPasswordStep] = useState('email'); // 'email' | 'otp'
+  const [forgotPasswordStep, setForgotPasswordStep] = useState('email'); // 'email' | 'otp' | 'newPassword'
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [otpCode, setOtpCode] = useState(''); // Mã OTP đã gửi (lưu tạm)
   const [otpInputs, setOtpInputs] = useState(['', '', '', '', '', '']); // 6 số OTP
   const otpInputRefs = useRef([]);
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
 
   // ✅ State cho tính năng xác minh OTP khi đăng ký
-  const [showRegisterOtp, setShowRegisterOtp] = useState(false);
   const [registerOtpInputs, setRegisterOtpInputs] = useState(['', '', '', '', '', '']); // 6 số OTP
   const registerOtpInputRefs = useRef([]);
-  const [registerFormData, setRegisterFormData] = useState(null); // Lưu thông tin đăng ký tạm thời
+  const [registerFormData, setRegisterFormData] = useState(null); // Lưu thông tin đăng ký tạm thời (email + password)
+  const [resendCountdown, setResendCountdown] = useState(0); // Countdown for resend OTP (seconds)
 
   const handleInputChange = (field) => (event) => {
     setFormData({
@@ -132,38 +138,49 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       return;
     }
 
-    // ✅ Nếu là đăng ký và chưa xác minh OTP, chuyển sang bước OTP
-    if (!isLogin && !showRegisterOtp) {
-      // ✅ Tạo mã OTP ngẫu nhiên 6 số
-      // 🔹 Mã OTP giả để test: 123456
-      const generatedOtp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // ✅ Hiển thị mã OTP trong console và alert để test
-      console.log('🔐 Mã OTP đăng ký:', generatedOtp);
-      if (process.env.NODE_ENV === 'development') {
-        alert(`🔐 Mã OTP đăng ký: ${generatedOtp}\n\n(Chỉ hiển thị trong môi trường development)`);
-      }
-      
-      // Lưu OTP và thông tin đăng ký vào localStorage
-      localStorage.setItem('registerOtp', JSON.stringify({
-        email: formData.email,
-        otp: generatedOtp,
-        timestamp: Date.now(),
-        formData: formData // Lưu thông tin đăng ký
-      }));
+    // ✅ Nếu là đăng ký, gọi API request-otp
+    if (!isLogin && stage === 'register') {
+      try {
+        // Gọi API request-otp
+        const response = await userApi.requestOtp({
+          email: formData.email,
+          password: formData.password
+        });
 
-      // Chuyển sang bước nhập OTP
-      setShowRegisterOtp(true);
-      setRegisterFormData(formData);
-      setIsLoading(false);
-      
-      // Focus vào ô OTP đầu tiên
-      setTimeout(() => {
-        if (registerOtpInputRefs.current[0]) {
-          registerOtpInputRefs.current[0].focus();
+        if (response.success) {
+          // Lưu email + password để dùng khi verify OTP
+          setRegisterFormData({
+            email: formData.email,
+            password: formData.password
+          });
+          
+          // Chuyển sang stage OTP
+          setStage('otp');
+          setResendCountdown(30); // Start countdown 30s
+          setIsLoading(false);
+          
+          // Focus vào ô OTP đầu tiên
+          setTimeout(() => {
+            if (registerOtpInputRefs.current[0]) {
+              registerOtpInputRefs.current[0].focus();
+            }
+          }, 100);
+          return;
+        } else {
+          throw new Error(response.error || response.message || 'Không thể gửi mã OTP');
         }
-      }, 100);
-      return;
+      } catch (error) {
+        console.error('❌ Request OTP error:', error);
+        let errorMessage = 'Không thể gửi mã OTP. Vui lòng thử lại.';
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -177,7 +194,9 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
           const response = await adminApi.loginAdmin(adminCredentials);
 
           if (response.success) {
-            adminApi.setAuthData(response.token, response.data);
+            // ✅ adminApi.loginAdmin() đã tự động gọi setAuthData() bên trong
+            // Không cần gọi lại setAuthData() ở đây để tránh duplicate
+            console.log('✅ Admin login response received, token:', response.token ? 'Exists' : 'Missing');
             onAdminLoginSuccess(response.data);
             return;
           } else {
@@ -190,31 +209,16 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
           });
 
           if (response.success) {
-            userApi.setAuthData(response.token, response.data);
+            // 🔹 KHÔNG cần gọi setAuthData ở đây vì loginUser() đã gọi rồi
+            console.log('✅ Login response with email:', response.data?.email);
             onUserLoginSuccess(response.data);
             return;
           } else {
             throw new Error(response.error || 'Đăng nhập thất bại');
           }
         }
-      } else {
-        if (isAdminAccount(formData.email)) {
-          setError('Không thể đăng ký tài khoản admin qua form này');
-        } else {
-          const response = await userApi.registerUser({
-            email: formData.email,
-            password: formData.password
-          });
-
-          if (response.success) {
-            userApi.setAuthData(response.token, response.data);
-            onUserLoginSuccess(response.data);
-            return;
-          } else {
-            throw new Error(response.error || 'Đăng ký thất bại');
-          }
-        }
       }
+      // ✅ Đăng ký luôn đi qua OTP flow (dòng 136-167), không có flow đăng ký trực tiếp
     } catch (error) {
       console.error('❌ Auth error:', error);
 
@@ -235,6 +239,8 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   };
 
   const toggleForm = () => {
+    const newStage = isLogin ? 'register' : 'login';
+    setStage(newStage);
     setIsLogin(!isLogin);
     setFormData({
       email: '',
@@ -245,9 +251,9 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     setValidationErrors({});
     setShowForgotPassword(false);
     setForgotPasswordStep('email');
-    setShowRegisterOtp(false);
     setRegisterOtpInputs(['', '', '', '', '', '']);
     setRegisterFormData(null);
+    setResendCountdown(0);
   };
 
   // ✅ Xử lý "Quên mật khẩu"
@@ -255,98 +261,122 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     setShowForgotPassword(true);
     setForgotPasswordEmail('');
     setForgotPasswordStep('email');
-    setOtpCode('');
     setOtpInputs(['', '', '', '', '', '']);
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
     setError('');
     setValidationErrors({});
   };
 
-  // ✅ Xử lý gửi mã OTP hoặc xác nhận mã OTP
-  const handleSendOtp = async () => {
+  // ✅ Xử lý gửi mã OTP, xác minh OTP, hoặc đặt lại mật khẩu
+  const handleForgotPasswordAction = async () => {
+    // Bước 1: Gửi mã OTP đến email
     if (forgotPasswordStep === 'email') {
-      // ✅ Bước 1: Gửi mã OTP
       const emailError = validateEmail(forgotPasswordEmail);
       if (emailError) {
         setValidationErrors({ email: emailError });
         return;
       }
 
-      // ✅ Tạo mã OTP ngẫu nhiên 6 số
-      // 🔹 Mã OTP giả để test: 123456
-      const generatedOtp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
-      setOtpCode(generatedOtp);
-      
-      // ✅ Hiển thị mã OTP trong console và alert để test
-      console.log('🔐 Mã OTP quên mật khẩu:', generatedOtp);
-      if (process.env.NODE_ENV === 'development') {
-        alert(`🔐 Mã OTP quên mật khẩu: ${generatedOtp}\n\n(Chỉ hiển thị trong môi trường development)`);
-      }
-      
-      // ✅ Lưu OTP vào localStorage (trong thực tế sẽ gửi qua email)
-      localStorage.setItem('forgotPasswordOtp', JSON.stringify({
-        email: forgotPasswordEmail,
-        otp: generatedOtp,
-        timestamp: Date.now()
-      }));
+      setIsForgotPasswordLoading(true);
+      setError('');
 
-      // ✅ Chuyển sang bước nhập OTP
-      setForgotPasswordStep('otp');
-      setValidationErrors({});
-      
-      // ✅ Focus vào ô OTP đầu tiên
-      setTimeout(() => {
-        if (otpInputRefs.current[0]) {
-          otpInputRefs.current[0].focus();
+      try {
+        const response = await userApi.requestPasswordResetOtp(forgotPasswordEmail);
+        if (response.success) {
+          setForgotPasswordStep('otp');
+          setValidationErrors({});
+          setOtpInputs(['', '', '', '', '', '']);
+          setToastNotification({
+            type: 'success',
+            title: 'Đã gửi mã OTP',
+            message: 'Vui lòng kiểm tra email để lấy mã OTP đặt lại mật khẩu.'
+          });
+
+          setTimeout(() => {
+            if (otpInputRefs.current[0]) {
+              otpInputRefs.current[0].focus();
+            }
+          }, 100);
+        } else {
+          setError(response.error || response.message || 'Không thể gửi mã OTP. Vui lòng thử lại.');
         }
-      }, 100);
-    } else {
-      // ✅ Bước 2: Xác nhận mã OTP
+      } catch (error) {
+        console.error('❌ Forgot password - request OTP error:', error);
+        setError('Không thể gửi mã OTP. Vui lòng thử lại.');
+      } finally {
+        setIsForgotPasswordLoading(false);
+      }
+    } 
+    // Bước 2: Xác nhận mã OTP đã nhập (không gọi API)
+    else if (forgotPasswordStep === 'otp') {
       const enteredOtp = otpInputs.join('');
       if (enteredOtp.length !== 6) {
         setError('Vui lòng nhập đầy đủ 6 số mã OTP');
         return;
       }
 
-      // ✅ Kiểm tra mã OTP
-      const savedOtpData = localStorage.getItem('forgotPasswordOtp');
-      if (savedOtpData) {
-        const { email, otp, timestamp } = JSON.parse(savedOtpData);
-        
-        // ✅ Kiểm tra mã OTP có hết hạn không (5 phút)
-        if (Date.now() - timestamp > 5 * 60 * 1000) {
-          setError('Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.');
-          setForgotPasswordStep('email');
-          setOtpInputs(['', '', '', '', '', '']);
-          return;
-        }
+      // Chỉ validate OTP đã đủ 6 số, chưa gọi API verify
+      // API verify OTP sẽ được gọi khi submit mật khẩu mới
+      setToastNotification({
+        type: 'success',
+        title: 'Xác nhận mã OTP',
+        message: 'Vui lòng nhập mật khẩu mới của bạn.'
+      });
 
-        if (email === forgotPasswordEmail && otp === enteredOtp) {
-          // ✅ Mã OTP đúng - hiển thị toast notification thành công
+      // Chuyển sang bước nhập mật khẩu mới
+      setForgotPasswordStep('newPassword');
+      setValidationErrors({});
+      setError('');
+    }
+    // Bước 3: Đặt lại mật khẩu mới
+    else if (forgotPasswordStep === 'newPassword') {
+      const newPasswordError = validatePassword(forgotNewPassword);
+      if (newPasswordError) {
+        setValidationErrors({ newPassword: newPasswordError });
+        return;
+      }
+
+      const confirmPasswordError = validateConfirmPassword(forgotNewPassword, forgotConfirmPassword);
+      if (confirmPasswordError) {
+        setValidationErrors({ confirmPassword: confirmPasswordError });
+        return;
+      }
+
+      setIsForgotPasswordLoading(true);
+      setError('');
+
+      try {
+        const enteredOtp = otpInputs.join('');
+        const response = await userApi.resetPassword({
+          email: forgotPasswordEmail,
+          otp: enteredOtp,
+          newPassword: forgotNewPassword
+        });
+
+        if (response.success) {
           setToastNotification({
             type: 'success',
-            title: 'Xác nhận thành công',
-            message: 'Mã OTP xác nhận thành công! Vui lòng kiểm tra email để đặt lại mật khẩu.'
+            title: 'Đặt lại mật khẩu thành công',
+            message: 'Vui lòng đăng nhập với mật khẩu mới.'
           });
-          // ✅ Reset form
+
           setShowForgotPassword(false);
           setForgotPasswordStep('email');
           setForgotPasswordEmail('');
-          setOtpCode('');
           setOtpInputs(['', '', '', '', '', '']);
-          localStorage.removeItem('forgotPasswordOtp');
+          setForgotNewPassword('');
+          setForgotConfirmPassword('');
+          setError('');
+          setValidationErrors({});
         } else {
-          setError('Mã OTP không đúng. Vui lòng thử lại.');
-          setOtpInputs(['', '', '', '', '', '']);
-          setTimeout(() => {
-            if (otpInputRefs.current[0]) {
-              otpInputRefs.current[0].focus();
-            }
-          }, 100);
+          setError(response.error || response.message || 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.');
         }
-      } else {
-        setError('Mã OTP không hợp lệ. Vui lòng gửi lại mã mới.');
-        setForgotPasswordStep('email');
-        setOtpInputs(['', '', '', '', '', '']);
+      } catch (error) {
+        console.error('❌ Reset password error:', error);
+        setError(error.response?.data?.message || error.message || 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.');
+      } finally {
+        setIsForgotPasswordLoading(false);
       }
     }
   };
@@ -429,96 +459,124 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       return;
     }
 
-    // ✅ Kiểm tra mã OTP
-    const savedOtpData = localStorage.getItem('registerOtp');
-    if (savedOtpData) {
-      const { email, otp, timestamp, formData: savedFormData } = JSON.parse(savedOtpData);
-      
-      // ✅ Kiểm tra mã OTP có hết hạn không (5 phút)
-      if (Date.now() - timestamp > 5 * 60 * 1000) {
-        setError('Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.');
-        setShowRegisterOtp(false);
-        setRegisterOtpInputs(['', '', '', '', '', '']);
-        setRegisterFormData(null);
-        localStorage.removeItem('registerOtp');
+    if (!registerFormData) {
+      setError('Thông tin đăng ký không hợp lệ. Vui lòng thử lại.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      if (isAdminAccount(registerFormData.email)) {
+        setError('Không thể đăng ký tài khoản admin qua form này');
+        setIsLoading(false);
         return;
       }
 
-      if (email === savedFormData.email && otp === enteredOtp) {
-        // ✅ Mã OTP đúng - thực hiện đăng ký
-        setIsLoading(true);
-        setError('');
+      // ✅ Gọi API verify-otp
+      const response = await userApi.verifyOtp({
+        email: registerFormData.email,
+        otp: enteredOtp
+      });
+
+      if (response.success) {
+        // ✅ Hiển thị toast notification thành công
+        setToastNotification({
+          type: 'success',
+          title: 'Xác minh email thành công',
+          message: 'Tạo tài khoản thành công! Hãy đăng nhập.'
+        });
         
-        try {
-          if (isAdminAccount(savedFormData.email)) {
-            setError('Không thể đăng ký tài khoản admin qua form này');
-            setIsLoading(false);
-            return;
-          }
-
-          const response = await userApi.registerUser({
-            email: savedFormData.email,
-            password: savedFormData.password
-          });
-
-          if (response.success) {
-            // ✅ Xóa OTP đã dùng
-            localStorage.removeItem('registerOtp');
-            
-            // ✅ Hiển thị toast notification thành công
-            setToastNotification({
-              type: 'success',
-              title: 'Đăng ký thành công',
-              message: 'Tài khoản của bạn đã được tạo thành công! Vui lòng đăng nhập để tiếp tục.'
-            });
-            
-            // ✅ Chuyển về form đăng nhập thay vì tự động đăng nhập
-            setIsLoading(false);
-            setShowRegisterOtp(false);
-            setRegisterOtpInputs(['', '', '', '', '', '']);
-            setRegisterFormData(null);
-            setIsLogin(true);
-            setFormData({
-              email: savedFormData.email,
-              password: '',
-              confirmPassword: ''
-            });
-            setError('');
-            setValidationErrors({});
-            return;
-          } else {
-            throw new Error(response.error || 'Đăng ký thất bại');
-          }
-        } catch (error) {
-          console.error('❌ Register error:', error);
-          let errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại.';
-          if (error.response?.data?.message) {
-            errorMessage = error.response.data.message;
-          } else if (error.message) {
-            errorMessage = error.message;
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          }
-          setError(errorMessage);
-        } finally {
-          setIsLoading(false);
-        }
+        // ✅ Chuyển về stage LOGIN
+        // KHÔNG lưu token, KHÔNG gọi onLoginSuccess, chỉ quay về login
+        setIsLoading(false);
+        setStage('login');
+        setIsLogin(true);
+        setRegisterOtpInputs(['', '', '', '', '', '']); // Reset 6 ô OTP
+        setRegisterFormData(null);
+        setResendCountdown(0);
+        setFormData({
+          email: registerFormData.email,
+          password: '',
+          confirmPassword: ''
+        });
+        setError('');
+        setValidationErrors({});
+        return;
       } else {
-        setError('Mã OTP không đúng. Vui lòng thử lại.');
-        setRegisterOtpInputs(['', '', '', '', '', '']);
-        setTimeout(() => {
-          if (registerOtpInputRefs.current[0]) {
-            registerOtpInputRefs.current[0].focus();
-          }
-        }, 100);
+        throw new Error(response.error || response.message || 'Xác minh OTP thất bại');
       }
-    } else {
-      setError('Mã OTP không hợp lệ. Vui lòng thử lại.');
-      setShowRegisterOtp(false);
+    } catch (error) {
+      console.error('❌ Verify OTP error:', error);
+      let errorMessage = 'Mã OTP không đúng hoặc đã hết hạn. Vui lòng thử lại.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      setError(errorMessage);
       setRegisterOtpInputs(['', '', '', '', '', '']);
-      setRegisterFormData(null);
+      setTimeout(() => {
+        if (registerOtpInputRefs.current[0]) {
+          registerOtpInputRefs.current[0].focus();
+        }
+      }, 100);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // ✅ Xử lý resend OTP
+  const handleResendOtp = async () => {
+    if (resendCountdown > 0 || !registerFormData) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await userApi.requestOtp({
+        email: registerFormData.email,
+        password: registerFormData.password
+      });
+
+      if (response.success) {
+        setResendCountdown(30); // Reset countdown to 30s
+        setToastNotification({
+          type: 'success',
+          title: 'Đã gửi lại mã OTP',
+          message: 'Mã OTP mới đã được gửi đến email của bạn.'
+        });
+      } else {
+        throw new Error(response.error || response.message || 'Không thể gửi lại mã OTP');
+      }
+    } catch (error) {
+      console.error('❌ Resend OTP error:', error);
+      let errorMessage = 'Không thể gửi lại mã OTP. Vui lòng thử lại.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ Countdown timer cho resend OTP
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => {
+        setResendCountdown(resendCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCountdown]);
 
   return (
     <div className="auth-container">
@@ -568,7 +626,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
             </div>
           )}
 
-          {!showForgotPassword && !showRegisterOtp && (
+          {!showForgotPassword && stage !== 'otp' && (
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="form-group">
                 <label>Nhập Email của bạn</label>
@@ -699,6 +757,8 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   setForgotPasswordStep('email');
                   setForgotPasswordEmail('');
                   setOtpInputs(['', '', '', '', '', '']);
+                      setForgotNewPassword('');
+                      setForgotConfirmPassword('');
                   setError('');
                   setValidationErrors({});
                 }}
@@ -708,7 +768,11 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
               </button>
 
               <h3 className="forgot-password-title">
-                {forgotPasswordStep === 'email' ? 'Quên mật khẩu' : 'Nhập mã OTP'}
+                {forgotPasswordStep === 'email' 
+                  ? 'Quên mật khẩu' 
+                  : forgotPasswordStep === 'otp'
+                  ? 'Nhập mã OTP'
+                  : 'Đặt lại mật khẩu'}
               </h3>
 
               {forgotPasswordStep === 'email' ? (
@@ -735,10 +799,10 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                     )}
                   </div>
                 </>
-              ) : (
+              ) : forgotPasswordStep === 'otp' ? (
                 <>
                   <p className="forgot-password-instruction">
-                    Mã OTP đã được gửi đến email <strong>{forgotPasswordEmail}</strong>
+                    Nhập mã OTP đã được gửi đến <strong>{forgotPasswordEmail}</strong>
                   </p>
                   <div className="form-group">
                     <label>Nhập mã OTP (6 số)</label>
@@ -759,31 +823,90 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                     </div>
                   </div>
                 </>
+              ) : (
+                <>
+                  <p className="forgot-password-instruction">
+                    Nhập mật khẩu mới cho tài khoản <strong>{forgotPasswordEmail}</strong>
+                  </p>
+                  <div className="form-group">
+                    <label>Mật khẩu mới</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••••"
+                      value={forgotNewPassword}
+                      onChange={(e) => {
+                        setForgotNewPassword(e.target.value);
+                        if (validationErrors.newPassword) {
+                          setValidationErrors({ ...validationErrors, newPassword: '' });
+                        }
+                      }}
+                      className={validationErrors.newPassword ? 'input-error' : ''}
+                    />
+                    {validationErrors.newPassword && (
+                      <span className="validation-error">{validationErrors.newPassword}</span>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Nhập lại mật khẩu mới</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••••"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => {
+                        setForgotConfirmPassword(e.target.value);
+                        if (validationErrors.confirmPassword) {
+                          setValidationErrors({ ...validationErrors, confirmPassword: '' });
+                        }
+                      }}
+                      className={validationErrors.confirmPassword ? 'input-error' : ''}
+                    />
+                    {validationErrors.confirmPassword && (
+                      <span className="validation-error">{validationErrors.confirmPassword}</span>
+                    )}
+                  </div>
+                </>
               )}
 
               <button
                 type="button"
                 className="submit-btn"
-                onClick={handleSendOtp}
+                onClick={handleForgotPasswordAction}
+                disabled={isForgotPasswordLoading}
               >
-                {forgotPasswordStep === 'email' ? 'Gửi mã' : 'Xác nhận'}
+                {isForgotPasswordLoading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    {forgotPasswordStep === 'email' 
+                      ? 'Đang gửi...' 
+                      : forgotPasswordStep === 'otp'
+                      ? 'Đang xác minh...'
+                      : 'Đang xử lý...'}
+                  </>
+                ) : (
+                  forgotPasswordStep === 'email' 
+                    ? 'Gửi mã' 
+                    : forgotPasswordStep === 'otp'
+                    ? 'Xác nhận mã'
+                    : 'Đặt lại mật khẩu'
+                )}
               </button>
             </div>
           )}
 
-          {showRegisterOtp && (
+          {stage === 'otp' && (
             // ✅ Form xác minh OTP đăng ký
             <div className="forgot-password-form">
               <button
                 type="button"
                 className="back-to-login-btn"
                 onClick={() => {
-                  setShowRegisterOtp(false);
+                  setStage('register');
+                  setIsLogin(false);
                   setRegisterOtpInputs(['', '', '', '', '', '']);
                   setRegisterFormData(null);
+                  setResendCountdown(0);
                   setError('');
                   setValidationErrors({});
-                  localStorage.removeItem('registerOtp');
                 }}
               >
                 <ArrowBackIcon className="back-icon" />
@@ -795,7 +918,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
               </h3>
 
               <p className="forgot-password-instruction">
-                Mã OTP đã được gửi đến email <strong>{formData.email}</strong>
+                Mã OTP đã được gửi đến email <strong>{registerFormData?.email || formData.email}</strong>
               </p>
 
               <div className="form-group">
@@ -832,6 +955,28 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   'Xác nhận'
                 )}
               </button>
+
+              {/* Resend OTP button */}
+              <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCountdown > 0 || isLoading}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: resendCountdown > 0 ? '#999' : '#667eea',
+                    cursor: resendCountdown > 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    textDecoration: resendCountdown > 0 ? 'none' : 'underline',
+                    padding: '5px'
+                  }}
+                >
+                  {resendCountdown > 0
+                    ? `Gửi lại mã (${resendCountdown}s)`
+                    : 'Gửi lại mã OTP'}
+                </button>
+              </div>
             </div>
           )}
         </div>

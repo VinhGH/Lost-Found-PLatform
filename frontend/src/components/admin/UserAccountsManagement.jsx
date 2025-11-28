@@ -11,54 +11,30 @@ const UserAccountsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for regular users
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'Nguyễn Văn A',
-      phone: '0123456789',
-      email: 'nguyenvana@dtu.edu.vn',
-      role: 'user',
-      status: 'active',
-      isLocked: false,
-      joinDate: '2024-01-15',
-      lastActive: '2024-12-20'
-    },
-    {
-      id: 2,
-      name: 'Trần Thị B',
-      phone: '0987654321',
-      email: 'tranthib@dtu.edu.vn',
-      role: 'user',
-      status: 'inactive',
-      isLocked: true,
-      joinDate: '2024-02-10',
-      lastActive: '2024-11-15'
-    },
-    {
-      id: 3,
-      name: 'Lê Văn C',
-      phone: '0369852147',
-      email: 'levanc@dtu.edu.vn',
-      role: 'user',
-      status: 'active',
-      isLocked: false,
-      joinDate: '2023-12-01',
-      lastActive: '2024-12-20'
-    },
-    {
-      id: 4,
-      name: 'Phạm Thị D',
-      phone: '0741258963',
-      email: 'phamthid@dtu.edu.vn',
-      role: 'user',
-      status: 'active',
-      isLocked: false,
-      joinDate: '2024-03-05',
-      lastActive: '2024-12-19'
-    }
-  ]);
+  // ✅ Load users từ API (TODO: Implement API endpoint)
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        // TODO: Gọi API để lấy danh sách users
+        // const response = await httpClient.get('/accounts/users');
+        // if (response.success) {
+        //   setUsers(response.data);
+        // }
+        setUsers([]); // Tạm thời để empty
+      } catch (error) {
+        console.error('❌ Error loading users:', error);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -85,37 +61,23 @@ const UserAccountsManagement = () => {
   };
 
 
-  const handleLockToggle = (userId) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, isLocked: !user.isLocked } : user
-    ));
+  const handleLockToggle = async (userId) => {
+    // TODO: Gọi API để lock/unlock user
+    // const response = await httpClient.patch(`/accounts/${userId}/lock`);
+    alert('⚠️ Chức năng đang được phát triển. API endpoint chưa có.');
   };
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
-      setUsers(prev => prev.filter(user => user.id !== userId));
+      // TODO: Gọi API để xóa user
+      // const response = await httpClient.delete(`/accounts/${userId}`);
+      alert('⚠️ Chức năng đang được phát triển. API endpoint chưa có.');
     }
   };
 
-  const handleBulkAction = (action) => {
-    if (action === 'lock') {
-      setUsers(prev => prev.map(user => 
-        selectedUsers.includes(user.id) 
-          ? { ...user, isLocked: true }
-          : user
-      ));
-    } else if (action === 'unlock') {
-      setUsers(prev => prev.map(user => 
-        selectedUsers.includes(user.id) 
-          ? { ...user, isLocked: false }
-          : user
-      ));
-    } else if (action === 'delete') {
-      if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.length} tài khoản đã chọn?`)) {
-        setUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
-        setSelectedUsers([]);
-      }
-    }
+  const handleBulkAction = async (action) => {
+    // TODO: Implement bulk actions với API
+    alert('⚠️ Chức năng đang được phát triển. API endpoint chưa có.');
   };
 
 
@@ -219,29 +181,37 @@ const UserAccountsManagement = () => {
         )}
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p>Đang tải danh sách người dùng...</p>
+        </div>
+      )}
+
       {/* Table */}
-      <div className="table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                  onChange={handleSelectAll}
-                  className="select-all-checkbox"
-                />
-              </th>
-              <th>Thông tin cá nhân</th>
-              <th>Email</th>
-              <th>Số điện thoại</th>
-              <th>Khóa/Mở</th>
-              <th>Ngày tham gia</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map(user => (
+      {!loading && (
+        <div className="table-container">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                    onChange={handleSelectAll}
+                    className="select-all-checkbox"
+                  />
+                </th>
+                <th>Thông tin cá nhân</th>
+                <th>Email</th>
+                <th>Số điện thoại</th>
+                <th>Khóa/Mở</th>
+                <th>Ngày tham gia</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(user => (
               <tr key={user.id} className={selectedUsers.includes(user.id) ? 'selected' : ''}>
                 <td>
                   <input
@@ -290,14 +260,18 @@ const UserAccountsManagement = () => {
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {filteredUsers.length === 0 && (
+      {!loading && filteredUsers.length === 0 && (
         <div className="no-results">
-          <p>Không tìm thấy người dùng nào phù hợp với tiêu chí tìm kiếm.</p>
+          <p>⚠️ Chức năng quản lý tài khoản người dùng đang được phát triển. API endpoint chưa có.</p>
+          <p style={{ marginTop: '10px', color: '#666', fontSize: '14px' }}>
+            Hiện tại chỉ có thể quản lý bài đăng. Dữ liệu người dùng sẽ được đồng bộ từ database khi API được triển khai.
+          </p>
         </div>
       )}
     </div>

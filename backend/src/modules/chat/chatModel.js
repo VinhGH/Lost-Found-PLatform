@@ -55,11 +55,12 @@ class ChatModel {
    */
   async getConversationsByAccountId(accountId) {
     try {
-      // Get conversation IDs where user is a participant
+      // Get conversation IDs where user is a participant AND not deleted
       const { data: participations, error: partError } = await supabase
         .from('ConversationParticipant')
         .select('conversation_id')
-        .eq('account_id', accountId);
+        .eq('account_id', accountId)
+        .eq('is_deleted', false);
 
       if (partError) throw partError;
 
@@ -73,32 +74,51 @@ class ChatModel {
         };
       }
 
-      // Get full conversation details
+      // Get full conversation details with post data
       const { data: conversations, error: convError } = await supabase
         .from('Conversation')
         .select(`
           *,
-          Match:match_id (
-            match_id,
-            status,
-            LostPost:lost_post_id (
-              post_id,
-              title,
-              Account:account_id (
-                account_id,
-                user_name,
-                avatar
-              )
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            description,
+            location_id,
+            category_id,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
             ),
-            FoundPost:found_post_id (
-              post_id,
-              title,
-              Account:account_id (
-                account_id,
-                user_name,
-                avatar
+            Lost_Post_Images (
+              Lost_Images (
+                link_picture
               )
             )
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            description,
+            location_id,
+            category_id,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
+            ),
+            Found_Post_Images (
+              Found_Images (
+                link_picture
+              )
+            )
+          ),
+          Match:match_id (
+            match_id
           )
         `)
         .in('conversation_id', conversationIds)
@@ -106,35 +126,61 @@ class ChatModel {
 
       if (convError) throw convError;
 
-      // Get participants for each conversation
-      for (const conv of conversations) {
-        const { data: participants, error: pError } = await supabase
-          .from('ConversationParticipant')
-          .select(`
+      if (!conversations || conversations.length === 0) {
+        return {
+          success: true,
+          data: [],
+          error: null
+        };
+      }
+
+      // ✅ Batch fetch participants for all conversations
+      const { data: allParticipants } = await supabase
+        .from('ConversationParticipant')
+        .select(`
+          conversation_id,
+          account_id,
+          Account:account_id (
             account_id,
-            Account:account_id (
-              account_id,
-              user_name,
-              email,
-              avatar
-            )
-          `)
-          .eq('conversation_id', conv.conversation_id);
+            user_name,
+            email,
+            avatar
+          )
+        `)
+        .in('conversation_id', conversationIds);
 
-        if (!pError) {
-          conv.participants = participants;
-        }
+      // ✅ Batch fetch last messages for all conversations
+      const { data: allMessages } = await supabase
+        .from('Message')
+        .select('*')
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false });
 
-        // Get last message
-        const { data: lastMessage } = await supabase
-          .from('Message')
-          .select('*')
-          .eq('conversation_id', conv.conversation_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+      // Group participants and messages by conversation_id
+      const participantsByConv = {};
+      const lastMessageByConv = {};
 
-        conv.last_message = lastMessage || null;
+      if (allParticipants) {
+        allParticipants.forEach(p => {
+          if (!participantsByConv[p.conversation_id]) {
+            participantsByConv[p.conversation_id] = [];
+          }
+          participantsByConv[p.conversation_id].push(p);
+        });
+      }
+
+      if (allMessages) {
+        allMessages.forEach(msg => {
+          if (!lastMessageByConv[msg.conversation_id]) {
+            lastMessageByConv[msg.conversation_id] = msg;
+          }
+        });
+      }
+
+      // Attach to conversations
+      for (const conv of conversations) {
+        conv.participants = participantsByConv[conv.conversation_id] || [];
+        conv.last_message = lastMessageByConv[conv.conversation_id] || null;
       }
 
       return {
@@ -249,15 +295,40 @@ class ChatModel {
         .select(`
           *,
           Match:match_id (
-            match_id,
-            status,
-            LostPost:lost_post_id (
-              post_id,
-              title
+            match_id
+          ),
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            description,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
             ),
-            FoundPost:found_post_id (
-              post_id,
-              title
+            Lost_Post_Images (
+              Lost_Images (
+                link_picture
+              )
+            )
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            description,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
+            ),
+            Found_Post_Images (
+              Found_Images (
+                link_picture
+              )
             )
           )
         `)
@@ -356,6 +427,200 @@ class ChatModel {
       };
     }
   }
+
+  /**
+   * Create a new conversation linked to a post
+   * @param {number} postId - ID of the post
+   * @param {string} postType - 'lost' or 'found'
+   * @param {Array<number>} participants - Array of account IDs
+   * @returns {Promise<Object>}
+   */
+  async createConversationByPost(postId, postType, participants) {
+    try {
+      const postField = postType === 'lost' ? 'lost_post_id' : 'found_post_id';
+
+      // Create conversation
+      const { data: conversation, error: convError } = await supabase
+        .from('Conversation')
+        .insert([{
+          [postField]: postId,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (convError) throw convError;
+
+      // Add participants
+      const participantRecords = participants.map(accountId => ({
+        conversation_id: conversation.conversation_id,
+        account_id: accountId,
+        is_deleted: false
+      }));
+
+      const { error: partError } = await supabase
+        .from('ConversationParticipant')
+        .insert(participantRecords);
+
+      if (partError) throw partError;
+
+      // Fetch full conversation details to return
+      return await this.getConversationById(conversation.conversation_id);
+    } catch (err) {
+      console.error('Error creating conversation by post:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
+  /**
+   * Get conversation by post ID for a specific user (not deleted)
+   * @param {number} postId - ID of the post
+   * @param {string} postType - 'lost' or 'found'
+   * @param {number} accountId - ID of the user requesting
+   * @returns {Promise<Object>}
+   */
+  async getConversationByPost(postId, postType, accountId) {
+    try {
+      const postField = postType === 'lost' ? 'lost_post_id' : 'found_post_id';
+
+      // Get conversations for this post
+      const { data: conversations, error: convError } = await supabase
+        .from('Conversation')
+        .select(`
+          *,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            description,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
+            ),
+            Lost_Post_Images (
+              Lost_Images (
+                link_picture
+              )
+            )
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            description,
+            account_id,
+            Account:account_id (
+              account_id,
+              user_name,
+              avatar
+            ),
+            Found_Post_Images (
+              Found_Images (
+                link_picture
+              )
+            )
+          )
+        `)
+        .eq(postField, postId);
+
+      if (convError) throw convError;
+
+      if (!conversations || conversations.length === 0) {
+        return {
+          success: true,
+          data: null,
+          error: null
+        };
+      }
+
+      // For each conversation, check if user is a participant and not deleted
+      for (const conv of conversations) {
+        const { data: participant, error: partError } = await supabase
+          .from('ConversationParticipant')
+          .select('*')
+          .eq('conversation_id', conv.conversation_id)
+          .eq('account_id', accountId)
+          .single();
+
+        if (!partError && participant && !participant.is_deleted) {
+          // Get all participants
+          const { data: participants } = await supabase
+            .from('ConversationParticipant')
+            .select(`
+              account_id,
+              is_deleted,
+              Account:account_id (
+                account_id,
+                user_name,
+                email,
+                avatar
+              )
+            `)
+            .eq('conversation_id', conv.conversation_id);
+
+          conv.participants = participants || [];
+
+          return {
+            success: true,
+            data: conv,
+            error: null
+          };
+        }
+      }
+
+      // No valid conversation found
+      return {
+        success: true,
+        data: null,
+        error: null
+      };
+    } catch (err) {
+      console.error('Error getting conversation by post:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
+  /**
+   * Soft delete conversation for a specific user
+   * @param {string} conversationId
+   * @param {number} accountId
+   * @returns {Promise<Object>}
+   */
+  async softDeleteConversation(conversationId, accountId) {
+    try {
+      const { error } = await supabase
+        .from('ConversationParticipant')
+        .update({ is_deleted: true })
+        .eq('conversation_id', conversationId)
+        .eq('account_id', accountId);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        data: { conversation_id: conversationId },
+        error: null
+      };
+    } catch (err) {
+      console.error('Error soft deleting conversation:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
 }
 
 export default new ChatModel();

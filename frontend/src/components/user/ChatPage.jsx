@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./ChatPage.css";
 import {
   Chat as ChatIcon,
@@ -8,6 +8,7 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import ChatContextBox from "./ChatContextBox";
+import realApi from "../../services/realApi";
 
 const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail }) => {
   const [conversations, setConversations] = useState([]);
@@ -15,94 +16,35 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [chatPostData, setChatPostData] = useState(null);
+  const processingChatTarget = useRef(null);
 
-  // ✅ Load conversations từ localStorage khi component mount
+  // ✅ Load conversations từ API khi component mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("chatConversations");
-      if (saved) {
-        const parsedConversations = JSON.parse(saved);
-        if (Array.isArray(parsedConversations)) {
-          setConversations(parsedConversations);
-          console.log("✅ Đã load", parsedConversations.length, "cuộc trò chuyện từ localStorage");
-          
-          // Load active conversation nếu có
-          const savedActiveId = localStorage.getItem("chatActiveConversationId");
-          if (savedActiveId) {
-            const active = parsedConversations.find(c => c.id === parseInt(savedActiveId));
-            if (active) {
-              setActiveConversation(active);
-              setMessages(active.messages || []);
-            }
-          }
-        } else {
-          // Nếu không có dữ liệu hợp lệ, khởi tạo với mock data
-          initializeMockData();
-        }
-      } else {
-        // Nếu chưa có dữ liệu, khởi tạo với mock data
-        initializeMockData();
-      }
-    } catch (error) {
-      console.error("❌ Lỗi khi load conversations từ localStorage:", error);
-      initializeMockData();
-    } finally {
-      setIsLoading(false);
-      setIsInitialized(true);
-    }
+    loadConversations();
   }, []);
 
-  // ✅ Hàm khởi tạo mock data
-  const initializeMockData = () => {
-    const mockConversations = [
-      {
-        id: 1,
-        user: { id: 2, name: "Nguyễn Văn A", avatar: "/img/avatar1.jpg", online: true },
-        lastMessage: "Xin chào, tôi có thể nhận lại ví được không?",
-        lastMessageTime: "2 phút trước",
-        messages: [
-          { from: "Nguyễn Văn A", text: "Xin chào, tôi có thể nhận lại ví được không?", time: "09:15" },
-          { from: "Bạn", text: "Vâng, bạn có thể qua phòng bảo vệ nhé.", time: "09:16" },
-        ],
-      },
-      {
-        id: 2,
-        user: { id: 3, name: "Trần Thị B", avatar: "/img/avatar2.jpg", online: false },
-        lastMessage: "Cảm ơn bạn đã liên hệ!",
-        lastMessageTime: "1 giờ trước",
-        messages: [
-          { from: "Trần Thị B", text: "Mình có nhặt được điện thoại màu xanh.", time: "08:00" },
-          { from: "Bạn", text: "Rất tốt, cảm ơn bạn đã thông báo!", time: "08:05" },
-        ],
-      },
-    ];
-    setConversations(mockConversations);
-  };
+  const loadConversations = async (showLoading = true) => {
+    try {
+      if (showLoading) setIsLoading(true);
+      const response = await realApi.getConversations();
 
-  // ✅ Lưu conversations vào localStorage khi có thay đổi
-  useEffect(() => {
-    if (isInitialized) {
-      try {
-        // Lưu chatPostData vào activeConversation trước khi lưu conversations
-        if (activeConversation && chatPostData) {
-          const updatedConv = { ...activeConversation, chatPostData };
-          setConversations((prev) =>
-            prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-          );
-        }
-        localStorage.setItem("chatConversations", JSON.stringify(conversations));
-        if (activeConversation) {
-          localStorage.setItem("chatActiveConversationId", activeConversation.id.toString());
-        }
-        console.log("💾 Đã lưu conversations vào localStorage");
-      } catch (error) {
-        console.error("❌ Lỗi khi lưu conversations vào localStorage:", error);
+      if (response.success && response.data) {
+        const convs = response.data.data || response.data;
+        // console.log("✅ Loaded conversations from API:", convs.length);
+        setConversations(convs);
+      } else {
+        console.error("❌ Failed to load conversations:", response.error);
+        if (showLoading) setConversations([]);
       }
+    } catch (error) {
+      console.error("❌ Error loading conversations:", error);
+      if (showLoading) setConversations([]);
+    } finally {
+      if (showLoading) setIsLoading(false);
     }
-  }, [conversations, activeConversation, isInitialized, chatPostData]);
+  };
 
   // 🔹 Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -117,268 +59,211 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
 
   // 🔹 Ngăn scroll body khi ở tab chat
   useEffect(() => {
-    // Ngăn scroll body
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
-      // Khôi phục scroll khi rời khỏi chat
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
   }, []);
 
-  // ✅ Lắng nghe thay đổi từ localStorage để cập nhật conversations và chatPostData
+  // ✅ Polling: Cập nhật danh sách chat mỗi 30 giây
   useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key === 'chatConversations') {
-        console.log('🔄 Phát hiện thay đổi trong "chatConversations", đang tải lại...');
-        try {
-          const saved = localStorage.getItem("chatConversations");
-          if (saved) {
-            const parsedConversations = JSON.parse(saved);
-            if (Array.isArray(parsedConversations)) {
-              setConversations(parsedConversations);
-              
-              // Cập nhật lại active conversation nếu nó còn tồn tại
-              if (activeConversation) {
-                const updatedActive = parsedConversations.find(c => c.id === activeConversation.id);
-                if (updatedActive) {
-                  setActiveConversation(updatedActive);
-                  setMessages(updatedActive.messages || []);
-                } else {
-                  // Nếu active conversation không còn, reset
-                  setActiveConversation(null);
-                  setMessages([]);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("❌ Lỗi khi tải lại conversations từ storage event:", error);
-        }
-      } else if (event.key === 'chatPostData') {
-        // ✅ Phát hiện thay đổi trong chatPostData (khi bấm "Liên hệ ngay" từ tab khác)
-        console.log('🔄 Phát hiện thay đổi trong "chatPostData", đang cập nhật...');
-        if (activeConversation) {
-          try {
-            const savedPostData = localStorage.getItem("chatPostData");
-            if (savedPostData) {
-              const postData = JSON.parse(savedPostData);
-              // Chỉ cập nhật nếu khớp với conversation hiện tại
-              if (postData.author === activeConversation.user.name) {
-                setChatPostData(postData);
-                // Cập nhật vào conversation để đồng bộ
-                const updatedConv = { ...activeConversation, chatPostData: postData };
-                setConversations((prev) =>
-                  prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-                );
-                console.log("✅ Đã cập nhật chatPostData từ storage event:", postData);
-              }
-            }
-          } catch (error) {
-            console.error("❌ Lỗi khi cập nhật chatPostData từ storage event:", error);
-          }
-        }
-      }
-    };
+    const intervalId = setInterval(() => {
+      loadConversations(false); // false = không show loading spinner
+    }, 30000); // 30s thay vì 10s
 
-    // ✅ Lắng nghe cả storage event (từ tab khác) và custom event (từ cùng tab)
-    window.addEventListener('storage', handleStorageChange);
-    
-    // ✅ Tạo custom event listener để phát hiện thay đổi từ cùng tab
-    const handleCustomStorageChange = () => {
-      if (activeConversation) {
-        try {
-          const savedPostData = localStorage.getItem("chatPostData");
-          if (savedPostData) {
-            const postData = JSON.parse(savedPostData);
-            if (postData.author === activeConversation.user.name) {
-              setChatPostData(postData);
-              const updatedConv = { ...activeConversation, chatPostData: postData };
-              setConversations((prev) =>
-                prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-              );
-              console.log("✅ Đã cập nhật chatPostData từ custom event:", postData);
-            }
-          }
-        } catch (error) {
-          console.error("❌ Lỗi khi cập nhật chatPostData từ custom event:", error);
-        }
-      }
-    };
-    
-    // ✅ Lắng nghe custom event khi localStorage thay đổi từ cùng tab
-    window.addEventListener('chatPostDataChanged', handleCustomStorageChange);
+    return () => clearInterval(intervalId);
+  }, []);
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('chatPostDataChanged', handleCustomStorageChange);
-    };
-  }, [activeConversation]); // Phụ thuộc vào activeConversation để cập nhật đúng
-
-  // ✅ Load chatPostData từ localStorage khi component mount hoặc khi activeConversation thay đổi
+  // ✅ Polling: Cập nhật tin nhắn mỗi 5 giây khi đang chat
   useEffect(() => {
-    if (isInitialized && activeConversation) {
-      // ✅ Ưu tiên load từ localStorage mới nhất (khi bấm "Liên hệ ngay" từ tab khác)
-      try {
-        const savedPostData = localStorage.getItem("chatPostData");
-        if (savedPostData) {
-          const postData = JSON.parse(savedPostData);
-          // Chỉ load nếu khớp với conversation hiện tại
-          if (postData.author === activeConversation.user.name) {
-            setChatPostData(postData);
-            // Cập nhật vào conversation để đồng bộ
-            const updatedConv = { ...activeConversation, chatPostData: postData };
-            setConversations((prev) =>
-              prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-            );
-            console.log("✅ Đã load chatPostData mới từ localStorage:", postData);
-            return; // Dừng lại, không cần fallback
-          }
-        }
-      } catch (error) {
-        console.error("❌ Lỗi khi load chatPostData từ localStorage:", error);
-      }
-      
-      // Fallback: load từ conversation nếu không có trong localStorage hoặc không khớp
-      if (activeConversation.chatPostData) {
-        setChatPostData(activeConversation.chatPostData);
-        console.log("✅ Đã load chatPostData từ conversation:", activeConversation.chatPostData);
-      }
-    }
-  }, [isInitialized, activeConversation?.id, activeConversation?.user?.name]);
+    if (!activeConversation) return;
 
-  // ✅ Fetch lại dữ liệu bài đăng từ posts để đảm bảo đồng bộ - Tự động cập nhật khi bài đăng được chỉnh sửa
-  useEffect(() => {
-    if (chatPostData && chatPostData.id && posts.length > 0) {
-      const freshPost = posts.find(p => p.id === chatPostData.id);
-      if (freshPost) {
-        // So sánh để phát hiện thay đổi
-        const hasChanged = 
-          freshPost.title !== chatPostData.title ||
-          freshPost.image !== chatPostData.image ||
-          freshPost.description !== chatPostData.description ||
-          freshPost.category !== chatPostData.category ||
-          freshPost.location !== chatPostData.location ||
-          freshPost.type !== chatPostData.type;
-        
-        if (hasChanged) {
-          // Cập nhật với dữ liệu mới nhất từ posts
-          const updatedPostData = {
-            id: freshPost.id,
-            title: freshPost.title,
-            image: freshPost.image,
-            type: freshPost.type,
-            category: freshPost.category,
-            location: freshPost.location,
-            author: freshPost.author,
-            description: freshPost.description,
-            createdAt: freshPost.createdAt || freshPost.id,
-            updatedAt: freshPost.updatedAt || freshPost.createdAt || freshPost.id
-          };
-          setChatPostData(updatedPostData);
-          // Cập nhật localStorage với dữ liệu mới
-          localStorage.setItem("chatPostData", JSON.stringify(updatedPostData));
-          console.log("🔄 Đã tự động cập nhật chatPostData với dữ liệu mới nhất:", updatedPostData);
-        }
-      } else {
-        // Nếu không tìm thấy bài đăng trong posts, có thể đã bị xóa
-        console.warn("⚠️ Không tìm thấy bài đăng với id:", chatPostData.id);
-        // Giữ nguyên dữ liệu cũ để hiển thị, nhưng có thể hiển thị cảnh báo
-      }
-    }
-  }, [posts, chatPostData?.id]); // Tự động chạy lại khi posts thay đổi (khi bài đăng được chỉnh sửa)
+    const intervalId = setInterval(() => {
+      loadMessages(activeConversation.conversation_id, false); // false = không reset messages
+    }, 5000); // 5s thay vì 3s
+
+    return () => clearInterval(intervalId);
+  }, [activeConversation]);
 
   // ✅ Khi user bấm "Liên hệ ngay" → nhận chatTarget từ props
   useEffect(() => {
-    if (chatTarget && isInitialized) {
-      const existing = conversations.find(
-        (conv) => conv.user.name === chatTarget
+    if (chatTarget && chatTarget.postId && chatTarget.postType && chatTarget.postAuthorId) {
+      handleChatTarget(chatTarget);
+    }
+  }, [chatTarget]);
+
+  const handleChatTarget = async (target) => {
+    // Prevent duplicate processing for the same target
+    if (processingChatTarget.current === target.postId) {
+      console.log("⏳ Chat target already processing:", target.postId);
+      return;
+    }
+
+    try {
+      processingChatTarget.current = target.postId;
+      console.log("💬 Chat target received:", target);
+
+      // Gọi API để tạo hoặc lấy conversation
+      const response = await realApi.createOrGetConversationByPost(
+        target.postId,
+        target.postType,
+        target.postAuthorId
       );
 
-      if (existing) {
-        setActiveConversation(existing);
-        setMessages(existing.messages || []);
-        localStorage.setItem("chatActiveConversationId", existing.id.toString());
-        // ✅ Ưu tiên load chatPostData mới nhất từ localStorage (khi bấm "Liên hệ ngay" từ tab khác)
-        try {
-          const savedPostData = localStorage.getItem("chatPostData");
-          if (savedPostData) {
-            const postData = JSON.parse(savedPostData);
-            // Chỉ cập nhật nếu khớp author và có dữ liệu mới
-            if (postData.author === chatTarget) {
-              setChatPostData(postData);
-              // Cập nhật vào conversation để đồng bộ
-              const updatedConv = { ...existing, chatPostData: postData };
-              setConversations((prev) =>
-                prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-              );
-              console.log("✅ Đã cập nhật chatPostData mới từ localStorage:", postData);
-            } else if (existing.chatPostData) {
-              // Nếu không khớp author, giữ nguyên dữ liệu cũ từ conversation
-              setChatPostData(existing.chatPostData);
-            }
-          } else if (existing.chatPostData) {
-            // Nếu không có trong localStorage, dùng dữ liệu từ conversation
-            setChatPostData(existing.chatPostData);
-          }
-        } catch (error) {
-          console.error("❌ Lỗi khi load chatPostData:", error);
-          // Fallback: dùng dữ liệu từ conversation nếu có
-          if (existing.chatPostData) {
-            setChatPostData(existing.chatPostData);
-          }
-        }
-      } else {
-        // nếu chưa có cuộc trò chuyện → tạo mới
-        // Kiểm tra và lưu chatPostData vào conversation mới
-        let newChatPostData = null;
-        try {
-          const savedPostData = localStorage.getItem("chatPostData");
-          if (savedPostData) {
-            const postData = JSON.parse(savedPostData);
-            if (postData.author === chatTarget) {
-              newChatPostData = postData;
-            }
-          }
-        } catch (error) {
-          console.error("❌ Lỗi khi load chatPostData:", error);
-        }
+      if (response.success && response.data) {
+        const conv = response.data.data || response.data;
+        console.log("✅ Conversation ready:", conv);
 
-        const newConv = {
-          id: Date.now(),
-          user: { id: Date.now(), name: chatTarget, avatar: "/img/default-avatar.png", online: true },
-          lastMessage: "",
-          lastMessageTime: "Vừa xong",
-          messages: [],
-          chatPostData: newChatPostData, // Lưu chatPostData vào conversation
-        };
-        setConversations((prev) => [...prev, newConv]);
-        setActiveConversation(newConv);
-        setMessages([]);
-        localStorage.setItem("chatActiveConversationId", newConv.id.toString());
-        if (newChatPostData) {
-          setChatPostData(newChatPostData);
+        // Reload conversations để cập nhật danh sách
+        await loadConversations();
+
+        // Set active conversation
+        setActiveConversation(conv);
+
+        // Load messages
+        await loadMessages(conv.conversation_id);
+
+        // Set chat post data từ conversation
+        const postData = extractPostDataFromConversation(conv, target.postType);
+        setChatPostData(postData);
+      } else {
+        console.error("❌ Failed to create/get conversation:", response.error);
+      }
+    } catch (error) {
+      console.error("❌ Error handling chat target:", error);
+    } finally {
+      processingChatTarget.current = null;
+    }
+  };
+
+  const extractPostDataFromConversation = (conv, postType) => {
+    if (!conv) return null;
+
+    const post = postType === 'lost' ? conv.Lost_Post : conv.Found_Post;
+    if (!post) return null;
+
+    // Extract image
+    let image = null;
+    if (postType === 'lost' && post.Lost_Post_Images?.length > 0) {
+      image = post.Lost_Post_Images[0]?.Lost_Images?.link_picture;
+    } else if (postType === 'found' && post.Found_Post_Images?.length > 0) {
+      image = post.Found_Post_Images[0]?.Found_Images?.link_picture;
+    }
+
+    return {
+      id: post.lost_post_id || post.found_post_id,
+      title: post.post_title,
+      type: postType,
+      description: post.description,
+      author: post.Account?.user_name || post.Account?.name,
+      image: image
+    };
+  };
+
+  const loadMessages = async (conversationId, reset = true) => {
+    try {
+      const response = await realApi.getConversationMessages(conversationId);
+
+      if (response.success && response.data) {
+        const msgs = response.data.data || response.data;
+        // console.log("✅ Loaded messages:", msgs.length);
+
+        // Transform messages to match frontend format
+        const transformedMessages = msgs.map(msg => ({
+          id: msg.message_id, // ✅ Thêm ID để làm key
+          from: msg.sender_id === user?.account_id ? "Bạn" : msg.Sender?.user_name || "User",
+          text: msg.message,
+          time: new Date(msg.created_at).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }));
+
+        setMessages(transformedMessages);
+      } else {
+        if (reset) setMessages([]);
+      }
+    } catch (error) {
+      console.error("❌ Error loading messages:", error);
+      if (reset) setMessages([]);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !activeConversation) return;
+
+    try {
+      const response = await realApi.sendMessage(
+        activeConversation.conversation_id,
+        newMessage.trim()
+      );
+
+      if (response.success) {
+        // Reload messages
+        await loadMessages(activeConversation.conversation_id);
+        setNewMessage("");
+
+        // ❌ REMOVED: Không cần reload conversations ngay lập tức
+        // Polling sẽ tự động cập nhật sau 30s
+      } else {
+        console.error("❌ Failed to send message:", response.error);
+        alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
+      }
+    } catch (error) {
+      console.error("❌ Error sending message:", error);
+      alert("Đã xảy ra lỗi khi gửi tin nhắn.");
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!activeConversation) return;
+
+    const conversationName = getConversationName(activeConversation);
+    if (window.confirm(`Bạn có chắc muốn xóa cuộc trò chuyện với ${conversationName}?`)) {
+      try {
+        const response = await realApi.deleteConversation(activeConversation.conversation_id);
+
+        if (response.success) {
+          console.log("✅ Conversation deleted");
+
+          // Reload conversations
+          await loadConversations();
+
+          // Clear active conversation
+          setActiveConversation(null);
+          setMessages([]);
+          setChatPostData(null);
+          setShowMoreMenu(false);
+        } else {
+          console.error("❌ Failed to delete conversation:", response.error);
+          alert("Không thể xóa cuộc trò chuyện. Vui lòng thử lại.");
         }
+      } catch (error) {
+        console.error("❌ Error deleting conversation:", error);
+        alert("Đã xảy ra lỗi khi xóa cuộc trò chuyện.");
       }
     }
-  }, [chatTarget, conversations, isInitialized]);
+  };
 
-  // 🔹 Xử lý khi người dùng click vào ChatContextBox (scroll đến bài đăng)
+  const handleViewProfile = () => {
+    if (!activeConversation || !setActiveTab) return;
+    setActiveTab("profile");
+  };
+
   const handleContextBoxClick = (postId, postType) => {
-    // Chuyển sang tab tương ứng
     if (postType === "lost") {
       setActiveTab("lost");
     } else if (postType === "found") {
       setActiveTab("found");
     }
-    // Scroll đến bài đăng sau khi tab render
+
     setTimeout(() => {
       const el = document.getElementById(`post-${postId}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Highlight bài đăng
         el.style.transition = "box-shadow 0.3s";
         el.style.boxShadow = "0 0 0 3px rgba(25, 118, 210, 0.3)";
         setTimeout(() => {
@@ -388,70 +273,55 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
     }, 300);
   };
 
-  // 🔹 Xử lý khi người dùng click "Xem lại bài đăng" trong ChatContextBox (mở popup)
   const handleViewPost = (postId, postType, e) => {
-    e.stopPropagation(); // Ngăn event bubble lên ChatContextBox
-    // Tìm bài đăng trong posts
+    e.stopPropagation();
     const post = posts.find(p => p.id === postId);
     if (post && onOpenPostDetail) {
-      // Mở popup "Xem chi tiết" trực tiếp
-      // KHÔNG xóa chatPostData - giữ nguyên để ChatContextBox vẫn hiển thị sau khi đóng popup
       onOpenPostDetail(post);
     }
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !activeConversation) return;
+  const handleConversationClick = async (conv) => {
+    setActiveConversation(conv);
 
-    const message = {
-      from: "Bạn",
-      text: newMessage,
-      time: new Date().toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+    // Load messages
+    await loadMessages(conv.conversation_id);
 
-    const updatedMessages = [...messages, message];
-    setMessages(updatedMessages);
+    // Set chat post data
+    const postType = conv.lost_post_id ? 'lost' : 'found';
+    const postData = extractPostDataFromConversation(conv, postType);
+    setChatPostData(postData);
+  };
 
-        const updatedConv = {
-          ...activeConversation,
-          lastMessage: newMessage,
-          lastMessageTime: "Vừa xong",
-          messages: updatedMessages,
-          chatPostData: activeConversation.chatPostData || chatPostData, // Giữ chatPostData
-        };
+  // Helper function to get conversation display name
+  const getConversationName = (conv) => {
+    if (!conv || !conv.participants) return "Unknown";
 
-    setConversations((prev) =>
-      prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
+    // Find the other participant (not current user)
+    const otherParticipant = conv.participants.find(
+      p => p.account_id !== user?.account_id
     );
-    setActiveConversation(updatedConv);
-    setNewMessage("");
-    // Không cần lưu trực tiếp, useEffect sẽ tự động lưu khi conversations thay đổi
+
+    return otherParticipant?.Account?.user_name || otherParticipant?.Account?.name || "User";
   };
 
-  // 🔹 Xóa cuộc trò chuyện
-  const handleDeleteConversation = () => {
-    if (!activeConversation) return;
-    
-    if (window.confirm(`Bạn có chắc muốn xóa cuộc trò chuyện với ${activeConversation.user.name}?`)) {
-      const updatedConversations = conversations.filter(
-        (c) => c.id !== activeConversation.id
-      );
-      setConversations(updatedConversations);
-      setActiveConversation(null);
-      setMessages([]);
-      localStorage.removeItem("chatActiveConversationId");
-      setShowMoreMenu(false);
+  // Helper function to get conversation avatar
+  const getConversationAvatar = (conv) => {
+    if (!conv || !conv.participants) return "/img/default-avatar.png";
+
+    const otherParticipant = conv.participants.find(
+      p => p.account_id !== user?.account_id
+    );
+
+    return otherParticipant?.Account?.avatar || "/img/default-avatar.png";
+  };
+
+  // Helper function to get last message preview
+  const getLastMessagePreview = (conv) => {
+    if (conv.last_message) {
+      return conv.last_message.message || "Chưa có tin nhắn";
     }
-  };
-
-  // 🔹 Xem thông tin cá nhân
-  const handleViewProfile = () => {
-    if (!activeConversation || !setActiveTab) return;
-    // Chuyển tới tab profile
-    setActiveTab("profile");
+    return "Chưa có tin nhắn";
   };
 
   if (isLoading)
@@ -469,66 +339,36 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             </h2>
           </div>
           <div className="conversations-list">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`conversation-item ${
-                  activeConversation?.id === conv.id ? "active" : ""
-                }`}
-                onClick={() => {
-                  setActiveConversation(conv);
-                  setMessages(conv.messages || []);
-                  // Lưu active conversation ID
-                  localStorage.setItem("chatActiveConversationId", conv.id.toString());
-                  // Load lại chatPostData từ conversation nếu có
-                  if (conv.chatPostData) {
-                    setChatPostData(conv.chatPostData);
-                    localStorage.setItem("chatPostData", JSON.stringify(conv.chatPostData));
-                  } else {
-                    // Nếu conversation không có chatPostData, kiểm tra localStorage
-                    try {
-                      const savedPostData = localStorage.getItem("chatPostData");
-                      if (savedPostData) {
-                        const postData = JSON.parse(savedPostData);
-                        // Chỉ load nếu postData thuộc về conversation này (dựa vào author)
-                        if (postData.author === conv.user.name) {
-                          setChatPostData(postData);
-                          // Lưu vào conversation
-                          const updatedConv = { ...conv, chatPostData: postData };
-                          setConversations((prev) =>
-                            prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-                          );
-                        } else {
-                          // Nếu không khớp, xóa chatPostData
-                          setChatPostData(null);
-                          localStorage.removeItem("chatPostData");
-                        }
-                      } else {
-                        setChatPostData(null);
-                      }
-                    } catch (error) {
-                      console.error("❌ Lỗi khi load chatPostData:", error);
-                      setChatPostData(null);
-                    }
-                  }
-                }}
-              >
-                <img
-                  src={conv.user.avatar}
-                  alt={conv.user.name}
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    marginRight: "10px",
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <strong style={{ flex: 1, minWidth: 0 }}>{conv.user.name}</strong>
-                    {conv.chatPostData && (
+            {conversations.map((conv) => {
+              const conversationName = getConversationName(conv);
+              const conversationAvatar = getConversationAvatar(conv);
+              const lastMessagePreview = getLastMessagePreview(conv);
+              const postType = conv.lost_post_id ? 'lost' : 'found';
+
+              return (
+                <div
+                  key={conv.conversation_id}
+                  className={`conversation-item ${activeConversation?.conversation_id === conv.conversation_id ? "active" : ""
+                    }`}
+                  onClick={() => handleConversationClick(conv)}
+                >
+                  <img
+                    src={conversationAvatar}
+                    alt={conversationName}
+                    style={{
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "50%",
+                      marginRight: "12px",
+                      objectFit: "cover",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                      <strong style={{ flex: 1, minWidth: 0 }}>{conversationName}</strong>
                       <span
-                        className={`conversation-post-badge conversation-post-badge-${conv.chatPostData.type === "found" ? "found" : "lost"}`}
+                        className={`conversation-post-badge conversation-post-badge-${postType}`}
                         style={{
                           fontSize: "10px",
                           padding: "2px 8px",
@@ -538,16 +378,21 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                           flexShrink: 0,
                         }}
                       >
-                        {conv.chatPostData.type === "found" ? "Nhặt được" : "Tìm đồ"}
+                        {postType === "found" ? "Nhặt được" : "Tìm đồ"}
                       </span>
-                    )}
+                    </div>
+                    <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
+                      {lastMessagePreview}
+                    </p>
                   </div>
-                  <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
-                    {conv.lastMessage || "Chưa có tin nhắn"}
-                  </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            {conversations.length === 0 && (
+              <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>
+                Chưa có cuộc trò chuyện nào
+              </p>
+            )}
           </div>
         </div>
 
@@ -557,18 +402,17 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             <>
               <div className="chat-header">
                 <div className="chat-user-info">
-                  <img src={activeConversation.user.avatar} alt="" />
+                  <img
+                    src={getConversationAvatar(activeConversation)}
+                    alt=""
+                  />
                   <div>
-                    <h3>{activeConversation.user.name}</h3>
-                    <span>
-                      {activeConversation.user.online
-                        ? "Đang hoạt động"
-                        : "Ngoại tuyến"}
-                    </span>
+                    <h3>{getConversationName(activeConversation)}</h3>
+                    <span>Đang hoạt động</span>
                   </div>
                 </div>
                 <div className="chat-actions">
-                  <button 
+                  <button
                     className="btn-action"
                     onClick={handleViewProfile}
                     title="Xem thông tin cá nhân"
@@ -576,7 +420,7 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                     <PersonIcon />
                   </button>
                   <div className="more-menu-container">
-                    <button 
+                    <button
                       className="btn-action"
                       onClick={() => setShowMoreMenu(!showMoreMenu)}
                       title="Tùy chọn"
@@ -585,7 +429,7 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                     </button>
                     {showMoreMenu && (
                       <div className="more-menu-dropdown">
-                        <button 
+                        <button
                           className="dropdown-item delete"
                           onClick={handleDeleteConversation}
                         >
@@ -600,8 +444,8 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
 
               {/* Chat Context Box - Hiển thị thông tin bài đăng */}
               {chatPostData && (
-                <ChatContextBox 
-                  post={chatPostData} 
+                <ChatContextBox
+                  post={chatPostData}
                   onViewPost={handleViewPost}
                   onBoxClick={handleContextBoxClick}
                 />
@@ -611,10 +455,9 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                 <div className="messages-list">
                   {messages.map((msg, i) => (
                     <div
-                      key={i}
-                      className={`message ${
-                        msg.from === "Bạn" ? "own" : "other"
-                      }`}
+                      key={msg.id || i} // ✅ Dùng message_id làm key
+                      className={`message ${msg.from === "Bạn" ? "own" : "other"
+                        }`}
                     >
                       <div className="message-content">
                         <p className="message-text">{msg.text}</p>
@@ -654,7 +497,7 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             <div className="no-conversation">
               <ChatIcon style={{ fontSize: "48px", color: "#aaa" }} />
               <h3>Chọn một cuộc trò chuyện</h3>
-              <p>Hoặc nhấn “Liên hệ ngay” ở bài viết để bắt đầu chat</p>
+              <p>Hoặc nhấn "Liên hệ ngay" ở bài viết để bắt đầu chat</p>
             </div>
           )}
         </div>

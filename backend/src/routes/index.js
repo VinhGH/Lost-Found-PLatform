@@ -1,5 +1,6 @@
 import express from 'express';
 import accountRoutes from '../modules/account/accountRoutes.js';
+import otpRoutes from '../modules/otp/otpRoutes.js';
 import postRoutes from '../modules/post/postRoutes.js';
 import matchRoutes from '../modules/match/matchRoutes.js';
 import chatRoutes from '../modules/chat/chatRoutes.js';
@@ -10,6 +11,7 @@ import locationRoutes from '../modules/location/locationRoutes.js';
 const router = express.Router();
 
 // Mount routes
+router.use('/auth', otpRoutes); // OTP routes: /api/auth/request-otp, /api/auth/verify-otp
 router.use('/accounts', accountRoutes);
 router.use('/posts', postRoutes);
 router.use('/matches', matchRoutes);
