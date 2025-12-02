@@ -393,12 +393,32 @@ const UserProfile = ({
       const postType = updated.type || currentPost.type;
       const currentStatus = currentPost.status || "pending";
 
+      // ✅ Kiểm tra xem có ảnh mới không (base64 bắt đầu bằng "data:image/")
+      // Nếu chỉ có URL ảnh cũ thì KHÔNG gửi images (để backend giữ nguyên ảnh cũ)
+      let imagesToSend = undefined;
+      if (updated.images && Array.isArray(updated.images) && updated.images.length > 0) {
+        // Kiểm tra xem có ít nhất 1 ảnh mới (base64) không
+        const hasNewImages = updated.images.some(img =>
+          typeof img === 'string' && img.startsWith('data:image/')
+        );
+
+        if (hasNewImages) {
+          // Chỉ gửi ảnh mới (base64), loại bỏ ảnh cũ (URL)
+          imagesToSend = updated.images.filter(img =>
+            typeof img === 'string' && img.startsWith('data:image/')
+          );
+        }
+        // Nếu không có ảnh mới, imagesToSend = undefined → backend giữ nguyên ảnh cũ
+      }
+
       // ✅ Format data cho backend (chỉ gửi các field backend cần)
       const updateData = {
         title: updated.title,
         description: updated.description,
         category: updated.category,
         location: updated.location,
+        // ✅ CHỈ gửi images nếu có ảnh mới (base64)
+        ...(imagesToSend !== undefined && { images: imagesToSend }),
         // ✅ KHÔNG gửi status - user không được thay đổi status khi update
       };
 
@@ -701,8 +721,8 @@ const UserProfile = ({
                   post.images?.length > 0
                     ? post.images
                     : post.image
-                    ? [post.image]
-                    : [];
+                      ? [post.image]
+                      : [];
 
                 return (
                   <div key={post.id} className="post-item">
@@ -716,9 +736,8 @@ const UserProfile = ({
                       <div className="post-header">
                         <h4 className="post-title">{post.title}</h4>
                         <div
-                          className={`post-status ${
-                            post.status?.toLowerCase() || "pending"
-                          }`}
+                          className={`post-status ${post.status?.toLowerCase() || "pending"
+                            }`}
                         >
                           {getStatusText(post.status)}
                         </div>
@@ -760,19 +779,17 @@ const UserProfile = ({
                             );
                             console.log(`  📅 displayTime: ${displayTime}`);
                             console.log(
-                              `  📅 displayTime (UTC): ${
-                                displayTimeDate
-                                  ? displayTimeDate.toISOString()
-                                  : "N/A"
+                              `  📅 displayTime (UTC): ${displayTimeDate
+                                ? displayTimeDate.toISOString()
+                                : "N/A"
                               }`
                             );
                             console.log(
-                              `  📅 displayTime (Local): ${
-                                displayTimeDate
-                                  ? displayTimeDate.toLocaleString("vi-VN", {
-                                      timeZone: "Asia/Ho_Chi_Minh",
-                                    })
-                                  : "N/A"
+                              `  📅 displayTime (Local): ${displayTimeDate
+                                ? displayTimeDate.toLocaleString("vi-VN", {
+                                  timeZone: "Asia/Ho_Chi_Minh",
+                                })
+                                : "N/A"
                               }`
                             );
                             console.log(`  🕐 now: ${now}`);
@@ -800,10 +817,10 @@ const UserProfile = ({
                               diff < 60000
                                 ? "Vừa xong"
                                 : diff < 3600000
-                                ? `${Math.floor(diff / 60000)} phút trước`
-                                : diff < 86400000
-                                ? `${Math.floor(diff / 3600000)} giờ trước`
-                                : `${Math.floor(diff / 86400000)} ngày trước`;
+                                  ? `${Math.floor(diff / 60000)} phút trước`
+                                  : diff < 86400000
+                                    ? `${Math.floor(diff / 3600000)} giờ trước`
+                                    : `${Math.floor(diff / 86400000)} ngày trước`;
                             console.log(`  🎯 Expected: "${expectedResult}"`);
                             if (result !== expectedResult) {
                               console.warn(
@@ -881,9 +898,8 @@ const UserProfile = ({
           <div className="profile-sidebar">
             <div className="sidebar-nav">
               <button
-                className={`nav-item ${
-                  activeTab === "profile" ? "active" : ""
-                }`}
+                className={`nav-item ${activeTab === "profile" ? "active" : ""
+                  }`}
                 onClick={() => setActiveTab("profile")}
               >
                 <PersonIcon /> Thông tin cá nhân
@@ -897,9 +913,8 @@ const UserProfile = ({
               </button>
 
               <button
-                className={`nav-item ${
-                  activeTab === "settings" ? "active" : ""
-                }`}
+                className={`nav-item ${activeTab === "settings" ? "active" : ""
+                  }`}
                 onClick={() => setActiveTab("settings")}
               >
                 <SettingsIcon /> Cài đặt

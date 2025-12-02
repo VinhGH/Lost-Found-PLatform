@@ -27,7 +27,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     const originalOverflow = document.body.style.overflow;
     // Lock body scroll
     document.body.style.overflow = 'hidden';
-    
+
     // Cleanup function to restore original overflow
     return () => {
       document.body.style.overflow = originalOverflow;
@@ -55,7 +55,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       const existingImages = postData.images && Array.isArray(postData.images) && postData.images.length > 0
         ? postData.images
         : (postData.imageUrl || postData.image ? [postData.imageUrl || postData.image] : []);
-      
+
       setFormData({
         postType: postData.type || "lost",
         author: postData.author || "",
@@ -83,7 +83,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         contact: postData.contact || "",
         image: null,
       });
-      
+
       // Load tất cả ảnh vào images array
       if (existingImages.length > 0) {
         setImages(existingImages.map((img, index) => ({
@@ -116,7 +116,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
     // Lọc chỉ lấy file ảnh
     const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    
+
     if (imageFiles.length === 0) {
       setErrors(prev => ({
         ...prev,
@@ -137,7 +137,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     // Đọc tất cả ảnh
     let loadedCount = 0;
     const newImages = [];
-    
+
     imageFiles.forEach((file, index) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -146,7 +146,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           preview: reader.result,
           id: Date.now() + index
         });
-        
+
         loadedCount++;
         // Khi đã đọc xong tất cả ảnh
         if (loadedCount === imageFiles.length) {
@@ -184,7 +184,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Validation cho tiêu đề
     if (!formData.title || formData.title.trim().length < 5) {
       newErrors.title = "Tiêu đề phải có ít nhất 5 ký tự.";
@@ -205,18 +205,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       newErrors.building = "Vui lòng chọn tòa.";
     }
 
-    // Validation cho ngày xảy ra
-    if (!formData.date) {
-      newErrors.date = "Vui lòng chọn ngày xảy ra.";
-    } else {
-      // Kiểm tra ngày không được là tương lai
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      if (selectedDate > today) {
-        newErrors.date = "Ngày xảy ra không được là ngày tương lai.";
-      }
-    }
+    // ✅ KHÔNG validation cho ngày xảy ra vì field đã bị disabled (không thể thay đổi)
 
     // Validation cho số điện thoại
     const phone = formData.contact.trim();
@@ -238,22 +227,22 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
-      }
-    
+    }
+
     // Xử lý ảnh: nếu có ảnh mới thì dùng ảnh mới, nếu không thì giữ ảnh cũ
     let finalImage = postData.image || postData.imageUrl; // Giữ ảnh cũ mặc định
     let finalImages = postData.images && Array.isArray(postData.images) && postData.images.length > 0
       ? postData.images
       : (postData.image || postData.imageUrl ? [postData.image || postData.imageUrl] : []);
-    
+
     // Nếu có ảnh mới (có file hoặc preview), dùng ảnh mới
     if (images.length > 0) {
       // Kiểm tra xem có ảnh mới (có file) hay chỉ là ảnh cũ (chỉ có preview)
       const hasNewImages = images.some(img => img.file instanceof File);
-      
+
       if (hasNewImages) {
         // Có ảnh mới - dùng preview của tất cả ảnh (bao gồm cả ảnh mới và ảnh cũ chưa thay đổi)
         finalImages = images.map(img => img.preview);
@@ -261,12 +250,12 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         // Chỉ có ảnh cũ - giữ nguyên
         finalImages = images.map(img => img.preview);
       }
-      
+
       // Lấy ảnh đầu tiên làm ảnh chính (để backward compatibility)
       finalImage = finalImages[0];
     }
     // Nếu images.length === 0, giữ nguyên finalImage và finalImages (ảnh cũ)
-    
+
     const parts = [];
     if (formData.building) {
       parts.push(`Tòa ${formData.building}`);
@@ -299,7 +288,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       createdAt: postData.createdAt || postData.id, // Giữ createdAt
       updatedAt: Date.now(), // Cập nhật thời gian chỉnh sửa
     };
-    
+
     onUpdate(updatedPost);
     onClose();
     alert("✅ Bài đăng đã được cập nhật thành công!");
@@ -322,9 +311,8 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             <div className="post-type-group">
               <button
                 type="button"
-                className={`type-btn ${
-                  formData.postType === "lost" ? "active" : ""
-                }`}
+                className={`type-btn ${formData.postType === "lost" ? "active" : ""
+                  }`}
                 onClick={() => {
                   if (formData.postType !== "lost") {
                     const confirmChange = window.confirm(
@@ -401,15 +389,15 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
                 <div className="upload-preview-grid">
                   {images.map((img) => (
                     <div key={img.id} className="upload-preview-item">
-                      <img 
-                        src={img.preview} 
-                        alt="preview" 
-                        className="preview-image" 
+                      <img
+                        src={img.preview}
+                        alt="preview"
+                        className="preview-image"
                         onClick={() => setZoomedImage(img.preview)}
                         style={{ cursor: "pointer" }}
                       />
-                      <span 
-                        className="remove-image-text" 
+                      <span
+                        className="remove-image-text"
                         onClick={() => handleClearImage(img.id)}
                       >
                         Remove
@@ -458,10 +446,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
             <div className="form-group">
               <label>Tòa <span className="required-star">*</span></label>
-              <select 
-                name="building" 
-                value={formData.building} 
-                onChange={handleChange} 
+              <select
+                name="building"
+                value={formData.building}
+                onChange={handleChange}
                 className={errors.building ? "input-error" : ""}
                 required
               >
@@ -504,14 +492,15 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Ngày xảy ra <span className="required-star">*</span></label>
+              <label>Ngày xảy ra <span style={{ fontSize: "12px", color: "#666", fontWeight: "normal" }}>(Không thể thay đổi)</span></label>
               <input
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
                 className={errors.date ? "input-error" : ""}
-                required
+                disabled
+                style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
               />
               {errors.date && <p className="field-error">{errors.date}</p>}
             </div>
