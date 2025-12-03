@@ -173,15 +173,31 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
         // console.log("✅ Loaded messages:", msgs.length);
 
         // Transform messages to match frontend format
-        const transformedMessages = msgs.map(msg => ({
-          id: msg.message_id, // ✅ Thêm ID để làm key
-          from: msg.sender_id === user?.account_id ? "Bạn" : msg.Sender?.user_name || "User",
-          text: msg.message,
-          time: new Date(msg.created_at).toLocaleTimeString("vi-VN", {
+        const transformedMessages = msgs.map(msg => {
+          // Backend trả về timestamp không có 'Z', phải thêm để parse đúng UTC
+          const utcTimestamp = msg.created_at.endsWith('Z') ? msg.created_at : msg.created_at + 'Z';
+          const utcDate = new Date(utcTimestamp);
+          const vnTime = utcDate.toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
-          }),
-        }));
+            timeZone: "Asia/Ho_Chi_Minh", // ✅ Múi giờ Việt Nam (UTC+7)
+          });
+
+          // Debug log
+          console.log('🕐 Message time:', {
+            original: msg.created_at,
+            withZ: utcTimestamp,
+            utcDate: utcDate.toISOString(),
+            vnTime: vnTime
+          });
+
+          return {
+            id: msg.message_id,
+            from: msg.sender_id === user?.account_id ? "Bạn" : msg.Sender?.user_name || "User",
+            text: msg.message,
+            time: vnTime,
+          };
+        });
 
         setMessages(transformedMessages);
       } else {
