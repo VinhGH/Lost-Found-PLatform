@@ -10,7 +10,7 @@ import {
 import ChatContextBox from "./ChatContextBox";
 import realApi from "../../services/realApi";
 
-const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail }) => {
+const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail, setProfileTargetUser }) => {
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -18,6 +18,7 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
   const [isLoading, setIsLoading] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [chatPostData, setChatPostData] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(""); // State cho search
   const processingChatTarget = useRef(null);
 
   // ✅ Load conversations từ API khi component mount
@@ -250,7 +251,31 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
 
   const handleViewProfile = () => {
     if (!activeConversation || !setActiveTab) return;
-    setActiveTab("profile");
+
+    // Lấy account_id của user đang chat (không phải current user)
+    const otherParticipant = activeConversation.participants?.find(
+      p => p.account_id !== user?.account_id
+    );
+
+    if (otherParticipant?.account_id) {
+      // Set target user để UserProfile hiển thị
+      if (setProfileTargetUser) {
+        // Construct user object from participant data
+        const targetUser = {
+          ...otherParticipant.Account,
+          account_id: otherParticipant.account_id,
+          name: otherParticipant.Account?.user_name || otherParticipant.Account?.name || "User",
+          email: otherParticipant.Account?.email,
+          avatar: otherParticipant.Account?.avatar,
+          phone: otherParticipant.Account?.phone_number || otherParticipant.Account?.phone,
+          address: otherParticipant.Account?.address
+        };
+        setProfileTargetUser(targetUser);
+      }
+
+      // Chuyển đến tab profile
+      setActiveTab("profile");
+    }
   };
 
   const handleContextBoxClick = (postId, postType) => {
@@ -337,57 +362,70 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
               <ChatIcon style={{ fontSize: "20px", marginRight: "6px" }} />
               Tin nhắn
             </h2>
+            <input
+              type="text"
+              className="sidebar-search"
+              placeholder="Tìm kiếm người dùng..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <div className="conversations-list">
-            {conversations.map((conv) => {
-              const conversationName = getConversationName(conv);
-              const conversationAvatar = getConversationAvatar(conv);
-              const lastMessagePreview = getLastMessagePreview(conv);
-              const postType = conv.lost_post_id ? 'lost' : 'found';
+            {conversations
+              .filter((conv) => {
+                if (!searchQuery.trim()) return true;
+                const conversationName = getConversationName(conv);
+                return conversationName.toLowerCase().includes(searchQuery.toLowerCase());
+              })
+              .map((conv) => {
+                const conversationName = getConversationName(conv);
+                const conversationAvatar = getConversationAvatar(conv);
+                const lastMessagePreview = getLastMessagePreview(conv);
+                const postType = conv.lost_post_id ? 'lost' : 'found';
 
-              return (
-                <div
-                  key={conv.conversation_id}
-                  className={`conversation-item ${activeConversation?.conversation_id === conv.conversation_id ? "active" : ""
-                    }`}
-                  onClick={() => handleConversationClick(conv)}
-                >
-                  <img
-                    src={conversationAvatar}
-                    alt={conversationName}
-                    style={{
-                      width: "56px",
-                      height: "56px",
-                      borderRadius: "50%",
-                      marginRight: "12px",
-                      objectFit: "cover",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                      <strong style={{ flex: 1, minWidth: 0 }}>{conversationName}</strong>
-                      <span
-                        className={`conversation-post-badge conversation-post-badge-${postType}`}
-                        style={{
-                          fontSize: "10px",
-                          padding: "2px 8px",
-                          borderRadius: "12px",
-                          fontWeight: 600,
-                          whiteSpace: "nowrap",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {postType === "found" ? "Nhặt được" : "Tìm đồ"}
-                      </span>
+                return (
+                  <div
+                    key={conv.conversation_id}
+                    className={`conversation-item ${activeConversation?.conversation_id === conv.conversation_id ? "active" : ""
+                      }`}
+                    onClick={() => handleConversationClick(conv)}
+                  >
+                    <img
+                      src={conversationAvatar}
+                      alt={conversationName}
+                      style={{
+                        width: "56px",
+                        height: "56px",
+                        borderRadius: "50%",
+                        marginRight: "12px",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <strong style={{ flex: 1, minWidth: 0 }}>{conversationName}</strong>
+                        <span
+                          className={`conversation-post-badge conversation-post-badge-${postType}`}
+                          style={{
+                            fontSize: "10px",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {postType === "found" ? "Nhặt được" : "Tìm đồ"}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
+                        {lastMessagePreview}
+                      </p>
                     </div>
-                    <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
-                      {lastMessagePreview}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             {conversations.length === 0 && (
               <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>
                 Chưa có cuộc trò chuyện nào

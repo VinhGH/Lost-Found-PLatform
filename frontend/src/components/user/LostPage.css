@@ -32,14 +32,48 @@
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
-  color: #2c3e50; /* Màu tối cho text trên nền sáng */
 }
 
-.page-title {
-  font-size: 2.5rem;
-  font-weight: bold;
+.lost-page .page-title {
+  font-size: 1.8rem;
+  font-weight: 800;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 20px;
+  
+  /* Glassmorphism 3D Effect - Đỏ cho Lost page */
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 0.9) 0%, 
+    rgba(255, 82, 82, 0.9) 100%);
+  color: white;
+  
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  
+  /* 3D Shadow */
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(255, 107, 107, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+  
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.lost-page .page-title:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.25),
+    0 16px 32px rgba(255, 107, 107, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 }
 
 .page-subtitle {
@@ -277,20 +311,33 @@
 .lost-post-card {
   background: white;
   border-radius: 15px;
-  overflow: hidden; /* Ẩn phần tràn ra ngoài */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* Để tránh overflow */
-  height: auto; /* Tự động điều chỉnh chiều cao */
+  min-width: 0;
+  height: auto;
   box-sizing: border-box;
   max-width: 100%;
+  
+  /* Border màu đỏ nhạt cho tab "Đồ mất" */
+  border: 3px solid #ff6b6b;
+  
+  /* 3D Floating Effect */
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 20px rgba(255, 107, 107, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  transform: translateY(0) perspective(1000px) rotateX(0deg);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .lost-post-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px) perspective(1000px) rotateX(2deg);
+  border-color: #ff5252;
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(255, 107, 107, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .post-image-wrapper {
@@ -315,16 +362,43 @@
   position: absolute;
   top: 1rem;
   left: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-weight: 700;
+  font-size: 0.95rem;
   z-index: 3;
+  
+  /* Glassmorphism Effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  /* 3D Shadow */
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.post-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.25),
+    0 12px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .post-badge.lost {
-  background: #ff6b6b;
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 0.95) 0%, 
+    rgba(255, 82, 82, 0.95) 100%);
   color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 

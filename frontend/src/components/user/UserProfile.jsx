@@ -97,6 +97,7 @@ const UserProfile = ({
   onProfileUpdate,
   onNavigateToPost,
   onShowToast,
+  viewUser = null, // Prop mới: user cần xem (nếu có)
 }) => {
   // 🔹 Tab hiện tại
   const [activeTab, setActiveTab] = useState(() => {
@@ -112,15 +113,19 @@ const UserProfile = ({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
+  // Xác định user data cần hiển thị (viewUser hoặc user hiện tại)
+  const displayUser = viewUser || user;
+  const isOwnProfile = !viewUser || (user && viewUser.account_id === user.account_id);
+
   // 🔹 Khởi tạo profile - CHỈ dùng user data hiện tại, KHÔNG load cache cũ
   const [profileData, setProfileData] = useState(() => {
     // ✅ Luôn dùng userData từ prop, không dùng cache để tránh hiển thị data cũ
     const initialData = {
-      name: user?.name || user?.user_name || "Nguyễn Văn A",
-      email: user?.email,
-      phone: user?.phone || user?.phone_number || "",
-      address: user?.address || "",
-      avatar: user?.avatar || null,
+      name: displayUser?.name || displayUser?.user_name || "Người dùng",
+      email: displayUser?.email,
+      phone: displayUser?.phone || displayUser?.phone_number || "",
+      address: displayUser?.address || "",
+      avatar: displayUser?.avatar || null,
     };
 
     console.log(
@@ -132,26 +137,29 @@ const UserProfile = ({
     return initialData;
   });
 
-  // 🔹 Force update profileData khi user.email thay đổi (login/switch account)
+  // 🔹 Force update profileData khi displayUser thay đổi
   useEffect(() => {
-    if (user?.email) {
+    if (displayUser?.email) {
       console.log(
-        "🔄 User email changed, force updating profileData:",
-        user.email
+        "🔄 User/ViewUser changed, force updating profileData:",
+        displayUser.email
       );
       setProfileData({
-        name: user?.name || user?.user_name || "Nguyễn Văn A",
-        email: user?.email,
-        phone: user?.phone || user?.phone_number || "",
-        address: user?.address || "",
-        avatar: user?.avatar || null,
+        name: displayUser?.name || displayUser?.user_name || "Người dùng",
+        email: displayUser?.email,
+        phone: displayUser?.phone || displayUser?.phone_number || "",
+        address: displayUser?.address || "",
+        avatar: displayUser?.avatar || null,
       });
     }
-  }, [user?.email]);
+  }, [displayUser]);
 
   // 🔹 Load profile từ Supabase
   useEffect(() => {
     const load = async () => {
+      // Nếu đang xem profile người khác, không load từ API (dùng data từ props)
+      if (!isOwnProfile) return;
+
       if (!user?.email) return;
 
       // 🔹 QUAN TRỌNG: Clear tất cả profile cache cũ trước
@@ -573,7 +581,7 @@ const UserProfile = ({
               alt="Avatar"
               className="profile-avatar"
             />
-            {isEditing && (
+            {isEditing && isOwnProfile && (
               <label className="avatar-upload">
                 <input
                   type="file"
@@ -589,22 +597,35 @@ const UserProfile = ({
         </div>
 
         <div className="profile-actions">
-          {isEditing ? (
-            <div className="edit-actions">
+          {isOwnProfile && (
+            <>
+              {isEditing ? (
+                <div className="edit-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button className="btn-save" onClick={handleSave}>
+                    Lưu thay đổi
+                  </button>
+                </div>
+              ) : (
+                <button className="btn-edit" onClick={() => setIsEditing(true)}>
+                  <EditIcon style={{ fontSize: 18, marginRight: 8 }} />
+                  Chỉnh sửa hồ sơ
+                </button>
+              )}
+
               <button
-                className="btn-cancel"
-                onClick={() => setIsEditing(false)}
+                className="btn-logout"
+                onClick={() => setShowLogoutModal(true)}
               >
-                Hủy
+                <LogoutIcon style={{ fontSize: 18, marginRight: 8 }} />
+                Đăng xuất
               </button>
-              <button className="btn-save" onClick={handleSave}>
-                Lưu thay đổi
-              </button>
-            </div>
-          ) : (
-            <button className="btn-edit" onClick={() => setIsEditing(true)}>
-              Chỉnh sửa hồ sơ
-            </button>
+            </>
           )}
         </div>
       </div>
@@ -626,7 +647,7 @@ const UserProfile = ({
                   }
                 </label>
 
-                {isEditing ? (
+                {isEditing && isOwnProfile ? (
                   <input
                     type={f === "email" ? "email" : "text"}
                     className="info-input"
@@ -725,7 +746,15 @@ const UserProfile = ({
                       : [];
 
                 return (
-                  <div key={post.id} className="post-item">
+                  <div key={post.id} className={`post-item post-type-${post.type}`}>
+                    {/* Status badge ở góc trên phải của card */}
+                    <div
+                      className={`post-status ${post.status?.toLowerCase() || "pending"
+                        }`}
+                    >
+                      {getStatusText(post.status)}
+                    </div>
+
                     {imgs.length > 0 && (
                       <div className="post-item-image-wrapper">
                         <ImageCarousel images={imgs} postId={post.id} />
@@ -735,12 +764,6 @@ const UserProfile = ({
                     <div className="post-info">
                       <div className="post-header">
                         <h4 className="post-title">{post.title}</h4>
-                        <div
-                          className={`post-status ${post.status?.toLowerCase() || "pending"
-                            }`}
-                        >
-                          {getStatusText(post.status)}
-                        </div>
                       </div>
 
                       <div className="post-meta">
@@ -905,27 +928,33 @@ const UserProfile = ({
                 <PersonIcon /> Thông tin cá nhân
               </button>
 
-              <button
-                className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
-                onClick={() => setActiveTab("posts")}
-              >
-                <ArticleIcon /> Bài đăng của tôi
-              </button>
+              {isOwnProfile && (
+                <>
+                  <button
+                    className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
+                    onClick={() => setActiveTab("posts")}
+                  >
+                    <ArticleIcon /> Bài đăng của tôi
+                  </button>
 
-              <button
-                className={`nav-item ${activeTab === "settings" ? "active" : ""
-                  }`}
-                onClick={() => setActiveTab("settings")}
-              >
-                <SettingsIcon /> Cài đặt
-              </button>
+                  <button
+                    className={`nav-item ${activeTab === "settings" ? "active" : ""
+                      }`}
+                    onClick={() => setActiveTab("settings")}
+                  >
+                    <SettingsIcon /> Cài đặt
+                  </button>
+                </>
+              )}
             </div>
 
-            <div className="sidebar-footer">
-              <button onClick={() => setShowLogoutModal(true)}>
-                <LogoutIcon /> Đăng xuất
-              </button>
-            </div>
+            {isOwnProfile && (
+              <div className="sidebar-footer">
+                <button onClick={() => setShowLogoutModal(true)}>
+                  <LogoutIcon /> Đăng xuất
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="profile-main">

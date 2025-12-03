@@ -10,32 +10,33 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "@mui/icons-material";
+import realApiService from "../../services/realApi"; // ✅ Import default export
 
 // 🔹 Hàm tính toán thời gian real-time
 const getTimeAgo = (timestamp, currentTime = Date.now()) => {
   if (!timestamp) return "Vừa đăng";
-  
+
   const now = currentTime;
   const diff = now - timestamp;
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (seconds < 60) return "Vừa đăng";
   if (minutes < 60) return `${minutes} phút trước`;
   if (hours < 24) return `${hours} giờ trước`;
   if (days < 7) return `${days} ngày trước`;
-  
+
   // Nếu quá 7 ngày, hiển thị ngày tháng
   const date = new Date(timestamp);
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }) => {
-  
+
   // Default props for backward compatibility
-  const handleNavigate = onNavigate || (() => {});
+  const handleNavigate = onNavigate || (() => { });
   const tabName = currentTab || (post.type === "lost" ? "Đồ mất" : "Đồ nhặt được");
   const category = categoryPath || post.category;
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -46,7 +47,23 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
   const postImages = post?.images && Array.isArray(post.images) && post.images.length > 0
     ? post.images
     : (post?.image ? [post.image] : []);
-  
+
+  // 🔹 Increment view count when modal opens
+  useEffect(() => {
+    if (post && post.id && post.type) {
+      console.log(`📊 Incrementing view count for ${post.type} post ${post.id}`);
+      realApiService.incrementPostView(post.id, post.type)
+        .then(response => {
+          if (response.success) {
+            console.log(`✅ View count incremented: ${response.data?.views || 'N/A'}`);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Failed to increment view count:', error);
+        });
+    }
+  }, [post?.id, post?.type]); // Only run when post id or type changes
+
   // 🔹 Lock body scroll when modal is open
   useEffect(() => {
     if (post) {
@@ -57,13 +74,13 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
       const originalPosition = document.body.style.position;
       const originalTop = document.body.style.top;
       const originalWidth = document.body.style.width;
-      
+
       // Lock body scroll by setting position fixed
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
-      
+
       // Cleanup function to restore original styles and scroll position
       return () => {
         document.body.style.overflow = originalOverflow;
@@ -75,15 +92,15 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
       };
     }
   }, [post]);
-  
+
   // 🔹 Cập nhật thời gian mỗi phút để real-time
   useEffect(() => {
     if (!post) return;
-    
+
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
     }, 60000); // Cập nhật mỗi 60 giây
-    
+
     return () => clearInterval(interval);
   }, [post]);
 
@@ -91,7 +108,7 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isImageZoomed) return;
-      
+
       if (e.key === "Escape") {
         setIsImageZoomed(false);
       } else if (e.key === "ArrowLeft" && postImages.length > 1) {
@@ -108,7 +125,7 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isImageZoomed, postImages.length]);
-  
+
   if (!post) return null;
 
   // Tạo breadcrumb items
@@ -176,8 +193,8 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
             <div className="detail-images-section">
               <div className="detail-images-grid">
                 {postImages.map((img, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="detail-image-item"
                     onClick={() => {
                       setZoomedImageIndex(index);
@@ -218,11 +235,11 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
             <button className="image-zoom-close" onClick={() => setIsImageZoomed(false)}>
               <CloseIcon style={{ fontSize: "24px" }} />
             </button>
-            
+
             {/* Navigation buttons - chỉ hiển thị khi có nhiều hơn 1 ảnh */}
             {postImages.length > 1 && (
               <>
-                <button 
+                <button
                   className="image-zoom-nav image-zoom-prev"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -231,7 +248,7 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
                 >
                   <ChevronLeft style={{ fontSize: "32px" }} />
                 </button>
-                <button 
+                <button
                   className="image-zoom-nav image-zoom-next"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -240,18 +257,18 @@ const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }
                 >
                   <ChevronRight style={{ fontSize: "32px" }} />
                 </button>
-                
+
                 {/* Image counter */}
                 <div className="image-zoom-counter">
                   {zoomedImageIndex + 1} / {postImages.length}
                 </div>
               </>
             )}
-            
-            <img 
-              src={postImages[zoomedImageIndex]} 
-              alt={`${post.title} - ${zoomedImageIndex + 1}`} 
-              className="zoomed-image" 
+
+            <img
+              src={postImages[zoomedImageIndex]}
+              alt={`${post.title} - ${zoomedImageIndex + 1}`}
+              className="zoomed-image"
             />
           </div>
         </div>

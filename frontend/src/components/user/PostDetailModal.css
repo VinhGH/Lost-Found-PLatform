@@ -10,13 +10,14 @@
 
 .detail-modal {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 20px; /* Tăng từ 12px lên 20px để rõ hơn */
   width: 700px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 25px rgba(0,0,0,0.3);
   animation: fadeIn 0.2s ease;
+  overflow: hidden; /* Đảm bảo các phần tử con không vượt ra ngoài góc bo */
 }
 
 .detail-breadcrumb {

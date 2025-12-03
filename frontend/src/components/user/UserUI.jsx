@@ -38,7 +38,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       ) {
         return savedTab;
       }
-    } catch {}
+    } catch { }
     return "home";
   });
 
@@ -52,6 +52,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
+  const [profileTargetUser, setProfileTargetUser] = useState(null); // State để lưu user cần xem profile
 
   const handlePostViewed = (postId) => {
     setPosts((prev) =>
@@ -77,7 +78,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
   const handleProfileUpdate = (updatedUser) => {
     // 🔹 Cập nhật user state
     setUser(updatedUser);
-    
+
     // 🔹 QUAN TRỌNG: Cập nhật userData trong localStorage với tên mới
     // Map backend fields sang frontend fields
     const mappedUser = {
@@ -90,10 +91,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       account_id: updatedUser.account_id,
       role: updatedUser.role
     };
-    
+
     // Clear old cache và lưu user mới
     userApi.updateUserData(mappedUser);
-    
+
     console.log('✅ Profile updated in localStorage:', mappedUser.name);
   };
 
@@ -114,6 +115,13 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       return () => clearTimeout(t);
     }
   }, [isSearching, activeTab]);
+
+  // Reset profileTargetUser when switching away from profile tab
+  useEffect(() => {
+    if (activeTab !== "profile" && profileTargetUser) {
+      setProfileTargetUser(null);
+    }
+  }, [activeTab, profileTargetUser]);
 
   useEffect(() => {
     const handleShowToast = (event) => {
@@ -163,10 +171,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     try {
       setIsLoadingPosts(true);
       console.log('📋 Loading posts from API...');
-      
+
       // ✅ Không filter status, backend sẽ tự động chỉ trả về Approved posts cho user
       // Hoặc có thể dùng status: 'active' (backend sẽ map 'active' -> 'Approved' trong DB)
-      const response = await userApi.getPosts({ 
+      const response = await userApi.getPosts({
         // Không cần filter status, backend sẽ tự động filter Approved posts cho user
         limit: 100        // Load tối đa 100 posts
       });
@@ -194,6 +202,62 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     }
   };
 
+  // 🔄 Silent load function - reload posts without showing loading spinner
+  const loadPostsSilently = async () => {
+    try {
+      console.log('🔄 Silent background refresh...');
+
+      const response = await userApi.getPosts({ limit: 100 });
+
+      if (response.success && response.data) {
+        const postsData = response.data.posts || response.data;
+        const activePosts = Array.isArray(postsData) ? postsData.filter(p => {
+          const status = (p.status || '').toLowerCase();
+          return status === 'active' || status === 'approved';
+        }) : [];
+
+        // Only update if there are actual changes
+        if (hasPostsChanged(posts, activePosts)) {
+          console.log('✅ Posts changed, updating UI silently...');
+          setPosts(activePosts);
+        } else {
+          console.log('ℹ️ No changes detected in background refresh');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Silent refresh error:', error);
+      // Don't show error to user, just log it
+    }
+  };
+
+  // Helper function to detect if posts have changed
+  const hasPostsChanged = (oldPosts, newPosts) => {
+    if (oldPosts.length !== newPosts.length) {
+      console.log(`📊 Post count changed: ${oldPosts.length} -> ${newPosts.length}`);
+      return true;
+    }
+
+    const oldIds = new Set(oldPosts.map(p => p.id));
+    const newIds = new Set(newPosts.map(p => p.id));
+
+    // Check if any posts were added or removed
+    for (const id of newIds) {
+      if (!oldIds.has(id)) {
+        console.log(`➕ New post detected: ${id}`);
+        return true;
+      }
+    }
+
+    for (const id of oldIds) {
+      if (!newIds.has(id)) {
+        console.log(`➖ Post removed: ${id}`);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   // Load posts khi component mount
   useEffect(() => {
     loadPosts();
@@ -203,7 +267,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       const detail = event.detail || {};
       console.log('🔄 Posts updated event received in UserUI:', detail);
       console.log('🔄 Reloading posts...');
-      
+
       // ✅ Xác định delay dựa trên action
       // Tăng delay cho delete để đảm bảo backend đã xóa xong
       let delay = 500; // Default delay
@@ -229,7 +293,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
           return; // ✅ Không reload nếu status không phải approved/active
         }
       }
-      
+
       console.log(`⏱️ Reloading posts in ${delay}ms for action: ${detail.action}`);
       setTimeout(() => {
         console.log('🔄 Executing reload now...');
@@ -249,12 +313,12 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     const handleStorageChange = (e) => {
       // Chỉ xử lý khi key là 'postsRefreshTrigger'
       if (e.key !== 'postsRefreshTrigger') return;
-      
+
       if (e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
           console.log('🔄 Cross-tab refresh triggered:', data);
-          
+
           // Reload posts sau một chút để đảm bảo backend đã commit
           setTimeout(() => {
             console.log('📡 Auto-refreshing posts from other tab action...');
@@ -274,7 +338,30 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     };
   }, []);
 
-  // 📌 Tạo bài đăng → API thật
+  // � Polling interval - auto refresh posts every 30 seconds (silent)
+  useEffect(() => {
+    // Only poll on tabs that show posts
+    const shouldPoll = ['home', 'found', 'lost'].includes(activeTab);
+
+    if (!shouldPoll || !isInitialized) {
+      console.log(`⏸️ Polling paused (tab: ${activeTab}, initialized: ${isInitialized})`);
+      return;
+    }
+
+    console.log(`▶️ Starting background polling for tab: ${activeTab}`);
+
+    // Set up interval to check for updates every 30 seconds
+    const intervalId = setInterval(() => {
+      loadPostsSilently();
+    }, 30000); // 30 seconds
+
+    return () => {
+      console.log(`⏹️ Stopping background polling for tab: ${activeTab}`);
+      clearInterval(intervalId);
+    };
+  }, [activeTab, isInitialized, posts]); // Re-run when activeTab, isInitialized, or posts change
+
+  // �📌 Tạo bài đăng → API thật
   const handleCreatePost = async (data) => {
     // ✅ Kiểm tra authentication trước
     if (!userApi.isAuthenticated()) {
@@ -299,7 +386,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
 
     // 🚀 ĐÓNG MODAL NGAY LẬP TỨC để tránh lag
     setShowCreateModal(false);
-    
+
     // 🔔 Hiển thị toast "Đang xử lý..." ngay lập tức
     setToastNotification({
       type: "info",
@@ -313,10 +400,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     try {
       // 🖼️ Compress ảnh trước khi upload (nhanh hơn và nhẹ hơn)
       let imageBase64Array = [];
-      
+
       if (Array.isArray(data.images) && data.images.length > 0) {
         const imageFiles = data.images.filter(img => img instanceof File);
-        
+
         if (imageFiles.length > 0) {
           // Compress tất cả ảnh cùng lúc với chất lượng 0.8 và max size 1200x1200
           imageBase64Array = await compressImages(imageFiles, {
@@ -360,7 +447,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
 
       // ✅ Log response để debug
       console.log('📝 Create post response:', response);
-      
+
       // ✅ Post mới có status 'Pending', không hiển thị trong danh sách công khai
       // User có thể xem trong tab "Bài đăng của tôi"
       const newPost = response.data?.data || response.data;
@@ -370,13 +457,13 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       loadPosts();
 
       // ✅ Dispatch event một lần duy nhất (loại bỏ setTimeout 300ms)
-      window.dispatchEvent(new CustomEvent('postsUpdated', { 
-        detail: { 
-          action: 'create', 
+      window.dispatchEvent(new CustomEvent('postsUpdated', {
+        detail: {
+          action: 'create',
           postId: newPost?.id || newPost?.post_id,
           type: data.postType,
           status: 'pending'
-        } 
+        }
       }));
 
       // ✅ Thêm notification vào localStorage
@@ -447,6 +534,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
             setActiveTab={setActiveTab}
             posts={posts}
             onOpenPostDetail={setSelectedPost}
+            setProfileTargetUser={setProfileTargetUser}
           />
         );
       case "posts":
@@ -484,6 +572,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
               }, 120);
             }}
             onShowToast={setToastNotification}
+            viewUser={profileTargetUser}
           />
         );
       default:

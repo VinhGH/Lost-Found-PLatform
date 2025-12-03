@@ -220,7 +220,7 @@ export const updatePost = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { type: typeFromQuery } = req.query;
-    const { title, description, category, location, status } = req.body;
+    const { title, description, category, location, status, images } = req.body;
     const accountId = req.user?.accountId;
     const userRole = req.user?.role;
 
@@ -288,6 +288,7 @@ export const updatePost = async (req, res, next) => {
     if (category !== undefined) updateData.category = category;
     if (location !== undefined) updateData.location = location;
     if (status !== undefined) updateData.status = status.toLowerCase();
+    if (images !== undefined) updateData.images = Array.isArray(images) ? images : [];
 
     const result = await postModel.updatePost(id, type, updateData);
 
@@ -430,6 +431,50 @@ export const getMyPosts = async (req, res, next) => {
       success: true,
       message: 'Your posts retrieved successfully',
       data: result.data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/posts/:id/view
+ * Increment view count for a post (public endpoint, no auth required)
+ */
+export const incrementPostView = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type: typeFromQuery } = req.query;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Post ID is required'
+      });
+    }
+
+    const type = (typeFromQuery || '').toLowerCase();
+    if (!['lost', 'found'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type is required in query params (lost or found)'
+      });
+    }
+
+    const result = await postModel.incrementViews(id, type);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to increment view count',
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'View count incremented',
+      data: { views: result.views }
     });
   } catch (error) {
     next(error);

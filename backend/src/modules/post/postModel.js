@@ -85,14 +85,15 @@ class PostModel {
       contact: account?.phone_number || "",
       image: images.length > 0 ? images[0] : null,
       images,
+      views: post.views || 0, // ✅ Add views field
       createdAt: parseUTC(post.created_at),
       updatedAt: parseUTC(post.updated_at),
       approvedAt: parseUTC(post.approved_at),
       displayTime:
         status === "active" || status === "approved"
           ? parseUTC(post.approved_at) ||
-            parseUTC(post.updated_at) ||
-            parseUTC(post.created_at)
+          parseUTC(post.updated_at) ||
+          parseUTC(post.created_at)
           : parseUTC(post.created_at),
       status: status,
     };
@@ -665,6 +666,48 @@ class PostModel {
 
       if (error) throw error;
 
+      // ✅ Handle images update if provided
+      if (updateData.images !== undefined && Array.isArray(updateData.images)) {
+        console.log(`📸 Updating images for ${type} post ${postId}...`);
+
+        // Delete old images
+        const junctionTable = type === "found" ? "Found_Post_Images" : "Lost_Post_Images";
+        const imageTable = type === "found" ? "Found_Images" : "Lost_Images";
+        const postIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
+        const imgIdColumn = type === "found" ? "found_img_id" : "lost_img_id";
+
+        // Get old image IDs
+        const { data: oldJunctions } = await supabase
+          .from(junctionTable)
+          .select(imgIdColumn)
+          .eq(postIdColumn, postId);
+
+        if (oldJunctions && oldJunctions.length > 0) {
+          const oldImgIds = oldJunctions.map(j => j[imgIdColumn]);
+
+          // Delete junction records
+          await supabase
+            .from(junctionTable)
+            .delete()
+            .eq(postIdColumn, postId);
+
+          // Delete image records
+          await supabase
+            .from(imageTable)
+            .delete()
+            .in(imgIdColumn, oldImgIds);
+
+          console.log(`✅ Deleted ${oldImgIds.length} old images`);
+        }
+
+        // Save new images if any
+        if (updateData.images.length > 0) {
+          const postObj = { [idColumn]: postId };
+          await this._saveImages(postObj, type, updateData.images);
+          console.log(`✅ Saved ${updateData.images.length} new images`);
+        }
+      }
+
       return await this.getPostById(postId, type);
     } catch (err) {
       console.error("Error updating post:", err.message);
@@ -695,6 +738,49 @@ class PostModel {
     } catch (err) {
       console.error("Error deleting post:", err.message);
       return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Increment view count for a post
+   */
+  async incrementViews(postId, type) {
+    try {
+      const tableName = type === "found" ? "Found_Post" : "Lost_Post";
+      const idColumn = type === "found" ? "found_post_id" : "lost_post_id";
+
+      // First, get current views
+      const { data: currentPost, error: fetchError } = await supabase
+        .from(tableName)
+        .select('views')
+        .eq(idColumn, postId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentViews = currentPost?.views || 0;
+      const newViews = currentViews + 1;
+
+      // Update with new views count
+      const { data, error } = await supabase
+        .from(tableName)
+        .update({ views: newViews })
+        .eq(idColumn, postId)
+        .select('views')
+        .single();
+
+      if (error) throw error;
+
+      console.log(`✅ View count incremented for ${type} post ${postId}: ${data?.views || 'N/A'}`);
+
+      return {
+        success: true,
+        views: data?.views || 0,
+        error: null
+      };
+    } catch (err) {
+      console.error("Error incrementing views:", err.message);
+      return { success: false, views: 0, error: err.message };
     }
   }
 
