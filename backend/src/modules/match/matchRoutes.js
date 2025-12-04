@@ -4,6 +4,9 @@ import * as controller from './matchController.js';
 
 const router = express.Router();
 
+// AI Matching scan route (should be before parameterized routes)
+router.post('/scan', verifyToken, controller.scanForMatches);
+
 // All match routes require authentication
 router.post('/', verifyToken, controller.createMatch);
 router.get('/my', verifyToken, controller.getMyMatches);

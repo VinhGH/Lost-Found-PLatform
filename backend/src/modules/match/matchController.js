@@ -1,5 +1,6 @@
 import matchModel from './matchModel.js';
 import notificationModel from '../notification/notificationModel.js';
+import aiMatchingService from '../../utils/aiMatchingService.js';
 
 /**
  * POST /api/matches
@@ -284,6 +285,156 @@ export const getMatchById = async (req, res, next) => {
       data: result.data
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/matches/scan
+ * Scan for AI matches automatically
+ * Quét tất cả bài đăng approved trong 30 ngày và tìm matches
+ */
+export const scanForMatches = async (req, res, next) => {
+  try {
+    console.log('🔍 Starting AI matching scan...');
+
+    // Get recent approved posts (last 30 days)
+    const postsResult = await matchModel.getRecentApprovedPosts();
+
+    if (!postsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve posts for scanning',
+        error: postsResult.error
+      });
+    }
+
+    const posts = postsResult.data || [];
+
+    if (posts.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No posts to scan',
+        data: {
+          scannedPosts: 0,
+          matchesFound: 0,
+          matchesCreated: 0,
+          notificationsSent: 0
+        }
+      });
+    }
+
+    console.log(`📊 Found ${posts.length} posts to scan`);
+
+    // Use AI service to find matches
+    const matches = await aiMatchingService.findMatchingPosts(posts);
+
+    console.log(`✅ AI found ${matches.length} potential matches`);
+
+    if (matches.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Scan completed, no matches found',
+        data: {
+          scannedPosts: posts.length,
+          matchesFound: 0,
+          matchesCreated: 0,
+          notificationsSent: 0
+        }
+      });
+    }
+
+    // Create matches in database
+    const createResult = await matchModel.createBatchMatches(matches);
+
+    if (!createResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create matches',
+        error: createResult.error
+      });
+    }
+
+    const createdMatches = createResult.data || [];
+    console.log(`💾 Created ${createdMatches.length} new matches in database`);
+
+    // Create notifications for post owners
+    let notificationCount = 0;
+    let imageMatchesCount = 0;
+    let textOnlyMatchesCount = 0;
+    
+    try {
+      for (const match of matches) {
+        const { post1, post2, similarity, hasImages, textSimilarity, imageSimilarity } = match;
+
+        // Count match types
+        if (hasImages) {
+          imageMatchesCount++;
+        } else {
+          textOnlyMatchesCount++;
+        }
+
+        // Create notification message with details
+        let message = `AI found a ${Math.round(similarity * 100)}% match`;
+        if (hasImages && imageSimilarity > 0) {
+          message += ` (Text: ${Math.round(textSimilarity * 100)}%, Image: ${Math.round(imageSimilarity * 100)}%)`;
+        } else {
+          message += ` (Text: ${Math.round(textSimilarity * 100)}%)`;
+        }
+        message += ` for your post: ${post1.Post_Title}`;
+
+        // Notify post1 owner
+        if (post1.Account_id) {
+          await notificationModel.createNotification(
+            post1.Account_id,
+            'AI_Match',
+            message,
+            post1.Post_id
+          );
+          notificationCount++;
+        }
+
+        // Notify post2 owner (if different from post1 owner)
+        if (post2.Account_id && post2.Account_id !== post1.Account_id) {
+          let message2 = `AI found a ${Math.round(similarity * 100)}% match`;
+          if (hasImages && imageSimilarity > 0) {
+            message2 += ` (Text: ${Math.round(textSimilarity * 100)}%, Image: ${Math.round(imageSimilarity * 100)}%)`;
+          } else {
+            message2 += ` (Text: ${Math.round(textSimilarity * 100)}%)`;
+          }
+          message2 += ` for your post: ${post2.Post_Title}`;
+
+          await notificationModel.createNotification(
+            post2.Account_id,
+            'AI_Match',
+            message2,
+            post2.Post_id
+          );
+          notificationCount++;
+        }
+      }
+      console.log(`📨 Sent ${notificationCount} notifications`);
+      console.log(`📊 Match breakdown: ${imageMatchesCount} with images, ${textOnlyMatchesCount} text-only`);
+    } catch (notifError) {
+      console.error('Error creating notifications:', notifError);
+      // Continue even if notification fails
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'AI matching scan completed successfully',
+      data: {
+        scannedPosts: posts.length,
+        matchesFound: matches.length,
+        matchesCreated: createdMatches.length,
+        notificationsSent: notificationCount,
+        imageMatches: imageMatchesCount,
+        textOnlyMatches: textOnlyMatchesCount,
+        matches: createdMatches
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error in scanForMatches:', error);
     next(error);
   }
 };
