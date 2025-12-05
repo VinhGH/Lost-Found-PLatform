@@ -3,8 +3,8 @@
  * Cấu hình kết nối với Backend API
  */
 
-// Base URL của backend API
-export const API_BASE_URL =process.env.REACT_APP_API_URL || 'https://lost-found-platform.onrender.com/api';
+// API Base URL - sử dụng biến môi trường hoặc URL mặc định
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://lost-found-platform.onrender.com/api';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -22,7 +22,7 @@ export const API_ENDPOINTS = {
   accounts: {
     changePassword: '/accounts/change-password',
   },
-  
+
   // Posts endpoints
   posts: {
     getAll: '/posts',
@@ -33,12 +33,12 @@ export const API_ENDPOINTS = {
     getMyPosts: '/posts/my',
     getByType: (type) => `/posts/type/${type}`,
   },
-  
+
   // Categories endpoints
   categories: {
     getAll: '/categories',
   },
-  
+
   // Locations endpoints
   locations: {
     getAll: '/locations',

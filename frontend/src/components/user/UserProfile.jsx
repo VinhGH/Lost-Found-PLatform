@@ -97,6 +97,7 @@ const UserProfile = ({
   onProfileUpdate,
   onNavigateToPost,
   onShowToast,
+  viewUser = null, // Prop mới: user cần xem (nếu có)
 }) => {
   // 🔹 Tab hiện tại
   const [activeTab, setActiveTab] = useState(() => {
@@ -112,15 +113,19 @@ const UserProfile = ({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
+  // Xác định user data cần hiển thị (viewUser hoặc user hiện tại)
+  const displayUser = viewUser || user;
+  const isOwnProfile = !viewUser || (user && viewUser.account_id === user.account_id);
+
   // 🔹 Khởi tạo profile - CHỈ dùng user data hiện tại, KHÔNG load cache cũ
   const [profileData, setProfileData] = useState(() => {
     // ✅ Luôn dùng userData từ prop, không dùng cache để tránh hiển thị data cũ
     const initialData = {
-      name: user?.name || user?.user_name || "Nguyễn Văn A",
-      email: user?.email,
-      phone: user?.phone || user?.phone_number || "",
-      address: user?.address || "",
-      avatar: user?.avatar || null,
+      name: displayUser?.name || displayUser?.user_name || "Người dùng",
+      email: displayUser?.email,
+      phone: displayUser?.phone || displayUser?.phone_number || "",
+      address: displayUser?.address || "",
+      avatar: displayUser?.avatar || null,
     };
 
     console.log(
@@ -132,26 +137,29 @@ const UserProfile = ({
     return initialData;
   });
 
-  // 🔹 Force update profileData khi user.email thay đổi (login/switch account)
+  // 🔹 Force update profileData khi displayUser thay đổi
   useEffect(() => {
-    if (user?.email) {
+    if (displayUser?.email) {
       console.log(
-        "🔄 User email changed, force updating profileData:",
-        user.email
+        "🔄 User/ViewUser changed, force updating profileData:",
+        displayUser.email
       );
       setProfileData({
-        name: user?.name || user?.user_name || "Nguyễn Văn A",
-        email: user?.email,
-        phone: user?.phone || user?.phone_number || "",
-        address: user?.address || "",
-        avatar: user?.avatar || null,
+        name: displayUser?.name || displayUser?.user_name || "Người dùng",
+        email: displayUser?.email,
+        phone: displayUser?.phone || displayUser?.phone_number || "",
+        address: displayUser?.address || "",
+        avatar: displayUser?.avatar || null,
       });
     }
-  }, [user?.email]);
+  }, [displayUser]);
 
   // 🔹 Load profile từ Supabase
   useEffect(() => {
     const load = async () => {
+      // Nếu đang xem profile người khác, không load từ API (dùng data từ props)
+      if (!isOwnProfile) return;
+
       if (!user?.email) return;
 
       // 🔹 QUAN TRỌNG: Clear tất cả profile cache cũ trước
@@ -393,12 +401,32 @@ const UserProfile = ({
       const postType = updated.type || currentPost.type;
       const currentStatus = currentPost.status || "pending";
 
+      // ✅ Kiểm tra xem có ảnh mới không (base64 bắt đầu bằng "data:image/")
+      // Nếu chỉ có URL ảnh cũ thì KHÔNG gửi images (để backend giữ nguyên ảnh cũ)
+      let imagesToSend = undefined;
+      if (updated.images && Array.isArray(updated.images) && updated.images.length > 0) {
+        // Kiểm tra xem có ít nhất 1 ảnh mới (base64) không
+        const hasNewImages = updated.images.some(img =>
+          typeof img === 'string' && img.startsWith('data:image/')
+        );
+
+        if (hasNewImages) {
+          // Chỉ gửi ảnh mới (base64), loại bỏ ảnh cũ (URL)
+          imagesToSend = updated.images.filter(img =>
+            typeof img === 'string' && img.startsWith('data:image/')
+          );
+        }
+        // Nếu không có ảnh mới, imagesToSend = undefined → backend giữ nguyên ảnh cũ
+      }
+
       // ✅ Format data cho backend (chỉ gửi các field backend cần)
       const updateData = {
         title: updated.title,
         description: updated.description,
         category: updated.category,
         location: updated.location,
+        // ✅ CHỈ gửi images nếu có ảnh mới (base64)
+        ...(imagesToSend !== undefined && { images: imagesToSend }),
         // ✅ KHÔNG gửi status - user không được thay đổi status khi update
       };
 
@@ -553,7 +581,7 @@ const UserProfile = ({
               alt="Avatar"
               className="profile-avatar"
             />
-            {isEditing && (
+            {isEditing && isOwnProfile && (
               <label className="avatar-upload">
                 <input
                   type="file"
@@ -569,22 +597,35 @@ const UserProfile = ({
         </div>
 
         <div className="profile-actions">
-          {isEditing ? (
-            <div className="edit-actions">
+          {isOwnProfile && (
+            <>
+              {isEditing ? (
+                <div className="edit-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button className="btn-save" onClick={handleSave}>
+                    Lưu thay đổi
+                  </button>
+                </div>
+              ) : (
+                <button className="btn-edit" onClick={() => setIsEditing(true)}>
+                  <EditIcon style={{ fontSize: 18, marginRight: 8 }} />
+                  Chỉnh sửa hồ sơ
+                </button>
+              )}
+
               <button
-                className="btn-cancel"
-                onClick={() => setIsEditing(false)}
+                className="btn-logout"
+                onClick={() => setShowLogoutModal(true)}
               >
-                Hủy
+                <LogoutIcon style={{ fontSize: 18, marginRight: 8 }} />
+                Đăng xuất
               </button>
-              <button className="btn-save" onClick={handleSave}>
-                Lưu thay đổi
-              </button>
-            </div>
-          ) : (
-            <button className="btn-edit" onClick={() => setIsEditing(true)}>
-              Chỉnh sửa hồ sơ
-            </button>
+            </>
           )}
         </div>
       </div>
@@ -606,7 +647,7 @@ const UserProfile = ({
                   }
                 </label>
 
-                {isEditing ? (
+                {isEditing && isOwnProfile ? (
                   <input
                     type={f === "email" ? "email" : "text"}
                     className="info-input"
@@ -701,11 +742,19 @@ const UserProfile = ({
                   post.images?.length > 0
                     ? post.images
                     : post.image
-                    ? [post.image]
-                    : [];
+                      ? [post.image]
+                      : [];
 
                 return (
-                  <div key={post.id} className="post-item">
+                  <div key={post.id} className={`post-item post-type-${post.type}`}>
+                    {/* Status badge ở góc trên phải của card */}
+                    <div
+                      className={`post-status ${post.status?.toLowerCase() || "pending"
+                        }`}
+                    >
+                      {getStatusText(post.status)}
+                    </div>
+
                     {imgs.length > 0 && (
                       <div className="post-item-image-wrapper">
                         <ImageCarousel images={imgs} postId={post.id} />
@@ -715,13 +764,6 @@ const UserProfile = ({
                     <div className="post-info">
                       <div className="post-header">
                         <h4 className="post-title">{post.title}</h4>
-                        <div
-                          className={`post-status ${
-                            post.status?.toLowerCase() || "pending"
-                          }`}
-                        >
-                          {getStatusText(post.status)}
-                        </div>
                       </div>
 
                       <div className="post-meta">
@@ -760,19 +802,17 @@ const UserProfile = ({
                             );
                             console.log(`  📅 displayTime: ${displayTime}`);
                             console.log(
-                              `  📅 displayTime (UTC): ${
-                                displayTimeDate
-                                  ? displayTimeDate.toISOString()
-                                  : "N/A"
+                              `  📅 displayTime (UTC): ${displayTimeDate
+                                ? displayTimeDate.toISOString()
+                                : "N/A"
                               }`
                             );
                             console.log(
-                              `  📅 displayTime (Local): ${
-                                displayTimeDate
-                                  ? displayTimeDate.toLocaleString("vi-VN", {
-                                      timeZone: "Asia/Ho_Chi_Minh",
-                                    })
-                                  : "N/A"
+                              `  📅 displayTime (Local): ${displayTimeDate
+                                ? displayTimeDate.toLocaleString("vi-VN", {
+                                  timeZone: "Asia/Ho_Chi_Minh",
+                                })
+                                : "N/A"
                               }`
                             );
                             console.log(`  🕐 now: ${now}`);
@@ -800,10 +840,10 @@ const UserProfile = ({
                               diff < 60000
                                 ? "Vừa xong"
                                 : diff < 3600000
-                                ? `${Math.floor(diff / 60000)} phút trước`
-                                : diff < 86400000
-                                ? `${Math.floor(diff / 3600000)} giờ trước`
-                                : `${Math.floor(diff / 86400000)} ngày trước`;
+                                  ? `${Math.floor(diff / 60000)} phút trước`
+                                  : diff < 86400000
+                                    ? `${Math.floor(diff / 3600000)} giờ trước`
+                                    : `${Math.floor(diff / 86400000)} ngày trước`;
                             console.log(`  🎯 Expected: "${expectedResult}"`);
                             if (result !== expectedResult) {
                               console.warn(
@@ -881,36 +921,40 @@ const UserProfile = ({
           <div className="profile-sidebar">
             <div className="sidebar-nav">
               <button
-                className={`nav-item ${
-                  activeTab === "profile" ? "active" : ""
-                }`}
+                className={`nav-item ${activeTab === "profile" ? "active" : ""
+                  }`}
                 onClick={() => setActiveTab("profile")}
               >
                 <PersonIcon /> Thông tin cá nhân
               </button>
 
-              <button
-                className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
-                onClick={() => setActiveTab("posts")}
-              >
-                <ArticleIcon /> Bài đăng của tôi
-              </button>
+              {isOwnProfile && (
+                <>
+                  <button
+                    className={`nav-item ${activeTab === "posts" ? "active" : ""}`}
+                    onClick={() => setActiveTab("posts")}
+                  >
+                    <ArticleIcon /> Bài đăng của tôi
+                  </button>
 
-              <button
-                className={`nav-item ${
-                  activeTab === "settings" ? "active" : ""
-                }`}
-                onClick={() => setActiveTab("settings")}
-              >
-                <SettingsIcon /> Cài đặt
-              </button>
+                  <button
+                    className={`nav-item ${activeTab === "settings" ? "active" : ""
+                      }`}
+                    onClick={() => setActiveTab("settings")}
+                  >
+                    <SettingsIcon /> Cài đặt
+                  </button>
+                </>
+              )}
             </div>
 
-            <div className="sidebar-footer">
-              <button onClick={() => setShowLogoutModal(true)}>
-                <LogoutIcon /> Đăng xuất
-              </button>
-            </div>
+            {isOwnProfile && (
+              <div className="sidebar-footer">
+                <button onClick={() => setShowLogoutModal(true)}>
+                  <LogoutIcon /> Đăng xuất
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="profile-main">

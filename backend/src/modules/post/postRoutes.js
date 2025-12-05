@@ -12,6 +12,9 @@ router.get('/type/:type', optionalAuth, controller.getPostsByType);
 // Protected routes (must be before /:id to avoid conflict)
 router.get('/my', verifyToken, controller.getMyPosts);
 
+// Public route to increment view count (no auth required)
+router.post('/:id/view', controller.incrementPostView);
+
 // Admin routes (must be before /:id)
 router.patch('/:id/approve', verifyToken, requireAdmin, controller.approvePost);
 router.patch('/:id/reject', verifyToken, requireAdmin, controller.rejectPost);

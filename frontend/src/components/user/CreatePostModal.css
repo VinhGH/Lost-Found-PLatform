@@ -579,6 +579,8 @@
     height: 52px !important;
     min-width: 200px !important;
     max-width: 200px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
     padding: 0 !important;
     border-radius: 12px !important;
     border: none !important;
@@ -586,12 +588,11 @@
     font-size: 16px !important;
     cursor: pointer;
     transition: all 0.3s ease;
-    position: relative;
     letter-spacing: 0.3px;
     box-sizing: border-box !important;
     text-align: center;
     white-space: nowrap;
-    line-height: 1;
+    line-height: 52px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -600,11 +601,8 @@
   
   .overlay .modal .modal-footer .cancel-btn span,
   .overlay .modal .modal-footer .submit-btn span {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: block;
+    display: inline-block;
+    line-height: 1;
   }
   
   .overlay .modal .modal-footer .cancel-btn {

@@ -60,19 +60,45 @@
 }
 
 .sidebar-header {
-  padding: 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
   background: #667eea;
   color: white;
-  border-radius: 0;
+  border-radius: 12px 12px 0 0;
+  margin: 8px 8px 0 8px;
 }
 
 .sidebar-header h2 {
-  margin: 0;
+  margin: 0 0 0.75rem 0;
   display: flex;
   align-items: center;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 600;
+}
+
+/* Search input trong sidebar */
+.sidebar-search {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sidebar-search::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-search:focus {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-title {

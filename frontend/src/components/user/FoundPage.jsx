@@ -193,7 +193,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
   return (
     <div className="found-page">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 1rem 12px 1rem" }}>
-        <h1 style={{ margin: 0 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>
           <FoundIcon style={{ fontSize: "22px", marginRight: "6px" }} />
           Đồ nhặt được
         </h1>

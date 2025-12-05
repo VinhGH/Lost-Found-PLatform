@@ -9,10 +9,11 @@
  */
 
 import httpClient from "./httpClient";
-import { API_ENDPOINTS, STORAGE_KEYS } from "./apiConfig";
+import { API_BASE_URL, API_ENDPOINTS, STORAGE_KEYS } from "./apiConfig";
 
 class RealApiService {
   constructor() {
+    this.baseURL = API_BASE_URL;
     this.authToken = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
     this.userData = this.getUserDataFromStorage();
   }
@@ -451,6 +452,39 @@ class RealApiService {
     }
   }
 
+  // ==================== GET OTHER USER PROFILE ====================
+  async getUserProfileById(userId) {
+    try {
+      if (!this.isAuthenticated()) {
+        return { success: false, error: "Chưa đăng nhập" };
+      }
+
+      // Gọi API lấy thông tin user khác (cần backend hỗ trợ endpoint này)
+      // Nếu chưa có endpoint riêng, có thể dùng endpoint admin hoặc endpoint public profile
+      // Tạm thời giả định có endpoint /api/auth/profile/:id hoặc tương tự
+      // Hoặc dùng endpoint lấy bài đăng của user đó để lấy info
+
+      // UPDATE: Backend chưa có endpoint get profile by ID cho user thường.
+      // Tuy nhiên, ta có thể lấy thông tin từ Chat hoặc Post.
+      // Ở đây ta sẽ mock tạm hoặc gọi API nếu có.
+
+      // Nếu backend hỗ trợ:
+      // const response = await httpClient.get(`${API_ENDPOINTS.auth.profile}/${userId}`);
+
+      // Hiện tại chưa có endpoint, ta sẽ trả về null để UserProfile tự xử lý (dùng data từ chat/post)
+      // Hoặc nếu cần thiết, ta sẽ thêm endpoint vào backend sau.
+
+      // Tạm thời trả về lỗi để FE biết chưa support
+      return { success: false, error: "API chưa hỗ trợ lấy profile user khác" };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Không thể lấy thông tin người dùng",
+      };
+    }
+  }
+
   // ==================== FIXED updateUserProfile ====================
   async updateUserProfile(profileData) {
     try {
@@ -737,6 +771,28 @@ class RealApiService {
         success: false,
         error: error.message || "Không thể xóa bài đăng",
       };
+    }
+  }
+
+  async incrementPostView(postId, type) {
+    try {
+      if (!type || !['lost', 'found'].includes(type.toLowerCase())) {
+        console.error('❌ Invalid type for incrementPostView:', type);
+        return { success: false, error: 'Invalid type' };
+      }
+
+      const response = await httpClient.post(
+        `/posts/${postId}/view?type=${type.toLowerCase()}`,
+        {},
+        {},
+        { preferUserToken: false } // Public endpoint, no auth required
+      );
+
+      return response;
+    } catch (error) {
+      console.error('❌ Increment view error:', error);
+      // Silent failure - don't show error to user
+      return { success: false, error: error.message };
     }
   }
 
