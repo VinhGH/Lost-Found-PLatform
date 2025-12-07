@@ -574,4 +574,81 @@
   }
 }
 
+/* ✅ Force User Accounts Management luôn ở Light Mode - Override dark mode */
+.admin-mode .user-accounts-management,
+.admin-light-mode .user-accounts-management,
+[data-theme="dark"] .admin-dashboard .user-accounts-management,
+[data-theme="dark"] .admin-light-mode .user-accounts-management {
+  background: transparent !important;
+}
+
+.admin-mode .page-header h2,
+.admin-light-mode .page-header h2,
+[data-theme="dark"] .admin-dashboard .page-header h2,
+[data-theme="dark"] .admin-light-mode .page-header h2 {
+  color: #333 !important;
+}
+
+.admin-mode .table-container,
+.admin-light-mode .table-container,
+[data-theme="dark"] .admin-dashboard .table-container,
+[data-theme="dark"] .admin-light-mode .table-container {
+  background: white !important;
+  border-color: #e0e0e0 !important;
+}
+
+.admin-mode .users-table th,
+.admin-light-mode .users-table th,
+[data-theme="dark"] .admin-dashboard .users-table th,
+[data-theme="dark"] .admin-light-mode .users-table th {
+  background: #f8f9fa !important;
+  color: #333 !important;
+}
+
+.admin-mode .users-table td,
+.admin-light-mode .users-table td,
+[data-theme="dark"] .admin-dashboard .users-table td,
+[data-theme="dark"] .admin-light-mode .users-table td {
+  color: #333 !important;
+}
+
+.admin-mode .user-name,
+.admin-light-mode .user-name,
+[data-theme="dark"] .admin-dashboard .user-name,
+[data-theme="dark"] .admin-light-mode .user-name {
+  color: #333 !important;
+}
+
+.admin-mode .user-email,
+.admin-light-mode .user-email,
+[data-theme="dark"] .admin-dashboard .user-email,
+[data-theme="dark"] .admin-light-mode .user-email {
+  color: #666 !important;
+}
+
+.admin-mode .filters-section,
+.admin-light-mode .filters-section,
+[data-theme="dark"] .admin-dashboard .filters-section,
+[data-theme="dark"] .admin-light-mode .filters-section {
+  background: transparent !important;
+}
+
+.admin-mode .search-input,
+.admin-light-mode .search-input,
+[data-theme="dark"] .admin-dashboard .search-input,
+[data-theme="dark"] .admin-light-mode .search-input {
+  background: white !important;
+  color: #333 !important;
+  border-color: #ddd !important;
+}
+
+.admin-mode .status-filter,
+.admin-light-mode .status-filter,
+[data-theme="dark"] .admin-dashboard .status-filter,
+[data-theme="dark"] .admin-light-mode .status-filter {
+  background: white !important;
+  color: #333 !important;
+  border-color: #ddd !important;
+}
+
 

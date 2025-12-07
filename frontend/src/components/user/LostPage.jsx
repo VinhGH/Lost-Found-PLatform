@@ -11,6 +11,7 @@ import PostDetailModal from "./PostDetailModal";
 import RecentPosts from "./RecentPosts";
 import FilterPanel from "./FilterPanel";
 import { FilterList as FilterIcon } from "@mui/icons-material";
+import ImageCarousel from "./ImageCarousel";
 
 const ITEMS_PER_PAGE = 16; // 4 hàng × 4 cột
 
@@ -21,19 +22,19 @@ const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
 // 🔹 Hàm tính toán thời gian real-time
 const getTimeAgo = (timestamp) => {
   if (!timestamp) return "Vừa đăng";
-  
+
   const now = Date.now();
   const diff = now - timestamp;
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (seconds < 60) return "Vừa đăng";
   if (minutes < 60) return `${minutes} phút trước`;
   if (hours < 24) return `${hours} giờ trước`;
   if (days < 7) return `${days} ngày trước`;
-  
+
   // Nếu quá 7 ngày, hiển thị ngày tháng
   const date = new Date(timestamp);
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -45,24 +46,24 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ building: "", category: "", date: "any" });
   const [currentPage, setCurrentPage] = useState(1); // Pagination cho olderList
-  
+
   // 🔹 Cập nhật thời gian mỗi phút để real-time
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
     }, 60000); // Cập nhật mỗi 60 giây
-    
+
     return () => clearInterval(interval);
   }, []);
-  
+
   // 🔍 Filter posts dựa trên searchQuery + panel filters - chỉ hiển thị bài đã duyệt
   const lostPosts = posts.filter((p) => {
     if (p.type !== "lost") return false;
     if (p.status !== "active") return false; // ✅ Chỉ hiển thị bài đã duyệt
-    
+
     // Nếu không có searchQuery, hiển thị tất cả
     if (!searchQuery || searchQuery.trim() === "") return true;
-    
+
     // Tìm kiếm trong title, description, location, author, category
     const keyword = searchQuery.toLowerCase().trim();
     const searchableText = [
@@ -72,18 +73,19 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
       p.author || "",
       p.category || ""
     ].join(" ").toLowerCase();
-    
+
     return searchableText.includes(keyword);
   });
-  
+
   const filteredByPanel = lostPosts.filter((p) => {
     const byLocation = !filters.building || (p.location || "").toLowerCase().includes(`tòa ${filters.building}`.toLowerCase());
     const byCategory = !filters.category || (p.category || "") === filters.category;
     const byDate = (() => {
       if (!filters.date || filters.date === "any") return true;
-      const created = p.createdAt || p.id;
+      // ✅ Dùng displayTime để filter theo ngày (nếu đã approve thì dùng approved_at)
+      const timeToCheck = p.displayTime || p.approvedAt || p.createdAt || p.id;
       const now = Date.now();
-      const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+      const diffDays = (now - timeToCheck) / (1000 * 60 * 60 * 24);
       if (filters.date === "1d") return diffDays <= 1;
       if (filters.date === "3d") return diffDays <= 3;
       if (filters.date === "7d") return diffDays <= 7;
@@ -94,11 +96,19 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
   });
 
   // 🔹 Tách danh sách "Gần đây" theo cửa sổ thời gian
+  // ✅ Dùng displayTime để xác định bài đăng gần đây (nếu đã approve thì dùng approved_at)
   const nowTs = currentTime;
-  const isRecent = (p) => nowTs - (p.createdAt || p.id) <= RECENT_WINDOW_MS;
+  const isRecent = (p) => {
+    const timeToCheck = p.displayTime || p.approvedAt || p.createdAt || p.id;
+    return nowTs - timeToCheck <= RECENT_WINDOW_MS;
+  };
   const recent = [...filteredByPanel]
     .filter(isRecent)
-    .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
+    .sort((a, b) => {
+      const aTime = b.displayTime || b.approvedAt || b.createdAt || b.id;
+      const bTime = a.displayTime || a.approvedAt || a.createdAt || a.id;
+      return aTime - bTime;
+    });
   const olderList = filteredByPanel.filter((p) => !isRecent(p));
 
   // Pagination cho olderList (các thẻ quá 24 giờ)
@@ -121,7 +131,7 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
   const getPageNumbers = (totalPages, currentPage) => {
     const pages = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -149,7 +159,7 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
 
@@ -162,23 +172,13 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
   console.log("✅ Bài lost hiển thị:", filteredByPanel);
 
   const handleContact = (post) => {
-    // Truyền toàn bộ thông tin bài đăng, không chỉ authorName
-    setChatTarget(post.author);
-    // Lưu thông tin bài đăng vào localStorage để ChatPage có thể đọc
-    const postData = {
-      id: post.id,
-      title: post.title,
-      image: post.image,
-      type: post.type,
-      category: post.category,
-      location: post.location,
-      author: post.author,
-      description: post.description,
-      createdAt: post.createdAt || post.id
-    };
-    localStorage.setItem("chatPostData", JSON.stringify(postData));
-    // ✅ Dispatch custom event để ChatPage phát hiện thay đổi từ cùng tab
-    window.dispatchEvent(new Event('chatPostDataChanged'));
+    // ✅ Truyền đầy đủ thông tin để ChatPage tạo conversation theo bài đăng
+    setChatTarget({
+      userName: post.author,
+      postId: post.id,
+      postType: post.type, // 'lost' or 'found'
+      postAuthorId: post.accountId // account_id của người đăng bài
+    });
     setActiveTab("chat");
   };
 
@@ -192,7 +192,7 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
   return (
     <div className="lost-page">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 1rem 12px 1rem" }}>
-        <h1 style={{ margin: 0 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>
           <SadIcon style={{ fontSize: "22px", marginRight: "6px" }} />
           Đồ mất
         </h1>
@@ -216,8 +216,8 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
       />
 
       {searchQuery && filteredByPanel.length === 0 && (
-        <div style={{ 
-          textAlign: "center", 
+        <div style={{
+          textAlign: "center",
           padding: "40px 20px",
           color: "#666"
         }}>
@@ -226,64 +226,71 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
       )}
 
       <div className="lost-posts-grid">
-        {currentPageItems.map((post) => (
-          <div key={post.id} id={`post-${post.id}`} className="lost-post-card">
-            <div className="post-image">
-              <img src={post.image} alt={post.title} />
-              <div className="post-badge lost">Tìm đồ</div>
-            </div>
+        {currentPageItems.map((post) => {
+          // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+          const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+            ? post.images
+            : (post.image ? [post.image] : []);
 
-            <div className="post-content">
-              <h3 className="post-title">{post.title}</h3>
-              <p className="post-description">{post.description}</p>
+          return (
+            <div key={post.id} id={`post-${post.id}`} className="lost-post-card">
+              <div className="post-image-wrapper">
+                <ImageCarousel images={postImages} postId={post.id} />
+                <div className="post-badge lost">Tìm đồ</div>
+              </div>
 
-              <div className="post-meta">
-                <div>
-                  <LocationIcon
-                    style={{ fontSize: "14px", marginRight: "4px" }}
-                  />
-                  {post.location}
-                </div>
-                <div>
-                  <PersonIcon
-                    style={{ fontSize: "14px", marginRight: "4px" }}
-                  />
-                  {post.author}
-                </div>
-                <div>
-                  <TimeIcon
-                    style={{ fontSize: "14px", marginRight: "4px" }}
-                  />
-                  {getTimeAgo(post.createdAt || post.id)}
-                </div>
-                {post.contact && (
+              <div className="post-content">
+                <h3 className="post-title">{post.title}</h3>
+                <p className="post-description">{post.description}</p>
+
+                <div className="post-meta">
                   <div>
-                    <PhoneIcon
+                    <LocationIcon
                       style={{ fontSize: "14px", marginRight: "4px" }}
                     />
-                    {post.contact}
+                    {post.location}
                   </div>
-                )}
-              </div>
+                  <div>
+                    <PersonIcon
+                      style={{ fontSize: "14px", marginRight: "4px" }}
+                    />
+                    {post.author}
+                  </div>
+                  <div>
+                    <TimeIcon
+                      style={{ fontSize: "14px", marginRight: "4px" }}
+                    />
+                    {getTimeAgo(post.displayTime || post.approvedAt || post.createdAt || post.id)}
+                  </div>
+                  {post.contact && (
+                    <div>
+                      <PhoneIcon
+                        style={{ fontSize: "14px", marginRight: "4px" }}
+                      />
+                      {post.contact}
+                    </div>
+                  )}
+                </div>
 
-              <div className="post-actions">
-                <button
-                  className="btn-contact"
-                  onClick={() => handleContact(post)}
-                >
-                  <PhoneIcon style={{ fontSize: "14px", marginRight: "4px" }} />
-                  Liên hệ ngay
-                </button>
-                <button
-                  className="btn-detail"
-                  onClick={() => openDetail(post)}
-                >
-                  Xem chi tiết
-                </button>
+                <div className="post-actions">
+                  <button
+                    className="btn-contact"
+                    onClick={() => handleContact(post)}
+                  >
+                    <PhoneIcon style={{ fontSize: "14px", marginRight: "4px" }} />
+                    Liên hệ ngay
+                  </button>
+                  <button
+                    className="btn-detail"
+                    onClick={() => openDetail(post)}
+                  >
+                    Xem chi tiết
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pagination cho olderList - luôn hiển thị dù chỉ có 1 trang */}

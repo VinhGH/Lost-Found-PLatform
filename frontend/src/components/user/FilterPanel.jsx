@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./FilterPanel.css";
-import userApi from "../../services/userApi";
+import userApi from "../../services/realApi"; // ✅ REAL API
 import { FilterList as FilterIcon, RestartAlt as ResetIcon } from "@mui/icons-material";
 
 const dateOptions = [
@@ -95,7 +95,6 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
       </div>
 
       <div className="filter-actions">
-        <button className="btn-cancel" onClick={onClose}>Đóng</button>
         <button className="btn-apply" onClick={apply}>Áp dụng</button>
       </div>
     </div>

@@ -3,7 +3,7 @@ import './UserHome.css';
 import CreatePostModal from "./CreatePostModal";
 import PolicyButton from "./PolicyButton";
 import DonationSection from "./DonationSection";
-import userApi from '../../services/userApi';
+import userApi from '../../services/realApi'; // ✅ REAL API
 import {
   CheckCircle as CheckIcon,
   Phone as PhoneIcon,
@@ -184,6 +184,25 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
               <div className="policy-button-container">
                 <PolicyButton />
               </div>
+              <div className = "dtu-guide">
+                <h4 className="about-services-title">HƯỚNG DẪN LẤY LẠI PASSWORD LOGIN MAIL DTU</h4>
+                <p className="dtu-guide-text">
+                  Sinh viên làm theo hướng dẫn ở file đính kèm để lấy lại password login mail DTU 
+                      trong trường hợp **không biết password login mail DTU**.
+                </p>
+                <p className="dtu-guideline-link">
+                      Xem video hướng dẫn: 
+                      <a href="https://www.youtube.com/watch?v=lk7vPf_C9Gw" target="_blank" rel="noopener noreferrer">
+                          https://www.youtube.com/watch?v=lk7vPf_C9Gw
+                      </a>
+                  </p>
+                  <p className="dtu-guideline-link">
+                      hoặc đọc file hướng dẫn tại đây: 
+                      <a href="/doc/HUONG-DAN-RESET-MAT-KHAU-MAIL-DTU.pdf" target="_blank" rel="noopener noreferrer">
+                          **HUONG DAN RESET MAT KHAU MAIL DTU.pdf**
+                      </a>
+                  </p>
+                </div> 
             </div>
 
             {/* Right Column */}

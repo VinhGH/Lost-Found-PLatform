@@ -236,3 +236,56 @@
   }
 }
 
+/* ✅ Force Admin Profile luôn ở Light Mode - Override dark mode */
+.admin-mode .profile-tab,
+.admin-light-mode .profile-tab,
+[data-theme="dark"] .admin-dashboard .profile-tab,
+[data-theme="dark"] .admin-light-mode .profile-tab {
+  background: white !important;
+  border-color: #e9ecef !important;
+}
+
+.admin-mode .profile-name,
+.admin-light-mode .profile-name,
+[data-theme="dark"] .admin-dashboard .profile-name,
+[data-theme="dark"] .admin-light-mode .profile-name {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .profile-email,
+.admin-light-mode .profile-email,
+[data-theme="dark"] .admin-dashboard .profile-email,
+[data-theme="dark"] .admin-light-mode .profile-email {
+  color: #6c757d !important;
+}
+
+.admin-mode .section-title,
+.admin-light-mode .section-title,
+[data-theme="dark"] .admin-dashboard .section-title,
+[data-theme="dark"] .admin-light-mode .section-title {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .info-label,
+.admin-light-mode .info-label,
+[data-theme="dark"] .admin-dashboard .info-label,
+[data-theme="dark"] .admin-light-mode .info-label {
+  color: #2c3e50 !important;
+}
+
+.admin-mode .info-value,
+.admin-light-mode .info-value,
+[data-theme="dark"] .admin-dashboard .info-value,
+[data-theme="dark"] .admin-light-mode .info-value {
+  color: #6c757d !important;
+}
+
+.admin-mode .info-input,
+.admin-light-mode .info-input,
+[data-theme="dark"] .admin-dashboard .info-input,
+[data-theme="dark"] .admin-light-mode .info-input {
+  background: white !important;
+  border-color: #e9ecef !important;
+  color: #333 !important;
+}
+

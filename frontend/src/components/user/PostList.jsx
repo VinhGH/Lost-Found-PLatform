@@ -8,6 +8,7 @@ import {
   Person as PersonIcon,
   Phone as PhoneIcon
 } from '@mui/icons-material';
+import ImageCarousel from './ImageCarousel';
 
 const PostList = ({ searchQuery }) => {
   const [posts, setPosts] = useState([]);
@@ -160,10 +161,16 @@ const PostList = ({ searchQuery }) => {
               <p>Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
             </div>
           ) : (
-            sortedPosts.map(post => (
+            sortedPosts.map(post => {
+              // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+              const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+                ? post.images
+                : (post.image ? [post.image] : []);
+              
+              return (
               <div key={post.id} className="post-card">
-                <div className="post-image">
-                  <img src={post.image} alt={post.title} />
+                <div className="post-image-wrapper">
+                  <ImageCarousel images={postImages} postId={post.id} />
                   <div className={`post-badge ${post.type}`}>
                     {post.type === 'found' ? 'Nhặt được' : 'Tìm đồ'}
                   </div>
@@ -211,7 +218,8 @@ const PostList = ({ searchQuery }) => {
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
 

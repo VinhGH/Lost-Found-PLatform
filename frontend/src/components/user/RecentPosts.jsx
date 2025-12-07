@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import "./RecentPosts.css";
 import { LocationOn as LocationIcon, AccessTime as TimeIcon, Phone as PhoneIcon, Person as PersonIcon, ChevronLeft, ChevronRight, Close as CloseIcon, TrendingUp } from "@mui/icons-material";
+import ImageCarousel from "./ImageCarousel";
 
 const formatTime = (timestamp) => {
   if (!timestamp) return "Vừa đăng";
@@ -182,10 +183,15 @@ const RecentPosts = ({ title, posts = [], onOpenDetail, onContact }) => {
               {posts.map((post) => {
                 const cardClass = post.type === "found" ? "found-post-card" : "lost-post-card";
                 const badgeClass = post.type === "found" ? "found" : "lost";
+                // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+                const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+                  ? post.images
+                  : (post.image ? [post.image] : []);
+                
                 return (
                   <div key={post.id} id={`post-${post.id}`} className={`${cardClass} recent-card-item`}>
-                    <div className="post-image">
-                      <img src={post.image} alt={post.title} />
+                    <div className="post-image-wrapper">
+                      <ImageCarousel images={postImages} postId={post.id} />
                       <div className={`post-badge ${badgeClass}`}>{post.type === "found" ? "Nhặt được" : "Tìm đồ"}</div>
                     </div>
                     <div className="post-content">
@@ -197,7 +203,7 @@ const RecentPosts = ({ title, posts = [], onOpenDetail, onContact }) => {
                         </div>
                         <div>
                           <TimeIcon style={{ fontSize: 14, marginRight: 4 }} />
-                          {formatTime(post.createdAt || post.id)}
+                          {formatTime(post.displayTime || post.approvedAt || post.createdAt || post.id)}
                         </div>
                         <div>
                           <PersonIcon style={{ fontSize: 14, marginRight: 4 }} />
@@ -265,10 +271,15 @@ const RecentPosts = ({ title, posts = [], onOpenDetail, onContact }) => {
             {currentPageItems.map((post) => {
               const cardClass = post.type === "found" ? "found-post-card" : "lost-post-card";
               const badgeClass = post.type === "found" ? "found" : "lost";
+              // Lấy danh sách ảnh: ưu tiên post.images, fallback về post.image
+              const postImages = post.images && Array.isArray(post.images) && post.images.length > 0
+                ? post.images
+                : (post.image ? [post.image] : []);
+              
               return (
                 <div key={post.id} className={cardClass}>
-                  <div className="post-image">
-                    <img src={post.image} alt={post.title} />
+                  <div className="post-image-wrapper">
+                    <ImageCarousel images={postImages} postId={post.id} />
                     <div className={`post-badge ${badgeClass}`}>{post.type === "found" ? "Nhặt được" : "Tìm đồ"}</div>
                   </div>
                   <div className="post-content">
@@ -280,7 +291,7 @@ const RecentPosts = ({ title, posts = [], onOpenDetail, onContact }) => {
                       </div>
                       <div>
                         <TimeIcon style={{ fontSize: 14, marginRight: 4 }} />
-                        {formatTime(post.createdAt || post.id)}
+                        {formatTime(post.displayTime || post.approvedAt || post.createdAt || post.id)}
                       </div>
                       <div>
                         <PersonIcon style={{ fontSize: 14, marginRight: 4 }} />

@@ -365,6 +365,8 @@
   border: 1px solid #e2e8f0;
   overflow: hidden;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .post-card:hover {
@@ -388,6 +390,10 @@
 
 .post-content {
   padding: 20px;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .post-image-preview {
@@ -398,9 +404,13 @@
   background: #f1f5f9;
 }
 
+.post-image-preview .post-image {
+  height: 200px;
+}
+
 .post-image-preview img {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
@@ -410,6 +420,9 @@
   font-weight: 600;
   color: #1e293b;
   margin: 0 0 12px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .post-description {
@@ -417,6 +430,14 @@
   color: #64748b;
   line-height: 1.6;
   margin: 0 0 16px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .post-details {
@@ -435,6 +456,9 @@
   gap: 8px;
   font-size: 0.875rem;
   color: #64748b;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .detail-label {
@@ -442,16 +466,23 @@
   align-items: center;
   gap: 6px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .detail-label svg {
   font-size: 1rem;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .detail-value {
-  color: #1e293b;
+  color: #64748b;
   font-weight: 400;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  max-width: 100%;
+  line-height: 1.4;
 }
 
 .post-images {
@@ -658,4 +689,64 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ✅ Force Admin luôn ở Light Mode - Override dark mode cho post cards */
+.admin-mode .post-card,
+.admin-light-mode .post-card,
+[data-theme="dark"] .admin-dashboard .post-card,
+[data-theme="dark"] .admin-light-mode .post-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .post-title,
+.admin-light-mode .post-title,
+[data-theme="dark"] .admin-dashboard .post-title,
+[data-theme="dark"] .admin-light-mode .post-title {
+  color: #1e293b !important;
+}
+
+.admin-mode .post-description,
+.admin-light-mode .post-description,
+[data-theme="dark"] .admin-dashboard .post-description,
+[data-theme="dark"] .admin-light-mode .post-description {
+  color: #64748b !important;
+}
+
+.admin-mode .detail-value,
+.admin-light-mode .detail-value,
+[data-theme="dark"] .admin-dashboard .detail-value,
+[data-theme="dark"] .admin-light-mode .detail-value {
+  color: #64748b !important;
+}
+
+.admin-mode .filters-section,
+.admin-light-mode .filters-section,
+[data-theme="dark"] .admin-dashboard .filters-section,
+[data-theme="dark"] .admin-light-mode .filters-section {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .search-input,
+.admin-light-mode .search-input,
+[data-theme="dark"] .admin-dashboard .search-input,
+[data-theme="dark"] .admin-light-mode .search-input {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+.admin-mode .type-filter,
+.admin-light-mode .type-filter,
+.admin-mode .status-filter,
+.admin-light-mode .status-filter,
+[data-theme="dark"] .admin-dashboard .type-filter,
+[data-theme="dark"] .admin-light-mode .type-filter,
+[data-theme="dark"] .admin-dashboard .status-filter,
+[data-theme="dark"] .admin-light-mode .status-filter {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
 }

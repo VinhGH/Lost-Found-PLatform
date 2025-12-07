@@ -8,37 +8,28 @@ import {
 } from '@mui/icons-material';
 
 const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
-  // ✅ Tính số lượng bài đăng chờ duyệt từ localStorage
-  const getPendingCount = () => {
-    try {
-      const saved = localStorage.getItem("posts");
-      if (saved) {
-        const posts = JSON.parse(saved);
-        return posts.filter(p => p.status === 'pending').length;
-      }
-    } catch (error) {
-      console.error("❌ Lỗi khi đếm pending posts:", error);
-    }
-    return 0;
-  };
+  // ✅ Tính số lượng bài đăng chờ duyệt (sẽ được cập nhật từ LostItemsManagement)
+  const [pendingCount, setPendingCount] = useState(0);
   
-  const [pendingCount, setPendingCount] = useState(getPendingCount());
-  
-  // ✅ Cập nhật pending count khi có thay đổi
+  // ✅ Lắng nghe event khi posts thay đổi để cập nhật count
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPendingCount(getPendingCount());
-    }, 2000); // Check mỗi 2 giây
-    
-    // ✅ Lắng nghe event khi posts thay đổi
-    const handlePostsUpdated = () => {
-      setPendingCount(getPendingCount());
+    const handlePendingCountUpdate = (event) => {
+      // LostItemsManagement sẽ dispatch event với count
+      if (event.detail && typeof event.detail.pendingCount === 'number') {
+        setPendingCount(event.detail.pendingCount);
+      }
     };
     
+    const handlePostsUpdated = () => {
+      // Có thể gọi API để lấy count nếu cần
+      // Hoặc đợi LostItemsManagement dispatch event
+    };
+    
+    window.addEventListener('pendingCountUpdated', handlePendingCountUpdate);
     window.addEventListener('postsUpdated', handlePostsUpdated);
     
     return () => {
-      clearInterval(interval);
+      window.removeEventListener('pendingCountUpdated', handlePendingCountUpdate);
       window.removeEventListener('postsUpdated', handlePostsUpdated);
     };
   }, []);

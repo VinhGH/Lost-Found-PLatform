@@ -401,56 +401,46 @@
   margin: 0;
 }
 
-/* Responsive */
+/* ========================================
+   RESPONSIVE DESIGN - ENHANCED
+   ======================================== */
+
+/* Tablet Breakpoint (768px - 1024px) */
 @media (max-width: 1024px) {
   .header-nav {
-    display: none;
+    display: none; /* Hide navigation on tablet - can add hamburger menu later */
   }
   
-  .header-search-input {
-    width: 200px;
-  }
-}
-
-@media (max-width: 768px) {
   .header-container {
-    padding: 0 15px;
-    height: 70px;
-  }
-  
-  .logo-text h1 {
-    font-size: 1.2rem;
-  }
-  
-  .logo-text span {
-    display: none;
+    gap: 15px;
   }
   
   .header-search-input {
-    width: 150px;
-  }
-  
-  .post-btn span {
-    display: none;
+    width: 180px;
   }
   
   .post-btn {
-    padding: 8px;
-    border-radius: 50%;
+    padding: 10px 16px;
+    font-size: 13px;
   }
   
   .user-name {
-    display: none;
+    font-size: 13px;
   }
 }
 
-@media (max-width: 480px) {
+/* Mobile Breakpoint (< 768px) */
+@media (max-width: 768px) {
   .header-container {
-    padding: 0 10px;
+    padding: 0 12px;
+    height: 60px;
+    gap: 8px;
   }
   
-  .header-search-input {
-    width: 120px;
+  /* Logo adjustments */
+  .header-logo {
+    margin-left: 0;
+    margin-right: 8px;
   }
   
   .logo-image {
@@ -461,4 +451,158 @@
   .logo-text h1 {
     font-size: 1rem;
   }
+  
+  .logo-text span {
+    display: none; /* Hide tagline on mobile */
+  }
+  
+  /* Search - make it collapsible or smaller */
+  .header-search {
+    margin-left: auto;
+    margin-right: 8px;
+  }
+  
+  .search-form {
+    padding: 6px 6px 6px 12px;
+  }
+  
+  .header-search-input {
+    width: 120px;
+    font-size: 13px;
+    padding: 6px 8px 6px 0;
+  }
+  
+  /* Post button - icon only */
+  .post-btn span {
+    display: none;
+  }
+  
+  .post-btn {
+    padding: 10px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+  }
+  
+  /* User menu - hide name */
+  .user-menu-btn {
+    padding: 6px;
+  }
+  
+  .user-name {
+    display: none;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  
+  /* Dropdown adjustments */
+  .user-dropdown {
+    right: -8px;
+    min-width: 180px;
+  }
+  
+  .dropdown-item {
+    padding: 14px 16px;
+    font-size: 15px; /* Slightly larger for touch */
+  }
+}
+
+/* Small Mobile Breakpoint (< 480px) */
+@media (max-width: 480px) {
+  .header-container {
+    padding: 0 8px;
+    height: 56px;
+    gap: 6px;
+  }
+  
+  /* Further reduce logo */
+  .logo-image {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .logo-text h1 {
+    font-size: 0.9rem;
+  }
+  
+  /* Minimal search */
+  .header-search-input {
+    width: 80px;
+    font-size: 12px;
+  }
+  
+  .search-form {
+    padding: 4px 4px 4px 10px;
+  }
+  
+  /* Compact buttons */
+  .post-btn {
+    padding: 8px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  /* Full-width dropdown on very small screens */
+  .user-dropdown {
+    right: 0;
+    left: 0;
+    min-width: 100%;
+    border-radius: 0;
+    margin-top: 0;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .header-container {
+    height: 56px;
+  }
+  
+  .user-main {
+    padding-top: 56px;
+  }
+}
+
+/* Dark Mode Styles */
+[data-theme='dark'] .user-dropdown {
+  background: #0b1220 !important;
+  border-color: #1f2937 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme='dark'] .dropdown-content {
+  background: #0b1220 !important;
+  border-radius: 8px;
+}
+
+[data-theme='dark'] .dropdown-item {
+  color: #e5e7eb !important;
+}
+
+[data-theme='dark'] .dropdown-item:hover {
+  background: #1f2937 !important;
+  color: #93c5fd !important;
+}
+
+[data-theme='dark'] .dropdown-item.logout {
+  color: #ef4444 !important;
+}
+
+[data-theme='dark'] .dropdown-item.logout:hover {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme='dark'] .dropdown-divider {
+  background: #1f2937 !important;
 }

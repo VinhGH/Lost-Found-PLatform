@@ -59,9 +59,30 @@
   border-top: 1px solid #e9ecef;
 }
 
+.sidebar-footer button {
+  width: 100%;
+  background: #dc3545; /* Màu đỏ */
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sidebar-footer button:hover {
+  background: #c82333; /* Đỏ đậm hơn khi hover */
+  transform: translateY(-1px);
+}
+
 .btn-logout {
   width: 100%;
-  background: #dc3545;
+  background: #dc3545; /* Màu đỏ */
   color: white;
   border: none;
   padding: 12px;
@@ -76,7 +97,7 @@
 }
 
 .btn-logout:hover {
-  background: #c82333;
+  background: #c82333; /* Đỏ đậm hơn khi hover */
   transform: translateY(-1px);
 }
 
@@ -134,23 +155,35 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  background: #92070C;
+  background: #007bff; /* Màu xanh nước biển */
   color: white;
-  border: none;
-  width: 35px;
-  height: 35px;
+  border: 2px solid white;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
 .avatar-upload:hover {
-  background: #DC143C;
+  background: #0056b3; /* Xanh đậm hơn khi hover */
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.avatar-upload input[type="file"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
 }
 
 .avatar-input {
@@ -175,7 +208,7 @@
 }
 
 .btn-edit {
-  background: linear-gradient(135deg, #92070C 0%, #DC143C 50%, #FF6B6B 100%);
+  background: #007bff; /* Màu xanh nước biển */
   color: white;
   border: none;
   padding: 12px 24px;
@@ -186,8 +219,9 @@
 }
 
 .btn-edit:hover {
+  background: #0056b3; /* Xanh đậm hơn khi hover */
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(146, 7, 12, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
 }
 
 .edit-actions {
@@ -218,7 +252,7 @@
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
@@ -226,6 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0; /* Prevent overflow */
 }
 
 .info-label {
@@ -246,12 +281,27 @@
   border-radius: 6px;
   font-size: 14px;
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box; /* Include padding and border in width */
+  background: white;
+  color: #2c3e50;
+}
+
+.info-input:hover {
+  border-color: #007bff; /* Xanh nước biển khi hover */
 }
 
 .info-input:focus {
   outline: none;
-  border-color: #92070C;
-  box-shadow: 0 0 0 3px rgba(146, 7, 12, 0.1);
+  border-color: #007bff; /* Xanh nước biển khi focus */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.info-input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* Stats Section */
@@ -318,49 +368,231 @@
 }
 
 .post-item {
-  background: #f8f9fa;
+  background: #ffffff;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid #e9ecef;
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  position: relative; /* Để status badge có thể absolute position */
+  
+  /* 3D Floating Effect */
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  transform: translateY(0) perspective(1000px) rotateX(0deg);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.post-item:hover {
+  transform: translateY(-8px) perspective(1000px) rotateX(2deg);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+/* Border xanh lá cho bài "Nhặt được" */
+.post-item.post-type-found {
+  border: 3px solid #4CAF50;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 20px rgba(76, 175, 80, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.post-item.post-type-found:hover {
+  border-color: #388E3C;
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(76, 175, 80, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Border đỏ cho bài "Tìm đồ" */
+.post-item.post-type-lost {
+  border: 3px solid #ff6b6b;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 20px rgba(255, 107, 107, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.post-item.post-type-lost:hover {
+  border-color: #ff5252;
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(255, 107, 107, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.post-item-image-wrapper {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.post-item-image-wrapper .post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Ảnh vừa khung, không bị méo, không bị cắt */
+  object-position: center;
 }
 
 .post-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .post-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 
 .post-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #2c3e50;
   margin: 0;
+  width: 100%; /* Sử dụng toàn bộ chiều rộng */
+  /* Giới hạn 3 dòng, thêm ... nếu quá dài */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+  max-height: 4.5em; /* 3 dòng * 1.5 line-height */
+  padding-right: 120px; /* Chừa khoảng cách với status badge */
 }
 
 .post-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  position: absolute; /* Đặt ở góc trên phải của card */
+  top: 12px; /* Cách top card 12px */
+  right: 12px; /* Cách right card 12px */
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 1; /* Đảm bảo nằm trên các element khác */
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
 }
 
+/* Liquid background animation */
+.post-status::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  animation: liquidMove 4s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes liquidMove {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(10%, 10%) rotate(90deg);
+  }
+  50% {
+    transform: translate(-5%, 15%) rotate(180deg);
+  }
+  75% {
+    transform: translate(-10%, -5%) rotate(270deg);
+  }
+}
+
+/* Đang hoạt động - Xanh lá với hiệu ứng liquid */
 .post-status.active {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  animation: liquidPulse 3s ease-in-out infinite;
+}
+
+.post-status.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    transparent 70%);
+  animation: liquidShine 3s linear infinite;
+  z-index: 1;
+}
+
+/* Đang chờ duyệt - Xám với hiệu ứng liquid */
+.post-status.pending {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  animation: liquidPulse 3s ease-in-out infinite;
+}
+
+.post-status.pending::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.15) 50%, 
+    transparent 70%);
+  animation: liquidShine 3s linear infinite;
+  z-index: 1;
+}
+
+@keyframes liquidPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.02);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes liquidShine {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+  }
 }
 
 .post-status.resolved {
-  background: #d4edda;
-  color: #155724;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .post-meta {
@@ -381,62 +613,329 @@
 .post-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-.btn-edit-post {
-  background: #17a2b8;
+.btn-go-post,
+.btn-edit-post,
+.btn-delete-post {
+  position: relative;
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  overflow: hidden;
+  
+  /* Glassmorphism Effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  
+  /* 3D Shadow */
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  
+  transform: translateY(0) perspective(500px) rotateX(0deg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-edit-post:hover {
-  background: #138496;
+/* Glass shine effect */
+.btn-go-post::before,
+.btn-edit-post::before,
+.btn-delete-post::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s;
 }
 
+.btn-go-post:hover::before,
+.btn-edit-post:hover::before,
+.btn-delete-post:hover::before {
+  left: 100%;
+}
+
+/* Đi tới bài đăng - Cam */
 .btn-go-post {
-  background: #ff8c00; /* cam */
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, 
+    rgba(255, 140, 0, 0.9) 0%, 
+    rgba(230, 126, 0, 0.9) 100%);
 }
 
 .btn-go-post:hover {
-  background: #e67e00; /* cam đậm khi hover */
+  transform: translateY(-3px) perspective(500px) rotateX(5deg);
+  box-shadow: 
+    0 6px 12px rgba(255, 140, 0, 0.4),
+    0 12px 24px rgba(255, 140, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
+.btn-go-post:active {
+  transform: translateY(-1px) perspective(500px) rotateX(2deg);
+}
+
+/* Chỉnh sửa - Xanh dương */
+.btn-edit-post {
+  background: linear-gradient(135deg, 
+    rgba(0, 123, 255, 0.9) 0%, 
+    rgba(0, 86, 179, 0.9) 100%);
+}
+
+.btn-edit-post:hover {
+  transform: translateY(-3px) perspective(500px) rotateX(5deg);
+  box-shadow: 
+    0 6px 12px rgba(0, 123, 255, 0.4),
+    0 12px 24px rgba(0, 123, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn-edit-post:active {
+  transform: translateY(-1px) perspective(500px) rotateX(2deg);
+}
+
+/* Xóa - Đỏ */
 .btn-delete-post {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, 
+    rgba(220, 53, 69, 0.9) 0%, 
+    rgba(200, 35, 51, 0.9) 100%);
 }
 
 .btn-delete-post:hover {
-  background: #c82333;
+  transform: translateY(-3px) perspective(500px) rotateX(5deg);
+  box-shadow: 
+    0 6px 12px rgba(220, 53, 69, 0.4),
+    0 12px 24px rgba(220, 53, 69, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn-delete-post:active {
+  transform: translateY(-1px) perspective(500px) rotateX(2deg);
 }
 
 /* Settings Tab */
 .settings-tab {
   padding: 40px;
-  text-align: center;
+}
+
+.settings-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.settings-item-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-item-label > span:first-child {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.settings-item-description {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.settings-action-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #92070C 0%, #DC143C 50%, #FF6B6B 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(146, 7, 12, 0.3);
+}
+
+.settings-action-btn.danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 50%, #bd2130 100%);
+}
+
+.settings-action-btn.danger:hover {
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+  background: linear-gradient(135deg, #c82333 0%, #bd2130 50%, #a71d2a 100%);
 }
 
 .settings-tab p {
   color: #6c757d;
   font-size: 1rem;
+}
+
+/* ===========================
+   Dark Mode Overrides
+   =========================== */
+[data-theme='dark'] .user-profile {
+  background: #0b1220;
+}
+
+[data-theme='dark'] .profile-sidebar,
+[data-theme='dark'] .profile-main {
+  background: #0f172a;
+  border-color: #1f2937;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .nav-item {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .nav-item:hover {
+  background: #1f2937;
+  color: #fda4af;
+}
+
+[data-theme='dark'] .nav-item.active {
+  border-right-color: #0f172a;
+}
+
+[data-theme='dark'] .sidebar-footer {
+  border-top-color: #1f2937;
+}
+
+[data-theme='dark'] .btn-logout {
+  background: #b91c1c;
+  color: white;
+}
+
+[data-theme='dark'] .btn-logout:hover {
+  background: #ef4444;
+}
+
+[data-theme='dark'] .section-title,
+[data-theme='dark'] .profile-name,
+[data-theme='dark'] .info-label,
+[data-theme='dark'] .stat-content h4,
+[data-theme='dark'] .post-title {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .profile-email,
+[data-theme='dark'] .info-value,
+[data-theme='dark'] .posts-stats,
+[data-theme='dark'] .post-meta,
+[data-theme='dark'] .settings-tab p {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .profile-header,
+[data-theme='dark'] .posts-header,
+[data-theme='dark'] .settings-header {
+  border-bottom-color: #1f2937;
+}
+
+[data-theme='dark'] .profile-avatar {
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .info-input {
+  background: #0b1324;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .info-input:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+}
+
+[data-theme='dark'] .stat-card,
+[data-theme='dark'] .post-item {
+  background: #111c2e;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .post-status.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .post-status.resolved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+}
+
+[data-theme='dark'] .btn-edit,
+[data-theme='dark'] .btn-save,
+[data-theme='dark'] .btn-edit-post,
+[data-theme='dark'] .btn-go-post,
+[data-theme='dark'] .btn-delete-post {
+  box-shadow: none;
+}
+
+[data-theme='dark'] .posts-tab,
+[data-theme='dark'] .profile-tab {
+  background: transparent;
+}
+
+[data-theme='dark'] .settings-tab {
+  background: #0b1220;
+}
+
+[data-theme='dark'] .settings-item {
+  background: #111c2e;
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .settings-item-label > span:first-child {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .settings-item-description {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .settings-action-btn {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .settings-action-btn:hover {
+  box-shadow: 0 6px 20px rgba(146, 7, 12, 0.5);
 }
 
 /* Responsive */

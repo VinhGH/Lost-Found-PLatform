@@ -422,4 +422,125 @@
   }
 }
 
+/* ============================================
+   Dark Mode Styles cho Modal "Xem tất cả"
+   ============================================ */
+
+[data-theme='dark'] .view-all-modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='dark'] .view-all-modal-content {
+  background: #0f172a !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme='dark'] .view-all-modal-header {
+  background: #0f172a;
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .view-all-modal-title {
+  color: #10b981 !important; /* Màu xanh lá cho dark mode */
+}
+
+[data-theme='dark'] .view-all-modal-close {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .view-all-modal-close:hover {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .view-all-results-info {
+  background: #1f2937 !important;
+  border-bottom-color: #374151 !important;
+}
+
+[data-theme='dark'] .results-count {
+  color: #cbd5e1 !important;
+}
+
+[data-theme='dark'] .results-number {
+  color: #10b981 !important; /* Màu xanh lá cho dark mode */
+}
+
+[data-theme='dark'] .results-update-status {
+  color: #9ca3af !important;
+}
+
+[data-theme='dark'] .results-update-status svg {
+  color: #10b981 !important; /* Màu xanh lá cho dark mode */
+}
+
+[data-theme='dark'] .view-all-grid {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .view-all-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme='dark'] .view-all-grid::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] .view-all-grid::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] .view-all-grid::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+[data-theme='dark'] .view-all-pagination {
+  background: #1f2937 !important;
+  border-top-color: #374151 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-btn {
+  background: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-btn:hover:not(:disabled) {
+  background: #4b5563 !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-btn:disabled {
+  background: #1f2937 !important;
+  opacity: 0.5;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-arrow {
+  color: #10b981 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-arrow:hover:not(:disabled) {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #10b981 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-number.active {
+  background: #10b981 !important; /* Màu xanh lá thay vì đen cho dark mode */
+  color: white !important;
+  border-color: #10b981 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-number.active:hover {
+  background: #059669 !important;
+  border-color: #059669 !important;
+}
+
+[data-theme='dark'] .view-all-pagination .pagination-ellipsis {
+  color: #10b981 !important;
+}
+
 

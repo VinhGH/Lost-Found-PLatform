@@ -1,14 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
-import UserAccountsManagement from './UserAccountsManagement';
-import AdminAccountsManagement from './AdminAccountsManagement';
+// ✅ Đã xóa import - UserAccountsManagement và AdminAccountsManagement không được sử dụng
+// import UserAccountsManagement from './UserAccountsManagement';
+// import AdminAccountsManagement from './AdminAccountsManagement';
 import LostItemsManagement from './LostItemsManagement';
 import ApprovedPostsView from './ApprovedPostsView';
 import AdminProfile from './AdminProfile';
 import './AdminUI.css';
+import './AdminGlobalOverrides.css';
 
 const AdminUI = ({ onLogout, adminUser }) => {
+  // 🔹 Force Admin luôn ở light mode, không bị ảnh hưởng bởi dark mode của User
+  useEffect(() => {
+    // ✅ Force set theme về light mode cho Admin
+    const root = document.documentElement;
+    let isUpdating = false; // ✅ Flag để tránh infinite loop
+    
+    const forceLightMode = () => {
+      if (isUpdating) return; // ✅ Tránh infinite loop
+      isUpdating = true;
+      
+      if (root.getAttribute('data-theme') !== 'light') {
+        root.setAttribute('data-theme', 'light');
+      }
+      if (document.body.classList.contains('dark')) {
+        document.body.classList.remove('dark');
+      }
+      
+      // ✅ Reset flag sau một chút
+      setTimeout(() => {
+        isUpdating = false;
+      }, 10);
+    };
+    
+    forceLightMode();
+    
+    // ✅ Thêm class để identify admin dashboard
+    root.classList.add('admin-mode');
+    
+    // ✅ Lắng nghe thay đổi của data-theme và force lại về light mode
+    const observer = new MutationObserver((mutations) => {
+      if (isUpdating) return; // ✅ Tránh xử lý khi đang update
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          const currentTheme = root.getAttribute('data-theme');
+          if (currentTheme === 'dark') {
+            // ✅ Nếu bị đổi sang dark, force lại về light
+            forceLightMode();
+          }
+        }
+      });
+    });
+    
+    // ✅ Observe thay đổi của data-theme attribute
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+    
+    // ✅ Lắng nghe thay đổi của body class
+    const bodyObserver = new MutationObserver((mutations) => {
+      if (isUpdating) return; // ✅ Tránh xử lý khi đang update
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (document.body.classList.contains('dark')) {
+            // ✅ Nếu body có class dark, remove nó
+            forceLightMode();
+          }
+        }
+      });
+    });
+    
+    bodyObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    // ✅ Cleanup: remove class và disconnect observers khi unmount
+    return () => {
+      root.classList.remove('admin-mode');
+      observer.disconnect();
+      bodyObserver.disconnect();
+    };
+  }, []);
+
   // 🔹 Khởi tạo activeTab từ localStorage hoặc mặc định
   const [activeTab, setActiveTab] = useState(() => {
     try {
@@ -167,7 +245,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
   };
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-light-mode">
       <AdminSidebar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}

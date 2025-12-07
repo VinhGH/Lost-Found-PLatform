@@ -134,3 +134,46 @@
   }
 }
 
+/* Dark Mode Styles */
+[data-theme='dark'] .toast-notification {
+  background: #0f172a;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .toast-notification.clickable:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .toast-success .toast-icon-wrapper {
+  background: #064e3b;
+  color: #10b981;
+}
+
+[data-theme='dark'] .toast-warning .toast-icon-wrapper {
+  background: #78350f;
+  color: #f59e0b;
+}
+
+[data-theme='dark'] .toast-info .toast-icon-wrapper {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .toast-title {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .toast-message {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .toast-close {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .toast-close:hover {
+  background: #374151;
+  color: #e5e7eb;
+}
+

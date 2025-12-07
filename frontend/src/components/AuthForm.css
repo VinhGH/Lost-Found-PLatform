@@ -320,7 +320,7 @@
 /* Right Side - Form */
 .auth-right {
   flex: 1;
-  padding: 40px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -376,7 +376,8 @@
 }
 
 .form-group {
-  margin-bottom: 20px;
+  width: 100%;
+  margin-bottom: 100px;
 }
 
 .form-group label {
@@ -388,17 +389,42 @@
 }
 
 .form-group input {
-  width: 100%;
-  padding: 12px;
+  width: 100% !important;
+  height: 48px !important;
+  padding: 0 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
   transition: border-color 0.3s ease;
   box-sizing: border-box;
+  display: block;
+}
+
+.form-group input[type="email"] {
+  width: 100% !important;
+  height: 48px !important;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.password-input {
+  position: relative;
+  width: 100% !important;
+  max-width: none !important;
+  display: block;
+  box-sizing: border-box;
 }
 
 .password-input input {
-  padding-right: 45px; /* Tạo khoảng trống cho icon */
+  width: 100% !important;
+  height: 48px !important;
+  padding: 0 12px;
+  padding-right: 45px !important; /* Tạo khoảng trống cho icon mắt */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box;
+  display: block;
 }
 
 /* Ẩn icon password mặc định của trình duyệt */
@@ -433,13 +459,9 @@
   opacity: 0.7;
 }
 
-.password-input {
-  position: relative;
-}
-
 .password-toggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -453,6 +475,7 @@
   height: 24px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
+  z-index: 1;
 }
 
 .eye-icon {
@@ -582,6 +605,21 @@
 
 .forgot-password-form {
   width: 100%;
+}
+
+.forgot-password-form .form-group {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.forgot-password-form .form-group input {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.forgot-password-form .password-input {
+  width: 100% !important;
+  max-width: none !important;
 }
 
 .back-to-login-btn {

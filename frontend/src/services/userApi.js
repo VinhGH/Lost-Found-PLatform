@@ -1,7 +1,7 @@
 // User API Service
 class UserApi {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     this.authToken = localStorage.getItem('userToken');
     this.userData = JSON.parse(localStorage.getItem('userData') || 'null');
   }
@@ -12,6 +12,11 @@ class UserApi {
     this.userData = userData;
     localStorage.setItem('userToken', token);
     localStorage.setItem('userData', JSON.stringify(userData));
+    
+    // ✅ KHÔNG xóa admin token khi user login - cho phép mở 2 tab cùng lúc
+    // httpClient sẽ tự động ưu tiên đúng token dựa trên context
+    // Chỉ xóa admin token khi user logout
+    console.log('✅ User token saved (admin token preserved for multi-tab support)');
   }
 
   // Clear authentication data
@@ -20,6 +25,8 @@ class UserApi {
     this.userData = null;
     localStorage.removeItem('userToken');
     localStorage.removeItem('userData');
+    // ✅ Chỉ xóa user token khi logout, không xóa admin token
+    console.log('✅ User token cleared (admin token preserved)');
   }
 
   // Get current user data (merge with saved profile if exists)
@@ -102,7 +109,12 @@ class UserApi {
 
   // Check if user is authenticated
   isAuthenticated() {
-    return !!this.authToken && !!this.userData;
+    // ✅ Đọc lại từ localStorage mỗi lần check để đảm bảo sync với multi-tab
+    const token = localStorage.getItem('userToken');
+    const data = localStorage.getItem('userData');
+    this.authToken = token;
+    this.userData = data ? JSON.parse(data) : null;
+    return !!token && !!this.userData;
   }
 
   // Login user
@@ -554,6 +566,48 @@ class UserApi {
       return {
         success: false,
         error: 'Không thể lấy địa điểm'
+      };
+    }
+  }
+
+  // Change password
+  async changePassword({ currentPassword, newPassword }) {
+    try {
+      if (!this.isAuthenticated()) {
+        return {
+          success: false,
+          error: 'Chưa đăng nhập'
+        };
+      }
+
+      // For demo purposes, simulate API call
+      // In real app, this would call backend API
+      
+      // ✅ Nếu có currentPassword, kiểm tra mật khẩu hiện tại
+      // ✅ Nếu không có currentPassword (đã xác nhận OTP), bỏ qua bước này
+      if (currentPassword !== undefined) {
+        // Check current password (demo: default is "user123")
+        if (currentPassword !== 'user123') {
+          return {
+            success: false,
+            error: 'Mật khẩu hiện tại không đúng'
+          };
+        }
+      }
+
+      // Simulate successful password change
+      // In real app, you would update password in backend
+      console.log('✅ Password changed successfully');
+      
+      return {
+        success: true,
+        message: 'Đổi mật khẩu thành công'
+      };
+    } catch (error) {
+      console.error('Change password error:', error);
+      return {
+        success: false,
+        error: 'Không thể đổi mật khẩu. Vui lòng thử lại.'
       };
     }
   }

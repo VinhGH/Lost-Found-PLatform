@@ -125,3 +125,25 @@
   transform: translateY(0);
 }
 
+/* ✅ Force Admin Modal luôn ở Light Mode - Override dark mode */
+.admin-mode .confirm-delete-modal,
+.admin-light-mode .confirm-delete-modal,
+[data-theme="dark"] .admin-dashboard .confirm-delete-modal,
+[data-theme="dark"] .admin-light-mode .confirm-delete-modal {
+  background: #ffffff !important;
+}
+
+.admin-mode .modal-header h3,
+.admin-light-mode .modal-header h3,
+[data-theme="dark"] .admin-dashboard .modal-header h3,
+[data-theme="dark"] .admin-light-mode .modal-header h3 {
+  color: #1e293b !important;
+}
+
+.admin-mode .modal-content p,
+.admin-light-mode .modal-content p,
+[data-theme="dark"] .admin-dashboard .modal-content p,
+[data-theme="dark"] .admin-light-mode .modal-content p {
+  color: #64748b !important;
+}
+

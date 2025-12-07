@@ -261,9 +261,10 @@
 }
 
 .user-btn:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+  border: 1px solid #e2e8f0;
 }
 
 .user-avatar {
@@ -283,6 +284,15 @@
   overflow: hidden;
 }
 
+.user-avatar span {
+  color: white !important;
+  transition: color 0.3s ease;
+}
+
+.user-btn:hover .user-avatar span {
+  color: #1e293b !important;
+}
+
 .user-avatar-img {
   width: 100%;
   height: 100%;
@@ -291,9 +301,10 @@
 }
 
 .user-btn:hover .user-avatar {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform: scale(1.05);
+  color: #1e293b !important;
 }
 
 .user-info {
@@ -308,6 +319,11 @@
   font-weight: 600;
   color: #ffffff;
   line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.user-btn:hover .user-name {
+  color: #1e293b !important;
 }
 
 .user-role {
@@ -315,13 +331,22 @@
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.2;
   font-weight: 400;
+  transition: color 0.3s ease;
+}
+
+.user-btn:hover .user-role {
+  color: #64748b !important;
 }
 
 .dropdown-arrow {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.9);
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
   flex-shrink: 0;
+}
+
+.user-btn:hover .dropdown-arrow {
+  color: #64748b !important;
 }
 
 .user-container:hover .dropdown-arrow {
@@ -529,4 +554,146 @@
     width: calc(100vw - 32px);
     right: 0;
   }
+}
+
+/* ✅ Force Admin Header luôn ở Light Mode - Override dark mode */
+.admin-mode .admin-header,
+.admin-light-mode .admin-header,
+[data-theme="dark"] .admin-dashboard .admin-header,
+[data-theme="dark"] .admin-light-mode .admin-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.admin-mode .notification-dropdown,
+.admin-light-mode .notification-dropdown,
+[data-theme="dark"] .admin-dashboard .notification-dropdown,
+[data-theme="dark"] .admin-light-mode .notification-dropdown {
+  background: white !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-mode .dropdown-header,
+.admin-light-mode .dropdown-header,
+[data-theme="dark"] .admin-dashboard .dropdown-header,
+[data-theme="dark"] .admin-light-mode .dropdown-header {
+  background: #f8fafc !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+.admin-mode .dropdown-header h4,
+.admin-light-mode .dropdown-header h4,
+[data-theme="dark"] .admin-dashboard .dropdown-header h4,
+[data-theme="dark"] .admin-light-mode .dropdown-header h4 {
+  color: #1e293b !important;
+}
+
+.admin-mode .notification-item,
+.admin-light-mode .notification-item,
+[data-theme="dark"] .admin-dashboard .notification-item,
+[data-theme="dark"] .admin-light-mode .notification-item {
+  background: transparent !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+.admin-mode .notification-item:hover,
+.admin-light-mode .notification-item:hover,
+[data-theme="dark"] .admin-dashboard .notification-item:hover,
+[data-theme="dark"] .admin-light-mode .notification-item:hover {
+  background: #f8fafc !important;
+}
+
+.admin-mode .notification-content h5,
+.admin-light-mode .notification-content h5,
+[data-theme="dark"] .admin-dashboard .notification-content h5,
+[data-theme="dark"] .admin-light-mode .notification-content h5 {
+  color: #1e293b !important;
+}
+
+.admin-mode .notification-content p,
+.admin-light-mode .notification-content p,
+[data-theme="dark"] .admin-dashboard .notification-content p,
+[data-theme="dark"] .admin-light-mode .notification-content p {
+  color: #64748b !important;
+}
+
+.admin-mode .notification-time,
+.admin-light-mode .notification-time,
+[data-theme="dark"] .admin-dashboard .notification-time,
+[data-theme="dark"] .admin-light-mode .notification-time {
+  color: #94a3b8 !important;
+}
+
+.admin-mode .dropdown-footer,
+.admin-light-mode .dropdown-footer,
+[data-theme="dark"] .admin-dashboard .dropdown-footer,
+[data-theme="dark"] .admin-light-mode .dropdown-footer {
+  background: #f8fafc !important;
+  border-top-color: #f1f5f9 !important;
+}
+
+.admin-mode .close-btn,
+.admin-light-mode .close-btn,
+[data-theme="dark"] .admin-dashboard .close-btn,
+[data-theme="dark"] .admin-light-mode .close-btn {
+  color: #64748b !important;
+}
+
+.admin-mode .close-btn:hover,
+.admin-light-mode .close-btn:hover,
+[data-theme="dark"] .admin-dashboard .close-btn:hover,
+[data-theme="dark"] .admin-light-mode .close-btn:hover {
+  background: #f1f5f9 !important;
+  color: #ef4444 !important;
+}
+
+.admin-mode .notification-list,
+.admin-light-mode .notification-list,
+[data-theme="dark"] .admin-dashboard .notification-list,
+[data-theme="dark"] .admin-light-mode .notification-list {
+  background: white !important;
+}
+
+.admin-mode .notification-list::-webkit-scrollbar-track,
+.admin-light-mode .notification-list::-webkit-scrollbar-track,
+[data-theme="dark"] .admin-dashboard .notification-list::-webkit-scrollbar-track,
+[data-theme="dark"] .admin-light-mode .notification-list::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+.admin-mode .notification-list::-webkit-scrollbar-thumb,
+.admin-light-mode .notification-list::-webkit-scrollbar-thumb,
+[data-theme="dark"] .admin-dashboard .notification-list::-webkit-scrollbar-thumb,
+[data-theme="dark"] .admin-light-mode .notification-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+.admin-mode .notification-list::-webkit-scrollbar-thumb:hover,
+.admin-light-mode .notification-list::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .admin-dashboard .notification-list::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .admin-light-mode .notification-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+.admin-mode .view-all-btn,
+.admin-light-mode .view-all-btn,
+[data-theme="dark"] .admin-dashboard .view-all-btn,
+[data-theme="dark"] .admin-light-mode .view-all-btn {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+.admin-mode .view-all-btn:hover,
+.admin-light-mode .view-all-btn:hover,
+[data-theme="dark"] .admin-dashboard .view-all-btn:hover,
+[data-theme="dark"] .admin-light-mode .view-all-btn:hover {
+  background: #2563eb !important;
+}
+
+.admin-mode .user-dropdown,
+.admin-light-mode .user-dropdown,
+[data-theme="dark"] .admin-dashboard .user-dropdown,
+[data-theme="dark"] .admin-light-mode .user-dropdown {
+  background: white !important;
+  border-color: #e2e8f0 !important;
 }
