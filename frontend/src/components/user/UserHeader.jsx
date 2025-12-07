@@ -11,8 +11,7 @@ import {
   Article as ArticleIcon,
   Logout as LogoutIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
-  Add as AddIcon,
-  Settings as SettingsIcon
+  Add as AddIcon
 } from '@mui/icons-material';
 
 const UserHeader = ({
@@ -150,23 +149,6 @@ const UserHeader = ({
                   }}
                 >
                   <ArticleIcon style={{ fontSize: '16px' }} /> Bài đăng của tôi
-                </button>
-                <button
-                  className="dropdown-item"
-                  onClick={() => {
-                    setActiveTab('profile');
-                    // ✅ Chuyển đến tab settings trong profile
-                    setTimeout(() => {
-                      const profileComponent = document.querySelector('.user-profile');
-                      if (profileComponent) {
-                        // Trigger event để UserProfile chuyển sang tab settings
-                        window.dispatchEvent(new CustomEvent('switchToSettingsTab'));
-                      }
-                    }, 100);
-                    setShowUserMenu(false);
-                  }}
-                >
-                  <SettingsIcon style={{ fontSize: '16px' }} /> Cài đặt
                 </button>
                 <hr className="dropdown-divider" />
                 <button

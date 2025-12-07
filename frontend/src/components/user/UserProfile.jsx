@@ -619,11 +619,11 @@ const UserProfile = ({
               )}
 
               <button
-                className="btn-logout"
-                onClick={() => setShowLogoutModal(true)}
+                className="btn-change-password"
+                onClick={() => setShowChangePasswordModal(true)}
               >
-                <LogoutIcon style={{ fontSize: 18, marginRight: 8 }} />
-                Đăng xuất
+                <SettingsIcon style={{ fontSize: 18, marginRight: 8 }} />
+                Đổi mật khẩu
               </button>
             </>
           )}
@@ -935,14 +935,6 @@ const UserProfile = ({
                     onClick={() => setActiveTab("posts")}
                   >
                     <ArticleIcon /> Bài đăng của tôi
-                  </button>
-
-                  <button
-                    className={`nav-item ${activeTab === "settings" ? "active" : ""
-                      }`}
-                    onClick={() => setActiveTab("settings")}
-                  >
-                    <SettingsIcon /> Cài đặt
                   </button>
                 </>
               )}
