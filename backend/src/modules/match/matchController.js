@@ -40,7 +40,7 @@ export const createMatch = async (req, res, next) => {
     // Create notifications for post owners
     try {
       const match = result.data;
-      
+
       // Notify post owner if it's not the current user
       if (match.Post?.Account_id && match.Post.Account_id !== accountId) {
         await notificationModel.createNotification(
@@ -309,13 +309,24 @@ export const scanForMatches = async (req, res, next) => {
       });
     }
 
-    const posts = postsResult.data || [];
+    const allPosts = postsResult.data || [];
+
+    // ⚡ OPTIMIZATION: Get posts that already have matches (last 24 hours)
+    const matchedPostIds = await matchModel.getPostIdsWithRecentMatches();
+    console.log(`🔍 Found ${matchedPostIds.size} posts with existing matches (will skip)`);
+
+    // Filter out posts that already have matches
+    const posts = allPosts.filter(post => !matchedPostIds.has(post.Post_id));
+
+    console.log(`📊 Optimized scan: ${allPosts.length} total posts → ${posts.length} posts to scan (skipped ${allPosts.length - posts.length})`);
 
     if (posts.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'No posts to scan',
+        message: 'No new posts to scan (all posts already have matches)',
         data: {
+          totalPosts: allPosts.length,
+          skippedPosts: allPosts.length,
           scannedPosts: 0,
           matchesFound: 0,
           matchesCreated: 0,
@@ -324,7 +335,6 @@ export const scanForMatches = async (req, res, next) => {
       });
     }
 
-    console.log(`📊 Found ${posts.length} posts to scan`);
 
     // Use AI service to find matches
     const matches = await aiMatchingService.findMatchingPosts(posts);
@@ -362,7 +372,7 @@ export const scanForMatches = async (req, res, next) => {
     let notificationCount = 0;
     let imageMatchesCount = 0;
     let textOnlyMatchesCount = 0;
-    
+
     try {
       for (const match of matches) {
         const { post1, post2, similarity, hasImages, textSimilarity, imageSimilarity } = match;
@@ -435,6 +445,185 @@ export const scanForMatches = async (req, res, next) => {
     });
   } catch (error) {
     console.error('❌ Error in scanForMatches:', error);
+    next(error);
+  }
+};
+
+/**
+ * Core logic: Perform AI matching for a single post
+ * Can be called directly without HTTP req/res
+ * @param {string} postId 
+ * @param {string} postType - 'lost' or 'found'
+ * @returns {Promise<Object>}
+ */
+export async function performSinglePostScan(postId, postType) {
+  try {
+    console.log(`🔍 Event-driven AI scan triggered for ${postType} post: ${postId}`);
+
+    // Get the newly approved post
+    const postModel = (await import('../post/postModel.js')).default;
+    const newPostResult = await postModel.getPostById(postId, postType);
+
+    if (!newPostResult.success || !newPostResult.data) {
+      throw new Error('Post not found');
+    }
+
+    const rawPost = newPostResult.data;
+
+    // Transform from frontend format to AI format
+    const newPost = {
+      Post_id: `${postType === 'lost' ? 'L' : 'F'}${postId}`,
+      Post_Title: rawPost.title || rawPost.Post_Title,
+      Post_type: postType,
+      Item_name: rawPost.itemName || rawPost.Item_name || '',
+      Description: rawPost.description || rawPost.Description || '',
+      Status: 'approved',
+      Account_id: rawPost.accountId || rawPost.Account_id,
+      Image_urls: rawPost.images || rawPost.Image_urls || []
+    };
+
+    console.log(`📋 Transformed post for AI: "${newPost.Post_Title}"`);
+
+
+    // Get opposite type posts for matching
+    const oppositePostsResult = await matchModel.getOppositeTypePosts(postType, postId);
+
+    if (!oppositePostsResult.success) {
+      throw new Error('Failed to retrieve posts for matching');
+    }
+
+    const oppositePosts = oppositePostsResult.data || [];
+
+    if (oppositePosts.length === 0) {
+      return {
+        success: true,
+        message: 'No opposite type posts available for matching',
+        data: {
+          postId,
+          postType,
+          matchesFound: 0,
+          matchesCreated: 0,
+          notificationsSent: 0
+        }
+      };
+    }
+
+    // Use AI to find matches
+    const matches = await aiMatchingService.scanSinglePost(newPost, oppositePosts);
+
+    if (matches.length === 0) {
+      return {
+        success: true,
+        message: 'No matches found for this post',
+        data: {
+          postId,
+          postType,
+          matchesFound: 0,
+          matchesCreated: 0,
+          notificationsSent: 0
+        }
+      };
+    }
+
+    // Create matches in database
+    const createResult = await matchModel.createBatchMatches(matches);
+
+    if (!createResult.success) {
+      throw new Error('Failed to create matches');
+    }
+
+    const createdMatches = createResult.data || [];
+
+    // Send notifications to users
+    const notificationModel = (await import('../notification/notificationModel.js')).default;
+    const { getSocketIO } = await import('../../socket/socket.js');
+    const io = getSocketIO();
+
+    let notificationCount = 0;
+
+    for (const match of createdMatches) {
+      if (match.Post && match.Post.Account_id) {
+        const accountId = match.Post.Account_id;
+
+        // Create notification
+        await notificationModel.createNotification({
+          account_id: accountId,
+          type: 'match',
+          title: 'Tìm thấy kết quả phù hợp!',
+          message: `AI đã tìm thấy bài đăng phù hợp với "${match.Post.Post_Title}"`,
+          data: {
+            match_id: match.Match_id,
+            post_id: match.Post_id,
+            confidence_score: match.Confidence_score
+          }
+        });
+
+        // Send real-time notification
+        io.to(`user_${accountId}`).emit('new_notification', {
+          type: 'match',
+          title: 'Tìm thấy kết quả phù hợp!',
+          message: `AI đã tìm thấy bài đăng phù hợp với "${match.Post.Post_Title}"`,
+          match_id: match.Match_id
+        });
+
+        notificationCount++;
+      }
+    }
+
+    console.log(`✅ Event-driven scan completed: ${matches.length} matches found, ${createdMatches.length} created, ${notificationCount} notifications sent`);
+
+    return {
+      success: true,
+      message: 'AI matching completed successfully',
+      data: {
+        postId,
+        postType,
+        matchesFound: matches.length,
+        matchesCreated: createdMatches.length,
+        notificationsSent: notificationCount,
+        matches: createdMatches
+      }
+    };
+  } catch (error) {
+    console.error('❌ Error in performSinglePostScan:', error);
+    return {
+      success: false,
+      message: error.message,
+      data: null
+    };
+  }
+}
+
+/**
+ * POST /api/matches/scan-single
+ * Scan a single newly approved post for matches (Event-driven)
+ * Body: { postId, postType }
+ */
+export const scanSinglePost = async (req, res, next) => {
+  try {
+    const { postId, postType } = req.body;
+
+    if (!postId || !postType) {
+      return res.status(400).json({
+        success: false,
+        message: 'postId and postType are required'
+      });
+    }
+
+    if (!['lost', 'found'].includes(postType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'postType must be "lost" or "found"'
+      });
+    }
+
+    // Call the core logic function
+    const result = await performSinglePostScan(postId, postType);
+
+    const statusCode = result.success ? 200 : 500;
+    res.status(statusCode).json(result);
+  } catch (error) {
+    console.error('❌ Error in scanSinglePost:', error);
     next(error);
   }
 };

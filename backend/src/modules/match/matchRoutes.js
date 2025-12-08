@@ -6,6 +6,7 @@ const router = express.Router();
 
 // AI Matching scan route (should be before parameterized routes)
 router.post('/scan', verifyToken, controller.scanForMatches);
+router.post('/scan-single', verifyToken, controller.scanSinglePost);
 
 // All match routes require authentication
 router.post('/', verifyToken, controller.createMatch);

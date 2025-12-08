@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import './UserHeader.css';
 import ConfirmLogoutModal from './ConfirmLogoutModal';
 import {
@@ -105,7 +106,7 @@ const UserHeader = ({
           </button>
 
           {/* User Menu */}
-          <div 
+          <div
             className="header-user"
             onMouseEnter={() => setShowUserMenu(true)}
             onMouseLeave={() => setShowUserMenu(false)}
@@ -113,9 +114,9 @@ const UserHeader = ({
             <button className="user-menu-btn" type="button">
               <div className="user-avatar">
                 {user?.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user?.name || 'User'} 
+                  <img
+                    src={user.avatar}
+                    alt={user?.name || 'User'}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -150,6 +151,21 @@ const UserHeader = ({
                   }}
                 >
                   <ArticleIcon style={{ fontSize: '16px' }} /> Bài đăng của tôi
+                </button>
+                <button
+                  className="dropdown-item"
+                  onClick={() => {
+                    setActiveTab('matches');
+                    setShowUserMenu(false);
+                  }}
+                >
+                  <DotLottieReact
+                    src="https://lottie.host/2de4e929-6cf6-412d-a39a-7db8817377cf/VEOFwd8TTe.lottie"
+                    loop
+                    autoplay
+                    style={{ width: '20px', height: '20px', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}
+                  />
+                  AI Matches
                 </button>
                 <button
                   className="dropdown-item"

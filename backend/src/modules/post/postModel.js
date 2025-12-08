@@ -727,6 +727,36 @@ class PostModel {
       const tableName = type === "found" ? "Found_Post" : "Lost_Post";
       const idColumn = type === "found" ? "found_post_id" : "lost_post_id";
 
+      // ✅ Delete all matches related to this post BEFORE soft-deleting
+      const matchIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
+
+      console.log(`🗑️ Deleting matches for ${type} post ${postId}...`);
+
+      const { data: matchesToDelete, error: matchQueryError } = await supabase
+        .from('Match_Post')
+        .select('match_id')
+        .eq(matchIdColumn, postId);
+
+      if (matchQueryError) {
+        console.error('❌ Error finding matches to delete:', matchQueryError);
+      } else if (matchesToDelete && matchesToDelete.length > 0) {
+        const matchIds = matchesToDelete.map(m => m.match_id);
+
+        const { error: matchDeleteError } = await supabase
+          .from('Match_Post')
+          .delete()
+          .in('match_id', matchIds);
+
+        if (matchDeleteError) {
+          console.error('❌ Error deleting matches:', matchDeleteError);
+        } else {
+          console.log(`✅ Deleted ${matchIds.length} matches for post ${postId}`);
+        }
+      } else {
+        console.log(`ℹ️ No matches found for post ${postId}`);
+      }
+
+      // Soft delete the post
       const { error } = await supabase
         .from(tableName)
         .update({ deleted_at: new Date().toISOString() })

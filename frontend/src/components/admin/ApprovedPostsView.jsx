@@ -355,7 +355,7 @@ const ApprovedPostsView = ({ onPostChange }) => {
 
             return (
               <div
-                key={post.id}
+                key={`${post.type}-${post.id}`}
                 className="post-card"
                 onClick={(e) => {
                   // Chỉ mở modal nếu không click vào button

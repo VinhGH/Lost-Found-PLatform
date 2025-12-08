@@ -84,13 +84,13 @@ class AIMatchingService {
     let dotProduct = 0;
     let norm1 = 0;
     let norm2 = 0;
-    
+
     for (let i = 0; i < vec1.length; i++) {
       dotProduct += vec1[i] * vec2[i];
       norm1 += vec1[i] * vec1[i];
       norm2 += vec2[i] * vec2[i];
     }
-    
+
     return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
   }
 
@@ -119,13 +119,13 @@ class AIMatchingService {
    */
   createPostText(post) {
     const parts = [];
-    
+
     if (post.Post_Title) parts.push(post.Post_Title);
     if (post.Item_name) parts.push(post.Item_name);
     if (post.Description) parts.push(post.Description);
     if (post.Location_name) parts.push(post.Location_name);
     if (post.Category_name) parts.push(post.Category_name);
-    
+
     return parts.join(' ').toLowerCase();
   }
 
@@ -137,7 +137,7 @@ class AIMatchingService {
   async findMatchingPosts(posts) {
     try {
       console.log(`🔍 Bắt đầu quét ${posts.length} bài đăng...`);
-      
+
       // Filter chỉ lấy bài đăng trong vòng 30 ngày
       const now = Date.now();
       const recentPosts = posts.filter(post => {
@@ -153,16 +153,16 @@ class AIMatchingService {
       // So sánh từng cặp post
       for (let i = 0; i < recentPosts.length; i++) {
         const post1 = recentPosts[i];
-        
+
         // Chỉ xét các bài đăng approved
         if (post1.Status !== 'approved') continue;
-        
+
         for (let j = i + 1; j < recentPosts.length; j++) {
           const post2 = recentPosts[j];
-          
+
           // Chỉ xét các bài đăng approved
           if (post2.Status !== 'approved') continue;
-          
+
           // Chỉ match giữa "lost" và "found"
           if (post1.Post_type === post2.Post_type) continue;
 
@@ -228,6 +228,79 @@ class AIMatchingService {
    */
   getSimilarityThreshold() {
     return SIMILARITY_THRESHOLD;
+  }
+
+  /**
+   * Quét một bài đăng mới với các bài đăng đối nghịch
+   * (Event-driven: Chạy khi admin approve bài)
+   * @param {Object} newPost - Bài đăng mới được approve
+   * @param {Array} existingPosts - Danh sách bài đăng đối nghịch (Lost vs Found)
+   * @returns {Promise<Array>} - Danh sách matches
+   */
+  async scanSinglePost(newPost, existingPosts) {
+    try {
+      console.log(`🔍 Scanning new ${newPost.Post_type} post: "${newPost.Post_Title}"`);
+      console.log(`📊 Comparing against ${existingPosts.length} existing posts`);
+
+      const matches = [];
+      const newPostText = this.createPostText(newPost);
+
+      // So sánh với từng bài đăng đối nghịch
+      for (const existingPost of existingPosts) {
+        // Skip nếu cùng loại (safety check)
+        if (newPost.Post_type === existingPost.Post_type) continue;
+
+        // Skip nếu cùng account (không match với chính mình)
+        if (newPost.Account_id === existingPost.Account_id) continue;
+
+        const existingPostText = this.createPostText(existingPost);
+
+        // Tính text similarity
+        const textSimilarity = await this.calculateTextSimilarity(newPostText, existingPostText);
+
+        // Tính image similarity (nếu có ảnh)
+        let imageSimilarity = 0;
+        const hasImages1 = newPost.Image_urls && newPost.Image_urls.length > 0;
+        const hasImages2 = existingPost.Image_urls && existingPost.Image_urls.length > 0;
+
+        if (hasImages1 && hasImages2) {
+          try {
+            imageSimilarity = await geminiImageService.analyzeImageSimilarity(newPost, existingPost);
+          } catch (error) {
+            console.error('❌ Error calculating image similarity:', error);
+          }
+        }
+
+        // Kết hợp scores
+        let finalSimilarity;
+        if (hasImages1 && hasImages2) {
+          finalSimilarity = (textSimilarity * TEXT_WEIGHT) + (imageSimilarity * IMAGE_WEIGHT);
+          console.log(`📝 "${newPost.Post_Title}" vs "${existingPost.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}%, Image: ${(imageSimilarity * 100).toFixed(2)}%, Final: ${(finalSimilarity * 100).toFixed(2)}%`);
+        } else {
+          finalSimilarity = textSimilarity;
+          console.log(`📝 "${newPost.Post_Title}" vs "${existingPost.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}% (no images)`);
+        }
+
+        // Nếu điểm tương đồng > threshold, thêm vào matches
+        if (finalSimilarity > SIMILARITY_THRESHOLD) {
+          matches.push({
+            post1: newPost,
+            post2: existingPost,
+            similarity: finalSimilarity,
+            textSimilarity: textSimilarity,
+            imageSimilarity: imageSimilarity,
+            hasImages: hasImages1 && hasImages2,
+            matchType: newPost.Post_type === "lost" ? "lost_found" : "found_lost",
+          });
+        }
+      }
+
+      console.log(`✅ Found ${matches.length} matches for new post`);
+      return matches;
+    } catch (error) {
+      console.error("❌ Error in scanSinglePost:", error);
+      return [];
+    }
   }
 
   /**

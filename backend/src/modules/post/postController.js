@@ -614,6 +614,12 @@ export const approvePost = async (req, res, next) => {
       // Don't fail the request if notification creation fails
     }
 
+    // 🤖 Trigger AI matching (Event-driven, fire-and-forget)
+    triggerAIMatchingForPost(id, type.toLowerCase()).catch(err => {
+      console.error('❌ Background AI matching failed:', err);
+      // Don't fail the approval if AI matching fails
+    });
+
     res.status(200).json({
       success: true,
       message: 'Post approved successfully',
@@ -623,6 +629,31 @@ export const approvePost = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Background job: Trigger AI matching for newly approved post
+ * Fire-and-forget pattern - doesn't block the approval response
+ */
+async function triggerAIMatchingForPost(postId, postType) {
+  try {
+    console.log(`🤖 Triggering AI matching for ${postType} post: ${postId}`);
+
+    // Import the core scan function
+    const { performSinglePostScan } = await import('../match/matchController.js');
+
+    // Call the function directly with proper parameters
+    const result = await performSinglePostScan(postId, postType);
+
+    if (result.success) {
+      console.log(`✅ AI matching completed for post ${postId}:`, result.data);
+    } else {
+      console.error(`⚠️ AI matching completed with issues for post ${postId}:`, result.message);
+    }
+  } catch (error) {
+    console.error(`❌ AI matching failed for post ${postId}:`, error.message);
+    // Don't throw - this is fire-and-forget
+  }
+}
 
 /**
  * PATCH /api/posts/:id/reject
