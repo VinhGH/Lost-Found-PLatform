@@ -9,11 +9,16 @@ export default function NotificationsButton({ onNotificationClick }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedNotifications, setSelectedNotifications] = useState(new Set());
 
   // ✅ Load notifications from backend API
-  const loadNotifications = async () => {
+  const loadNotifications = async (silent = false) => {
     try {
-      setLoading(true);
+      // Only show loading indicator on initial load, not during polling
+      if (!silent) {
+        setLoading(true);
+      }
       const response = await realApi.getNotifications();
 
       if (response.success && response.data) {
@@ -47,22 +52,24 @@ export default function NotificationsButton({ onNotificationClick }) {
       setNotifications([]);
       setUnreadCount(0);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   // ✅ Load notifications when component mounts
   useEffect(() => {
-    loadNotifications();
+    loadNotifications(); // Initial load with loading indicator
 
-    // ✅ Polling to reload realtime (every 5 seconds)
+    // ✅ Polling to reload realtime (every 5 seconds) - silent updates
     const interval = setInterval(() => {
-      loadNotifications();
+      loadNotifications(true); // Silent polling - no loading indicator
     }, 5000);
 
     // ✅ Listen for custom events (if needed for immediate updates)
     const handleNotificationAdded = () => {
-      loadNotifications();
+      loadNotifications(true); // Silent update
     };
 
     window.addEventListener('notificationAdded', handleNotificationAdded);
@@ -79,8 +86,8 @@ export default function NotificationsButton({ onNotificationClick }) {
       const response = await realApi.markNotificationAsRead(notificationId);
 
       if (response.success) {
-        // Reload notifications to get updated state
-        await loadNotifications();
+        // Reload notifications silently to get updated state
+        await loadNotifications(true);
       } else {
         console.error("❌ Failed to mark as read:", response.error);
       }
@@ -95,13 +102,67 @@ export default function NotificationsButton({ onNotificationClick }) {
       const response = await realApi.markAllNotificationsAsRead();
 
       if (response.success) {
-        // Reload notifications to get updated state
-        await loadNotifications();
+        // Reload notifications silently to get updated state
+        await loadNotifications(true);
       } else {
         console.error("❌ Failed to mark all as read:", response.error);
       }
     } catch (error) {
       console.error("❌ Error marking all notifications as read:", error);
+    }
+  };
+
+  // ✅ Toggle selection mode
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedNotifications(new Set()); // Clear selections when toggling
+  };
+
+  // ✅ Toggle single notification selection
+  const toggleNotificationSelection = (notificationId) => {
+    setSelectedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(notificationId)) {
+        newSet.delete(notificationId);
+      } else {
+        newSet.add(notificationId);
+      }
+      return newSet;
+    });
+  };
+
+  // ✅ Select all notifications
+  const selectAll = () => {
+    setSelectedNotifications(new Set(notifications.map(n => n.id)));
+  };
+
+  // ✅ Clear all selections
+  const clearAll = () => {
+    setSelectedNotifications(new Set());
+  };
+
+  // ✅ Bulk delete selected notifications
+  const handleBulkDelete = async () => {
+    const count = selectedNotifications.size;
+    if (!window.confirm(`Bạn có chắc muốn xóa ${count} thông báo đã chọn?`)) return;
+
+    try {
+      // Delete all selected notifications in parallel
+      const deletePromises = Array.from(selectedNotifications).map(notificationId =>
+        realApi.deleteNotification(notificationId)
+      );
+
+      await Promise.all(deletePromises);
+
+      // Reload notifications silently
+      await loadNotifications(true);
+      setSelectedNotifications(new Set());
+      setIsSelectionMode(false);
+
+      console.log(`✅ Deleted ${count} notifications`);
+    } catch (err) {
+      console.error('❌ Error deleting notifications:', err);
+      alert('Lỗi: ' + err.message);
     }
   };
 
@@ -123,21 +184,52 @@ export default function NotificationsButton({ onNotificationClick }) {
         <div className="notifications-dropdown">
           <div className="dropdown-header">
             <h4>Thông báo</h4>
-            {unreadCount > 0 && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {notifications.length > 0 && (
+                <button
+                  onClick={toggleSelectionMode}
+                  className={`selection-toggle-btn ${isSelectionMode ? 'cancel' : ''}`}
+                  style={{ fontSize: '13px', padding: '6px 12px' }}
+                >
+                  {isSelectionMode ? 'Hủy' : 'Chọn nhiều'}
+                </button>
+              )}
+              {!isSelectionMode && unreadCount > 0 && (
+                <button
+                  className="mark-all-read-btn"
+                  onClick={handleMarkAllAsRead}
+                >
+                  Đánh dấu tất cả đã đọc
+                </button>
+              )}
               <button
-                className="mark-all-read-btn"
-                onClick={handleMarkAllAsRead}
+                className="close-dropdown-btn"
+                onClick={() => setShowDropdown(false)}
               >
-                Đánh dấu tất cả đã đọc
+                ×
               </button>
-            )}
-            <button
-              className="close-dropdown-btn"
-              onClick={() => setShowDropdown(false)}
-            >
-              ×
-            </button>
+            </div>
           </div>
+
+          {/* Bulk Action Bar */}
+          {isSelectionMode && selectedNotifications.size > 0 && (
+            <div className="bulk-action-bar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontWeight: '600', color: '#1E293B' }}>
+                  {selectedNotifications.size} mục đã chọn
+                </span>
+                <button
+                  onClick={selectedNotifications.size === notifications.length ? clearAll : selectAll}
+                  className="btn-select-toggle"
+                >
+                  {selectedNotifications.size === notifications.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                </button>
+              </div>
+              <button onClick={handleBulkDelete} className="btn-bulk-delete">
+                Xóa đã chọn
+              </button>
+            </div>
+          )}
 
           <div className="notifications-list">
             {loading ? (
@@ -149,56 +241,75 @@ export default function NotificationsButton({ onNotificationClick }) {
                 <p>Không có thông báo nào</p>
               </div>
             ) : (
-              notifications.map(notification => (
-                <div
-                  key={notification.id}
-                  className={`notification-item ${!notification.read ? 'unread' : ''} ${notification.postId ? 'clickable' : ''}`}
-                  onClick={() => {
-                    handleMarkAsRead(notification.id);
-                    // ✅ If has postId, navigate to post
-                    if (notification.postId && onNotificationClick) {
-                      onNotificationClick(notification.postId, notification.postType);
-                      setShowDropdown(false);
-                    }
-                  }}
-                >
-                  <div className="notification-content">
-                    <div className="notification-header-row">
-                      {notification.type === "ai_matching" && (
-                        <AIIcon className="ai-icon" style={{ fontSize: "18px", marginRight: "6px", color: "#667eea" }} />
-                      )}
-                      <h5>{notification.title}</h5>
-                      {notification.similarity && (
-                        <span className="similarity-badge">
-                          {Math.round(notification.similarity * 100)}%
-                        </span>
-                      )}
-                    </div>
-                    <p>{notification.message}</p>
-                    {notification.type === "ai_matching" && notification.matchedPost && (
-                      <div className="ai-match-preview">
-                        <div className="match-post-info">
-                          <span className="match-post-type">
-                            {notification.matchedPost.type === "found" ? "🔵 Nhặt được" : "🔴 Tìm đồ"}
+              notifications.map(notification => {
+                const isSelected = selectedNotifications.has(notification.id);
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={`notification-item ${!notification.read ? 'unread' : ''} ${notification.postId ? 'clickable' : ''} ${isSelectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        toggleNotificationSelection(notification.id);
+                      } else {
+                        handleMarkAsRead(notification.id);
+                        // ✅ If has postId, navigate to post
+                        if (notification.postId && onNotificationClick) {
+                          onNotificationClick(notification.postId, notification.postType);
+                          setShowDropdown(false);
+                        }
+                      }
+                    }}
+                  >
+                    {/* Checkbox in selection mode */}
+                    {isSelectionMode && (
+                      <input
+                        type="checkbox"
+                        className="notification-checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleNotificationSelection(notification.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginRight: '12px', cursor: 'pointer' }}
+                      />
+                    )}
+                    <div className="notification-content">
+                      <div className="notification-header-row">
+                        {notification.type === "ai_matching" && (
+                          <AIIcon className="ai-icon" style={{ fontSize: "18px", marginRight: "6px", color: "#667eea" }} />
+                        )}
+                        <h5>{notification.title}</h5>
+                        {notification.similarity && (
+                          <span className="similarity-badge">
+                            {Math.round(notification.similarity * 100)}%
                           </span>
-                          <span className="match-post-title">{notification.matchedPost.title}</span>
-                        </div>
-                        {notification.matchedPost.images && notification.matchedPost.images.length > 0 && (
-                          <img
-                            src={notification.matchedPost.images[0]}
-                            alt="Preview"
-                            className="match-post-image"
-                          />
                         )}
                       </div>
-                    )}
-                    <span className="notification-time">
-                      {notification.time ? new Date(notification.time).toLocaleString('vi-VN') : 'Vừa xong'}
-                    </span>
+                      <p>{notification.message}</p>
+                      {notification.type === "ai_matching" && notification.matchedPost && (
+                        <div className="ai-match-preview">
+                          <div className="match-post-info">
+                            <span className="match-post-type">
+                              {notification.matchedPost.type === "found" ? "🔵 Nhặt được" : "🔴 Tìm đồ"}
+                            </span>
+                            <span className="match-post-title">{notification.matchedPost.title}</span>
+                          </div>
+                          {notification.matchedPost.images && notification.matchedPost.images.length > 0 && (
+                            <img
+                              src={notification.matchedPost.images[0]}
+                              alt="Preview"
+                              className="match-post-image"
+                            />
+                          )}
+                        </div>
+                      )}
+                      <span className="notification-time">
+                        {notification.time ? new Date(notification.time).toLocaleString('vi-VN') : 'Vừa xong'}
+                      </span>
+                    </div>
+                    {!notification.read && <div className="unread-dot"></div>}
                   </div>
-                  {!notification.read && <div className="unread-dot"></div>}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

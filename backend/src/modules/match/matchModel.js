@@ -3,31 +3,42 @@ import { supabase } from '../../config/db.js';
 class MatchModel {
   /**
    * Create a new match between lost and found posts
-   * @param {string} postId
+   * @param {number} lostPostId - Integer ID of lost post
+   * @param {number} foundPostId - Integer ID of found post
    * @param {number} confidenceScore
    * @returns {Promise<Object>}
    */
-  async createMatch(postId, confidenceScore = 0.8) {
+  async createMatch(lostPostId, foundPostId, confidenceScore = 0.8) {
     try {
       const { data, error } = await supabase
         .from('Match_Post')
         .insert([{
-          Post_id: postId,
-          Confidence_score: confidenceScore,
-          Matched_at: new Date().toISOString()
+          lost_post_id: lostPostId,
+          found_post_id: foundPostId,
+          confidence_score: confidenceScore,
+          matched_at: new Date().toISOString()
         }])
         .select(`
-          Match_id,
-          Post_id,
-          Confidence_score,
-          Matched_at,
-          Post:Post_id (
-            Post_id,
-            Post_Title,
-            Post_type,
-            Item_name,
-            Status,
-            Account_id
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            post_type,
+            item_name,
+            status,
+            account_id
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            post_type,
+            item_name,
+            status,
+            account_id
           )
         `)
         .single();
@@ -51,35 +62,77 @@ class MatchModel {
 
   /**
    * Get matches by post ID
-   * @param {string} postId
+   * @param {string} postId - Format: "L55" or "F43"
    * @returns {Promise<Object>}
    */
   async getMatchesByPostId(postId) {
     try {
+      // Parse postId to determine type and numeric ID
+      const isLost = postId.startsWith('L');
+      const numericId = parseInt(postId.substring(1));
+
+      if (isNaN(numericId)) {
+        return {
+          success: false,
+          data: null,
+          error: 'Invalid post ID format'
+        };
+      }
+
       const { data, error } = await supabase
         .from('Match_Post')
         .select(`
-          Match_id,
-          Post_id,
-          Confidence_score,
-          Matched_at,
-          Post:Post_id (
-            Post_id,
-            Post_Title,
-            Post_type,
-            Item_name,
-            Status,
-            Account_id
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            status,
+            account_id
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            status,
+            account_id
           )
         `)
-        .eq('Post_id', postId)
-        .order('Matched_at', { ascending: false });
+        .eq(isLost ? 'lost_post_id' : 'found_post_id', numericId)
+        .order('matched_at', { ascending: false });
 
       if (error) throw error;
 
+      // Format response to match expected structure
+      const formattedData = (data || []).map(match => ({
+        Match_id: match.match_id,
+        Post_id: isLost ? `F${match.found_post_id}` : `L${match.lost_post_id}`,
+        Confidence_score: match.confidence_score,
+        Matched_at: match.matched_at,
+        Post: isLost ? {
+          Post_id: `F${match.found_post_id}`,
+          Post_Title: match.Found_Post?.post_title,
+          Post_type: 'found',
+          Item_name: match.Found_Post?.item_name,
+          Status: match.Found_Post?.status,
+          Account_id: match.Found_Post?.account_id
+        } : {
+          Post_id: `L${match.lost_post_id}`,
+          Post_Title: match.Lost_Post?.post_title,
+          Post_type: 'lost',
+          Item_name: match.Lost_Post?.item_name,
+          Status: match.Lost_Post?.status,
+          Account_id: match.Lost_Post?.account_id
+        }
+      }));
+
       return {
         success: true,
-        data: data || [],
+        data: formattedData,
         error: null
       };
     } catch (err) {
@@ -114,7 +167,9 @@ class MatchModel {
             item_name,
             description,
             status,
-            account_id
+            account_id,
+            location_id,
+            category_id
           ),
           Found_Post:found_post_id (
             found_post_id,
@@ -122,7 +177,9 @@ class MatchModel {
             item_name,
             description,
             status,
-            account_id
+            account_id,
+            location_id,
+            category_id
           )
         `)
         .order('matched_at', { ascending: false });
@@ -147,6 +204,9 @@ class MatchModel {
       for (const match of data) {
         // Check if user's Lost_Post matched with someone's Found_Post
         if (match.Lost_Post && match.Lost_Post.account_id === accountId && match.Found_Post) {
+          // Fetch images for the matched Found_Post
+          const imageUrls = await this._getPostImages(match.found_post_id, 'found');
+
           allMatches.push({
             Match_id: match.match_id,
             Post_id: `F${match.found_post_id}`,
@@ -160,7 +220,8 @@ class MatchModel {
               Item_name: match.Found_Post.item_name,
               Description: match.Found_Post.description,
               Status: match.Found_Post.status,
-              Account_id: match.Found_Post.account_id
+              Account_id: match.Found_Post.account_id,
+              Image_urls: imageUrls
             },
             // User's original post (for reference)
             Your_Post: {
@@ -174,6 +235,9 @@ class MatchModel {
         }
         // Check if user's Found_Post matched with someone's Lost_Post  
         else if (match.Found_Post && match.Found_Post.account_id === accountId && match.Lost_Post) {
+          // Fetch images for the matched Lost_Post
+          const imageUrls = await this._getPostImages(match.lost_post_id, 'lost');
+
           allMatches.push({
             Match_id: match.match_id,
             Post_id: `L${match.lost_post_id}`,
@@ -187,7 +251,8 @@ class MatchModel {
               Item_name: match.Lost_Post.item_name,
               Description: match.Lost_Post.description,
               Status: match.Lost_Post.status,
-              Account_id: match.Lost_Post.account_id
+              Account_id: match.Lost_Post.account_id,
+              Image_urls: imageUrls
             },
             // User's original post (for reference)
             Your_Post: {
@@ -219,6 +284,93 @@ class MatchModel {
   }
 
   /**
+   * Get match by ID
+   * @param {string} matchId
+   * @returns {Promise<Object>}
+   */
+  async getMatchById(matchId) {
+    try {
+      const { data, error } = await supabase
+        .from('Match_Post')
+        .select(`
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            description,
+            status,
+            account_id
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            description,
+            status,
+            account_id
+          )
+        `)
+        .eq('match_id', matchId)
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        return {
+          success: true,
+          data: null,
+          error: null
+        };
+      }
+
+      // Format response to match expected structure
+      const formattedData = {
+        Match_id: data.match_id,
+        lost_post_id: data.lost_post_id,
+        found_post_id: data.found_post_id,
+        Confidence_score: data.confidence_score,
+        Matched_at: data.matched_at,
+        Lost_Post: data.Lost_Post ? {
+          Post_id: `L${data.lost_post_id}`,
+          Post_Title: data.Lost_Post.post_title,
+          Post_type: 'lost',
+          Item_name: data.Lost_Post.item_name,
+          Description: data.Lost_Post.description,
+          Status: data.Lost_Post.status,
+          Account_id: data.Lost_Post.account_id
+        } : null,
+        Found_Post: data.Found_Post ? {
+          Post_id: `F${data.found_post_id}`,
+          Post_Title: data.Found_Post.post_title,
+          Post_type: 'found',
+          Item_name: data.Found_Post.item_name,
+          Description: data.Found_Post.description,
+          Status: data.Found_Post.status,
+          Account_id: data.Found_Post.account_id
+        } : null
+      };
+
+      return {
+        success: true,
+        data: formattedData,
+        error: null
+      };
+    } catch (err) {
+      console.error('Error getting match by ID:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
+  /**
    * Update match status
    * @param {string} matchId
    * @param {string} status
@@ -229,14 +381,15 @@ class MatchModel {
       const { data, error } = await supabase
         .from('Match_Post')
         .update({
-          Confidence_score: status === 'approved' ? 1.0 : 0.0
+          confidence_score: status === 'approved' ? 1.0 : 0.0
         })
-        .eq('Match_id', matchId)
+        .eq('match_id', matchId)
         .select(`
-          Match_id,
-          Post_id,
-          Confidence_score,
-          Matched_at
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at
         `)
         .single();
 
@@ -335,24 +488,31 @@ class MatchModel {
       const {
         page = 1,
         limit = 10,
-        sortBy = 'Matched_at',
+        sortBy = 'matched_at',
         sortOrder = 'desc'
       } = filters;
 
       let query = supabase
         .from('Match_Post')
         .select(`
-          Match_id,
-          Post_id,
-          Confidence_score,
-          Matched_at,
-          Post:Post_id (
-            Post_id,
-            Post_Title,
-            Post_type,
-            Item_name,
-            Status,
-            Account_id
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            status,
+            account_id
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            status,
+            account_id
           )
         `, { count: 'exact' });
 
@@ -369,9 +529,34 @@ class MatchModel {
 
       if (error) throw error;
 
+      // Format response to match expected structure
+      const formattedData = (data || []).map(match => ({
+        Match_id: match.match_id,
+        lost_post_id: match.lost_post_id,
+        found_post_id: match.found_post_id,
+        Confidence_score: match.confidence_score,
+        Matched_at: match.matched_at,
+        Lost_Post: match.Lost_Post ? {
+          Post_id: `L${match.lost_post_id}`,
+          Post_Title: match.Lost_Post.post_title,
+          Post_type: 'lost',
+          Item_name: match.Lost_Post.item_name,
+          Status: match.Lost_Post.status,
+          Account_id: match.Lost_Post.account_id
+        } : null,
+        Found_Post: match.Found_Post ? {
+          Post_id: `F${match.found_post_id}`,
+          Post_Title: match.Found_Post.post_title,
+          Post_type: 'found',
+          Item_name: match.Found_Post.item_name,
+          Status: match.Found_Post.status,
+          Account_id: match.Found_Post.account_id
+        } : null
+      }));
+
       return {
         success: true,
-        data: data || [],
+        data: formattedData,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -653,39 +838,46 @@ class MatchModel {
       for (const match of matches) {
         const { post1, post2, similarity } = match;
 
-        // Create match for post1
-        insertData.push({
-          Post_id: post1.Post_id,
-          Confidence_score: similarity,
-          Matched_at: new Date().toISOString()
-        });
+        // Extract numeric IDs from Post_id format (L55 -> 55, F43 -> 43)
+        const post1Id = parseInt(post1.Post_id.replace(/^[LF]/, ''));
+        const post2Id = parseInt(post2.Post_id.replace(/^[LF]/, ''));
 
-        // Create match for post2
+        // Determine which is lost and which is found
+        const isPost1Lost = post1.Post_type === 'lost';
+        const lostPostId = isPost1Lost ? post1Id : post2Id;
+        const foundPostId = isPost1Lost ? post2Id : post1Id;
+
+        // Create ONE match record linking both posts
         insertData.push({
-          Post_id: post2.Post_id,
-          Confidence_score: similarity,
-          Matched_at: new Date().toISOString()
+          lost_post_id: lostPostId,
+          found_post_id: foundPostId,
+          confidence_score: similarity,
+          matched_at: new Date().toISOString()
         });
       }
 
       // Check for existing matches to avoid duplicates
-      const postIds = insertData.map(m => m.Post_id);
+      const lostIds = insertData.map(m => m.lost_post_id);
+      const foundIds = insertData.map(m => m.found_post_id);
       const { data: existingMatches } = await supabase
         .from('Match_Post')
-        .select('Post_id, Matched_at')
-        .in('Post_id', postIds);
+        .select('lost_post_id, found_post_id, matched_at')
+        .in('lost_post_id', lostIds)
+        .in('found_post_id', foundIds);
 
       // Filter out matches that already exist (created in last 24 hours)
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-      const existingPostIds = new Set(
+      const existingMatchKeys = new Set(
         (existingMatches || [])
-          .filter(m => new Date(m.Matched_at) > oneDayAgo)
-          .map(m => m.Post_id)
+          .filter(m => new Date(m.matched_at) > oneDayAgo)
+          .map(m => `${m.lost_post_id}_${m.found_post_id}`)
       );
 
-      const newMatches = insertData.filter(m => !existingPostIds.has(m.Post_id));
+      const newMatches = insertData.filter(m =>
+        !existingMatchKeys.has(`${m.lost_post_id}_${m.found_post_id}`)
+      );
 
       if (newMatches.length === 0) {
         console.log('ℹ️ No new matches to create (all already exist)');
@@ -702,17 +894,26 @@ class MatchModel {
         .from('Match_Post')
         .insert(newMatches)
         .select(`
-          Match_id,
-          Post_id,
-          Confidence_score,
-          Matched_at,
-          Post:Post_id (
-            Post_id,
-            Post_Title,
-            Post_type,
-            Item_name,
-            Status,
-            Account_id
+          match_id,
+          lost_post_id,
+          found_post_id,
+          confidence_score,
+          matched_at,
+          Lost_Post:lost_post_id (
+            lost_post_id,
+            post_title,
+            item_name,
+            description,
+            status,
+            account_id
+          ),
+          Found_Post:found_post_id (
+            found_post_id,
+            post_title,
+            item_name,
+            description,
+            status,
+            account_id
           )
         `);
 
@@ -738,15 +939,23 @@ class MatchModel {
 
   /**
    * Check if a match already exists for a post
-   * @param {string} postId
+   * @param {string} postId - Format: "L55" or "F43"
    * @returns {Promise<boolean>}
    */
   async matchExists(postId) {
     try {
+      // Parse postId to determine type and numeric ID
+      const isLost = postId.startsWith('L');
+      const numericId = parseInt(postId.substring(1));
+
+      if (isNaN(numericId)) {
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('Match_Post')
-        .select('Match_id')
-        .eq('Post_id', postId)
+        .select('match_id')
+        .eq(isLost ? 'lost_post_id' : 'found_post_id', numericId)
         .limit(1);
 
       if (error) throw error;
@@ -761,7 +970,7 @@ class MatchModel {
   /**
    * Get Post IDs that already have matches (in last 24 hours)
    * Used for optimization: skip these posts in AI scanning to avoid redundant calculations
-   * @returns {Promise<Set<string>>} Set of Post IDs with existing matches
+   * @returns {Promise<Set<string>>} Set of Post IDs with existing matches (format: "L55", "F43")
    */
   async getPostIdsWithRecentMatches() {
     try {
@@ -770,13 +979,19 @@ class MatchModel {
 
       const { data, error } = await supabase
         .from('Match_Post')
-        .select('Post_id')
-        .gte('Matched_at', oneDayAgo.toISOString());
+        .select('lost_post_id, found_post_id')
+        .gte('matched_at', oneDayAgo.toISOString());
 
       if (error) throw error;
 
-      // Return as Set for O(1) lookup performance
-      return new Set((data || []).map(m => m.Post_id));
+      // Format to Post_id strings and return as Set for O(1) lookup performance
+      const postIds = new Set();
+      (data || []).forEach(match => {
+        if (match.lost_post_id) postIds.add(`L${match.lost_post_id}`);
+        if (match.found_post_id) postIds.add(`F${match.found_post_id}`);
+      });
+
+      return postIds;
     } catch (err) {
       console.error('Error getting post IDs with recent matches:', err.message);
       // Return empty Set on error - fail gracefully (will scan all posts)

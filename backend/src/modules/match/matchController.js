@@ -8,14 +8,14 @@ import aiMatchingService from '../../utils/aiMatchingService.js';
  */
 export const createMatch = async (req, res, next) => {
   try {
-    const { postId, confidenceScore = 0.8 } = req.body;
+    const { lostPostId, foundPostId, confidenceScore = 0.8 } = req.body;
     const accountId = req.user?.accountId;
 
     // Validation
-    if (!postId) {
+    if (!lostPostId || !foundPostId) {
       return res.status(400).json({
         success: false,
-        message: 'postId is required'
+        message: 'lostPostId and foundPostId are required'
       });
     }
 
@@ -26,8 +26,23 @@ export const createMatch = async (req, res, next) => {
       });
     }
 
+    // Parse IDs if they come as strings (L55, F43) or use as integers
+    const lostId = typeof lostPostId === 'string' && lostPostId.startsWith('L') 
+      ? parseInt(lostPostId.substring(1)) 
+      : parseInt(lostPostId);
+    const foundId = typeof foundPostId === 'string' && foundPostId.startsWith('F') 
+      ? parseInt(foundPostId.substring(1)) 
+      : parseInt(foundPostId);
+
+    if (isNaN(lostId) || isNaN(foundId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid post ID format'
+      });
+    }
+
     // Create match
-    const result = await matchModel.createMatch(postId, confidenceScore);
+    const result = await matchModel.createMatch(lostId, foundId, confidenceScore);
 
     if (!result.success) {
       return res.status(500).json({
@@ -40,13 +55,26 @@ export const createMatch = async (req, res, next) => {
     // Create notifications for post owners
     try {
       const match = result.data;
+      const notificationModel = (await import('../notification/notificationModel.js')).default;
 
-      // Notify post owner if it's not the current user
-      if (match.Post?.Account_id && match.Post.Account_id !== accountId) {
+      // Notify lost post owner if it's not the current user
+      if (match.Lost_Post?.Account_id && match.Lost_Post.Account_id !== accountId) {
         await notificationModel.createNotification(
-          match.Post.Account_id,
-          'AI_Match',
-          `AI found a potential match for your post: ${match.Post.Post_Title}`,
+          match.Lost_Post.Account_id,
+          'match',
+          `AI found a potential match for your lost post: ${match.Lost_Post.Post_Title}`,
+          `/posts/lost/${lostId}`,
+          match.Match_id
+        );
+      }
+
+      // Notify found post owner if it's not the current user
+      if (match.Found_Post?.Account_id && match.Found_Post.Account_id !== accountId) {
+        await notificationModel.createNotification(
+          match.Found_Post.Account_id,
+          'match',
+          `AI found a potential match for your found post: ${match.Found_Post.Post_Title}`,
+          `/posts/found/${foundId}`,
           match.Match_id
         );
       }
@@ -536,35 +564,70 @@ export async function performSinglePostScan(postId, postType) {
 
     // Send notifications to users
     const notificationModel = (await import('../notification/notificationModel.js')).default;
-    const { getSocketIO } = await import('../../socket/socket.js');
-    const io = getSocketIO();
+
+    // Socket layer is optional; if socket server isn't initialized,
+    // still continue with DB notifications instead of failing the whole flow.
+    let io = null;
+    try {
+      const socketModule = await import('../../socket/socket.js');
+      io = socketModule?.getSocketIO?.();
+    } catch (socketError) {
+      console.warn('⚠️ Socket server not available, skipping realtime notifications:', socketError.message);
+    }
 
     let notificationCount = 0;
 
     for (const match of createdMatches) {
-      if (match.Post && match.Post.Account_id) {
-        const accountId = match.Post.Account_id;
+      // Notify both users: lost post owner and found post owner
+      const lostPost = match.Lost_Post;
+      const foundPost = match.Found_Post;
 
-        // Create notification
-        await notificationModel.createNotification({
-          account_id: accountId,
-          type: 'match',
-          title: 'Tìm thấy kết quả phù hợp!',
-          message: `AI đã tìm thấy bài đăng phù hợp với "${match.Post.Post_Title}"`,
-          data: {
-            match_id: match.Match_id,
-            post_id: match.Post_id,
-            confidence_score: match.Confidence_score
-          }
-        });
+      // Notify lost post owner about found post
+      if (lostPost && lostPost.account_id) {
+        const lostAccountId = lostPost.account_id;
+        const foundPostId = foundPost?.found_post_id;
+        
+        await notificationModel.createNotification(
+          lostAccountId,
+          'match',
+          `AI đã tìm thấy bài đăng phù hợp: "${foundPost?.post_title || 'Đồ nhặt được'}"`,
+          foundPostId ? `/posts/found/${foundPostId}` : '',
+          match.match_id
+        );
 
-        // Send real-time notification
-        io.to(`user_${accountId}`).emit('new_notification', {
-          type: 'match',
-          title: 'Tìm thấy kết quả phù hợp!',
-          message: `AI đã tìm thấy bài đăng phù hợp với "${match.Post.Post_Title}"`,
-          match_id: match.Match_id
-        });
+        if (io) {
+          io.to(`user_${lostAccountId}`).emit('new_notification', {
+            type: 'match',
+            title: 'Tìm thấy kết quả phù hợp!',
+            message: `AI đã tìm thấy bài đăng phù hợp: "${foundPost?.post_title || 'Đồ nhặt được'}"`,
+            match_id: match.match_id
+          });
+        }
+
+        notificationCount++;
+      }
+
+      // Notify found post owner about lost post
+      if (foundPost && foundPost.account_id) {
+        const foundAccountId = foundPost.account_id;
+        const lostPostId = lostPost?.lost_post_id;
+        
+        await notificationModel.createNotification(
+          foundAccountId,
+          'match',
+          `AI đã tìm thấy bài đăng phù hợp: "${lostPost?.post_title || 'Đồ mất'}"`,
+          lostPostId ? `/posts/lost/${lostPostId}` : '',
+          match.match_id
+        );
+
+        if (io) {
+          io.to(`user_${foundAccountId}`).emit('new_notification', {
+            type: 'match',
+            title: 'Tìm thấy kết quả phù hợp!',
+            message: `AI đã tìm thấy bài đăng phù hợp: "${lostPost?.post_title || 'Đồ mất'}"`,
+            match_id: match.match_id
+          });
+        }
 
         notificationCount++;
       }

@@ -7,16 +7,30 @@
  */
 
 import { pipeline } from '@xenova/transformers';
-import geminiImageService from './geminiImageService.js';
+import clipImageService from './clipImageService.js';
 
-// Model hỗ trợ ONNX tốt với @xenova/transformers
-const MODEL_NAME = "Xenova/all-MiniLM-L6-v2";
-const SIMILARITY_THRESHOLD = 0.3; // 30% similarity threshold
+// Model tốt hơn cho semantic understanding và multilingual support
+// Options:
+// - "Xenova/all-mpnet-base-v2" - Best for English semantic similarity (384-dim)
+// - "Xenova/paraphrase-multilingual-mpnet-base-v2" - Best for multilingual (768-dim, supports Vietnamese)
+// - "Xenova/multilingual-e5-large" - Very good for multilingual but larger
+const MODEL_NAME = "Xenova/paraphrase-multilingual-mpnet-base-v2"; // Upgraded for better semantic understanding
+const SIMILARITY_THRESHOLD = 0.45; // 45% similarity threshold (increased for better accuracy)
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Weights for combining text and image similarity
-const TEXT_WEIGHT = 0.5; // 50% weight for text
-const IMAGE_WEIGHT = 0.5; // 50% weight for image
+const TEXT_WEIGHT = 0.6; // 60% weight for text (increased importance)
+const IMAGE_WEIGHT = 0.4; // 40% weight for image
+
+// Text component weights (for better semantic matching)
+const TITLE_WEIGHT = 0.4; // Title is most important
+const ITEM_NAME_WEIGHT = 0.3; // Item name is second most important
+const DESCRIPTION_WEIGHT = 0.2; // Description adds context
+const LOCATION_WEIGHT = 0.05; // Location is less important
+const CATEGORY_WEIGHT = 0.05; // Category is least important
+
+// Minimum text similarity required (to avoid false positives from image-only matches)
+const MIN_TEXT_SIMILARITY = 0.35; // Minimum 35% text similarity required
 
 class AIMatchingService {
   constructor() {
@@ -42,16 +56,29 @@ class AIMatchingService {
     // Tạo promise mới để khởi tạo
     this.initPromise = (async () => {
       try {
-        console.log("🤖 Đang tải AI model...");
+        console.log(`🤖 Đang tải AI model: ${MODEL_NAME}...`);
+        console.log(`📊 Model này hỗ trợ semantic understanding tốt hơn và multilingual (bao gồm tiếng Việt)`);
         this.extractor = await pipeline('feature-extraction', MODEL_NAME, {
           quantized: true, // Sử dụng quantized version để nhanh hơn
         });
         this.isInitialized = true;
-        console.log("✅ AI model đã được tải thành công!");
+        console.log(`✅ AI model đã được tải thành công: ${MODEL_NAME}`);
+        console.log(`🎯 Similarity threshold: ${(SIMILARITY_THRESHOLD * 100).toFixed(0)}%`);
       } catch (error) {
         console.error("❌ Lỗi khi tải AI model:", error);
-        this.initPromise = null;
-        throw error;
+        console.error("💡 Fallback: Đang thử model cũ...");
+        // Fallback to smaller model if main model fails
+        try {
+          this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+            quantized: true,
+          });
+          this.isInitialized = true;
+          console.log("✅ Fallback model loaded: Xenova/all-MiniLM-L6-v2");
+        } catch (fallbackError) {
+          console.error("❌ Fallback model cũng thất bại:", fallbackError);
+          this.initPromise = null;
+          throw error;
+        }
       }
     })();
 
@@ -113,20 +140,66 @@ class AIMatchingService {
   }
 
   /**
-   * Tạo text mô tả từ post để so sánh
+   * Normalize text: remove special chars, normalize spaces, lowercase
+   * @param {string} text - Text to normalize
+   * @returns {string} - Normalized text
+   */
+  normalizeText(text) {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .normalize('NFD') // Normalize Vietnamese diacritics
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics for better matching
+      .replace(/[^\w\s]/g, ' ') // Replace special chars with space
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
+  }
+
+  /**
+   * Tạo text mô tả từ post để so sánh với weights khác nhau
    * @param {Object} post - Post object
-   * @returns {string} - Combined text
+   * @returns {string} - Combined text with weighted repetition
    */
   createPostText(post) {
     const parts = [];
 
-    if (post.Post_Title) parts.push(post.Post_Title);
-    if (post.Item_name) parts.push(post.Item_name);
-    if (post.Description) parts.push(post.Description);
-    if (post.Location_name) parts.push(post.Location_name);
-    if (post.Category_name) parts.push(post.Category_name);
+    // Title is most important - repeat it more
+    if (post.Post_Title) {
+      const normalizedTitle = this.normalizeText(post.Post_Title);
+      // Repeat title based on weight (more repetitions = more importance)
+      const titleRepetitions = Math.ceil(TITLE_WEIGHT * 10);
+      for (let i = 0; i < titleRepetitions; i++) {
+        parts.push(normalizedTitle);
+      }
+    }
 
-    return parts.join(' ').toLowerCase();
+    // Item name is second most important
+    if (post.Item_name) {
+      const normalizedItem = this.normalizeText(post.Item_name);
+      const itemRepetitions = Math.ceil(ITEM_NAME_WEIGHT * 10);
+      for (let i = 0; i < itemRepetitions; i++) {
+        parts.push(normalizedItem);
+      }
+    }
+
+    // Description adds context
+    if (post.Description) {
+      const normalizedDesc = this.normalizeText(post.Description);
+      const descRepetitions = Math.ceil(DESCRIPTION_WEIGHT * 10);
+      for (let i = 0; i < descRepetitions; i++) {
+        parts.push(normalizedDesc);
+      }
+    }
+
+    // Location and category are less important
+    if (post.Location_name) {
+      parts.push(this.normalizeText(post.Location_name));
+    }
+    if (post.Category_name) {
+      parts.push(this.normalizeText(post.Category_name));
+    }
+
+    return parts.join(' ');
   }
 
   /**
@@ -154,17 +227,20 @@ class AIMatchingService {
       for (let i = 0; i < recentPosts.length; i++) {
         const post1 = recentPosts[i];
 
-        // Chỉ xét các bài đăng approved
-        if (post1.Status !== 'approved') continue;
+        // Chỉ xét các bài đăng approved (case-insensitive)
+        if ((post1.Status || '').toLowerCase() !== 'approved') continue;
 
         for (let j = i + 1; j < recentPosts.length; j++) {
           const post2 = recentPosts[j];
 
-          // Chỉ xét các bài đăng approved
-          if (post2.Status !== 'approved') continue;
+          // Chỉ xét các bài đăng approved (case-insensitive)
+          if ((post2.Status || '').toLowerCase() !== 'approved') continue;
 
           // Chỉ match giữa "lost" và "found"
           if (post1.Post_type === post2.Post_type) continue;
+
+          // Skip nếu cùng account (không match với chính mình)
+          if (post1.Account_id === post2.Account_id) continue;
 
           // Tạo text để so sánh
           const text1 = this.createPostText(post1);
@@ -180,23 +256,34 @@ class AIMatchingService {
 
           if (hasImages1 && hasImages2) {
             try {
-              imageSimilarity = await geminiImageService.analyzeImageSimilarity(post1, post2);
+              console.log(`🖼️ Using CLIP for images (${post1.Image_urls.length} x ${post2.Image_urls.length})`);
+              imageSimilarity = await clipImageService.analyzeImageSimilarity(post1, post2);
             } catch (error) {
-              console.error('❌ Error calculating image similarity:', error);
+              console.error('❌ Error calculating image similarity (CLIP):', error);
               // Continue with text similarity only
             }
+          } else {
+            console.log('ℹ️ Skipping image similarity (one or both posts have no images)');
           }
 
-          // Kết hợp scores
+          // Kết hợp scores với weights
           let finalSimilarity;
           if (hasImages1 && hasImages2) {
             // Có cả text và image: weighted average
             finalSimilarity = (textSimilarity * TEXT_WEIGHT) + (imageSimilarity * IMAGE_WEIGHT);
             console.log(`📝 "${post1.Post_Title}" vs "${post2.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}%, Image: ${(imageSimilarity * 100).toFixed(2)}%, Final: ${(finalSimilarity * 100).toFixed(2)}%`);
           } else {
-            // Chỉ có text: dùng text similarity
+            // Chỉ có text: dùng text similarity trực tiếp
             finalSimilarity = textSimilarity;
             console.log(`📝 "${post1.Post_Title}" vs "${post2.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}% (no images)`);
+          }
+
+          // Additional filtering: Text similarity must be above a minimum threshold
+          // even if combined score passes (to avoid false positives from image-only matches)
+          const MIN_TEXT_SIMILARITY = 0.35; // Minimum 35% text similarity required
+          if (textSimilarity < MIN_TEXT_SIMILARITY) {
+            console.log(`⚠️ Skipping match: Text similarity ${(textSimilarity * 100).toFixed(2)}% below minimum ${(MIN_TEXT_SIMILARITY * 100).toFixed(0)}%`);
+            continue;
           }
 
           // Nếu điểm tương đồng > threshold, thêm vào matches
@@ -265,20 +352,32 @@ class AIMatchingService {
 
         if (hasImages1 && hasImages2) {
           try {
-            imageSimilarity = await geminiImageService.analyzeImageSimilarity(newPost, existingPost);
+            console.log(`🖼️ Using CLIP for images (${newPost.Image_urls.length} x ${existingPost.Image_urls.length})`);
+            imageSimilarity = await clipImageService.analyzeImageSimilarity(newPost, existingPost);
           } catch (error) {
-            console.error('❌ Error calculating image similarity:', error);
+            console.error('❌ Error calculating image similarity (CLIP):', error);
           }
+        } else {
+          console.log('ℹ️ Skipping image similarity (one or both posts have no images)');
         }
 
-        // Kết hợp scores
+        // Kết hợp scores với weights
         let finalSimilarity;
         if (hasImages1 && hasImages2) {
+          // Có cả text và image: weighted average
           finalSimilarity = (textSimilarity * TEXT_WEIGHT) + (imageSimilarity * IMAGE_WEIGHT);
           console.log(`📝 "${newPost.Post_Title}" vs "${existingPost.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}%, Image: ${(imageSimilarity * 100).toFixed(2)}%, Final: ${(finalSimilarity * 100).toFixed(2)}%`);
         } else {
+          // Chỉ có text: dùng text similarity trực tiếp
           finalSimilarity = textSimilarity;
           console.log(`📝 "${newPost.Post_Title}" vs "${existingPost.Post_Title}" => Text: ${(textSimilarity * 100).toFixed(2)}% (no images)`);
+        }
+
+        // Additional filtering: Text similarity must be above a minimum threshold
+        // even if combined score passes (to avoid false positives from image-only matches)
+        if (textSimilarity < MIN_TEXT_SIMILARITY) {
+          console.log(`⚠️ Skipping match: Text similarity ${(textSimilarity * 100).toFixed(2)}% below minimum ${(MIN_TEXT_SIMILARITY * 100).toFixed(0)}%`);
+          continue;
         }
 
         // Nếu điểm tương đồng > threshold, thêm vào matches
