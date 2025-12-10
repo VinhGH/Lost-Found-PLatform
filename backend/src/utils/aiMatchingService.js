@@ -23,11 +23,12 @@ const TEXT_WEIGHT = 0.6; // 60% weight for text (increased importance)
 const IMAGE_WEIGHT = 0.4; // 40% weight for image
 
 // Text component weights (for better semantic matching)
-const TITLE_WEIGHT = 0.4; // Title is most important
-const ITEM_NAME_WEIGHT = 0.3; // Item name is second most important
-const DESCRIPTION_WEIGHT = 0.2; // Description adds context
-const LOCATION_WEIGHT = 0.05; // Location is less important
-const CATEGORY_WEIGHT = 0.05; // Category is least important
+// ✅ Increased title weight for better exact matching
+const TITLE_WEIGHT = 0.65; // Title is most important (increased from 0.4)
+const ITEM_NAME_WEIGHT = 0.2; // Item name is second most important (decreased from 0.3)
+const DESCRIPTION_WEIGHT = 0.1; // Description adds context (decreased from 0.2)
+const LOCATION_WEIGHT = 0.025; // Location is less important
+const CATEGORY_WEIGHT = 0.025; // Category is least important
 
 // Minimum text similarity required (to avoid false positives from image-only matches)
 const MIN_TEXT_SIMILARITY = 0.35; // Minimum 35% text similarity required
@@ -334,6 +335,8 @@ class AIMatchingService {
 
       // So sánh với từng bài đăng đối nghịch
       for (const existingPost of existingPosts) {
+        console.log(`🔍 Comparing with: "${existingPost.Post_Title}" (ID: ${existingPost.Post_id})`);
+
         // Skip nếu cùng loại (safety check)
         if (newPost.Post_type === existingPost.Post_type) continue;
 
@@ -343,7 +346,35 @@ class AIMatchingService {
         const existingPostText = this.createPostText(existingPost);
 
         // Tính text similarity
-        const textSimilarity = await this.calculateTextSimilarity(newPostText, existingPostText);
+        let textSimilarity = await this.calculateTextSimilarity(newPostText, existingPostText);
+        console.log(`  📊 Raw text similarity: ${(textSimilarity * 100).toFixed(2)}%`);
+
+        // ✅ Keyword-based boosting for exact matches
+        // Extract significant keywords (length > 3 to avoid common words)
+        const extractKeywords = (text) => {
+          return text.split(' ')
+            .filter(word => word.length > 3)
+            .map(word => word.toLowerCase().trim());
+        };
+
+        const keywords1 = extractKeywords(newPost.Post_Title || '');
+        const keywords2 = extractKeywords(existingPost.Post_Title || '');
+        console.log(`  🔑 Keywords1: [${keywords1.join(', ')}]`);
+        console.log(`  🔑 Keywords2: [${keywords2.join(', ')}]`);
+
+        const commonKeywords = keywords1.filter(k => keywords2.includes(k));
+        console.log(`  ✅ Common keywords: [${commonKeywords.join(', ')}] (${commonKeywords.length})`);
+
+        // If titles share significant keywords, boost similarity
+        if (commonKeywords.length >= 2) {
+          // Strong keyword match - boost significantly
+          textSimilarity = Math.max(textSimilarity, 0.85);
+          console.log(`🎯 Strong keyword match (${commonKeywords.length} keywords): [${commonKeywords.join(', ')}] - Boosted to ${(textSimilarity * 100).toFixed(2)}%`);
+        } else if (commonKeywords.length === 1) {
+          // Moderate keyword match - boost moderately
+          textSimilarity = Math.max(textSimilarity, 0.70);
+          console.log(`🎯 Moderate keyword match: [${commonKeywords.join(', ')}] - Boosted to ${(textSimilarity * 100).toFixed(2)}%`);
+        }
 
         // Tính image similarity (nếu có ảnh)
         let imageSimilarity = 0;

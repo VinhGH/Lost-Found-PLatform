@@ -56,12 +56,68 @@
   margin: 0;
 }
 
+/* Matches Section Container */
+.matches-section {
+  margin-bottom: 48px;
+}
+
+.matches-section:last-child {
+  margin-bottom: 0;
+}
+
+/* High-Match Section Background */
+.matches-section:has(.high-match-header) {
+  background: linear-gradient(to bottom, #FFFBEB 0%, #FEF3C7 100%);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #FDE68A;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.section-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header.high-match-header h3 {
+  color: #F97316;
+}
+
+.section-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.high-match-header .section-count {
+  background: #FFF7ED;
+  color: #F97316;
+}
+
 /* Matches List */
 .matches-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 400px));
   gap: 30px;
   margin-bottom: 40px;
+  justify-content: space-evenly;
 }
 
 /* Match Card - Post Card Style */
@@ -78,6 +134,18 @@
 .match-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+}
+
+/* High Match Card (>= 80%) - Orange Highlight */
+.match-card.high-match {
+  border: 2px solid #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  background: linear-gradient(to bottom, #FFF7ED 0%, white 100%);
+}
+
+.match-card.high-match:hover {
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2), 0 8px 20px rgba(249, 115, 22, 0.15);
+  transform: translateY(-3px);
 }
 
 /* Image Section */
@@ -115,6 +183,12 @@
 .match-badge::before {
   content: '✓';
   margin-right: 4px;
+}
+
+/* High Match Badge - Orange */
+.high-match .match-badge {
+  background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
 }
 
 /* Checkbox Wrapper in Selection Mode */

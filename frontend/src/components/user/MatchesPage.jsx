@@ -40,8 +40,15 @@ const MatchesPage = ({ user, onNavigateToChat, onNavigateToPost }) => {
 
             if (response.success) {
                 const matchesData = response.data || [];
-                console.log('✅ Loaded matches:', matchesData);
-                setMatches(matchesData);
+
+                // ✅ Filter matches: only show those with confidence >= 60%
+                const filteredMatches = matchesData.filter(match => {
+                    const confidence = match.Confidence_score || 0;
+                    return confidence >= 0.6; // Use 0.6 for decimal format (60%)
+                });
+
+                console.log('✅ Loaded matches:', matchesData.length, '→ Filtered (≥60%):', filteredMatches.length);
+                setMatches(filteredMatches);
             } else {
                 setError(response.error || 'Failed to load matches');
                 setMatches([]);
@@ -184,6 +191,123 @@ const MatchesPage = ({ user, onNavigateToChat, onNavigateToPost }) => {
         }
     };
 
+    // Helper function to render a single match card
+    const renderMatchCard = (match, isHighMatch = false) => {
+        const isSelected = selectedMatches.has(match.Match_id);
+        const matchImages = getMatchImages(match);
+
+        return (
+            <div
+                key={match.Match_id}
+                className={`match-card ${isSelectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''} ${isHighMatch ? 'high-match' : ''}`}
+                onClick={() => isSelectionMode && toggleMatchSelection(match.Match_id)}
+            >
+                {/* Image Section */}
+                <div className="match-image-wrapper">
+                    {matchImages.length > 0 ? (
+                        <ImageCarousel images={matchImages} postId={match.Match_id} />
+                    ) : (
+                        <div className="match-no-image">
+                            <PersonIcon style={{ fontSize: '48px', color: '#CBD5E1' }} />
+                        </div>
+                    )}
+                    <div className="match-badge">
+                        {Math.round((match.Confidence_score || 0) * 100)}% Match
+                    </div>
+                    {/* Checkbox in selection mode */}
+                    {isSelectionMode && (
+                        <div className="match-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                className="match-checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleMatchSelection(match.Match_id)}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Content Section */}
+                <div className="match-content">
+                    <h3 className="match-title">{match.Post?.Post_Title || 'Bài đăng'}</h3>
+                    <p className="match-description">
+                        {match.Post?.Description || 'Không có mô tả'}
+                    </p>
+
+                    {/* Meta Information */}
+                    <div className="match-meta">
+                        {match.Post?.Location_name && (
+                            <div className="meta-item">
+                                <LocationIcon style={{ fontSize: '14px' }} />
+                                <span className="meta-text">{match.Post.Location_name}</span>
+                            </div>
+                        )}
+                        {match.Post?.Category_name && (
+                            <div className="meta-item">
+                                <LabelIcon style={{ fontSize: '14px' }} />
+                                <span className="meta-text">{match.Post.Category_name}</span>
+                            </div>
+                        )}
+                        <div className="meta-item">
+                            <TimeIcon style={{ fontSize: '14px' }} />
+                            <span className="meta-text">{formatDate(match.Matched_at)}</span>
+                        </div>
+                        <div className="meta-item">
+                            <PersonIcon style={{ fontSize: '14px' }} />
+                            <span className="meta-text">
+                                {match.Post?.Post_type === 'lost' ? 'Đồ mất' : 'Đồ nhặt được'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Your Post Reference */}
+                    {match.Your_Post && (
+                        <div className="your-post-ref">
+                            ↳ Khớp với: <strong>"{match.Your_Post.Post_Title}"</strong>
+                        </div>
+                    )}
+
+                    <div className="match-actions">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewPost(match);
+                            }}
+                            className="btn-view"
+                            title="Xem bài đăng"
+                        >
+                            Xem chi tiết
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleChatWithMatch(match);
+                            }}
+                            className="btn-chat"
+                            title="Chat với người đăng"
+                        >
+                            Nhắn tin
+                        </button>
+                        {/* Hide delete button in selection mode */}
+                        {!isSelectionMode && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteMatch(match.Match_id);
+                                }}
+                                className="btn-delete"
+                                title="Xóa match này"
+                            >
+                                Xóa
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <div className="matches-page">
@@ -207,6 +331,10 @@ const MatchesPage = ({ user, onNavigateToChat, onNavigateToPost }) => {
             </div>
         );
     }
+
+    // Split matches into high-confidence and regular
+    const highMatches = matches.filter(m => (m.Confidence_score || 0) * 100 >= 80);
+    const regularMatches = matches.filter(m => (m.Confidence_score || 0) * 100 < 80);
 
     return (
         <div className="matches-page">
@@ -271,123 +399,35 @@ const MatchesPage = ({ user, onNavigateToChat, onNavigateToPost }) => {
                     <p>AI sẽ tự động quét và tìm các bài đăng phù hợp mỗi giờ.</p>
                 </div>
             ) : (
-                <div className="matches-list">
-                    {matches.map((match) => {
-                        const isSelected = selectedMatches.has(match.Match_id);
-                        const matchImages = getMatchImages(match);
-
-                        return (
-                            <div
-                                key={match.Match_id}
-                                className={`match-card ${isSelectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`}
-                                onClick={() => isSelectionMode && toggleMatchSelection(match.Match_id)}
-                            >
-                                {/* Image Section */}
-                                <div className="match-image-wrapper">
-                                    {matchImages.length > 0 ? (
-                                        <ImageCarousel images={matchImages} postId={match.Match_id} />
-                                    ) : (
-                                        <div className="match-no-image">
-                                            <PersonIcon style={{ fontSize: '48px', color: '#CBD5E1' }} />
-                                        </div>
-                                    )}
-                                    <div className="match-badge">
-                                        {Math.round((match.Confidence_score || 0) * 100)}% Match
-                                    </div>
-                                    {/* Checkbox in selection mode */}
-                                    {isSelectionMode && (
-                                        <div className="match-checkbox-wrapper">
-                                            <input
-                                                type="checkbox"
-                                                className="match-checkbox"
-                                                checked={isSelected}
-                                                onChange={() => toggleMatchSelection(match.Match_id)}
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Content Section */}
-                                <div className="match-content">
-                                    <h3 className="match-title">{match.Post?.Post_Title || 'Bài đăng'}</h3>
-                                    <p className="match-description">
-                                        {match.Post?.Description || 'Không có mô tả'}
-                                    </p>
-
-                                    {/* Meta Information */}
-                                    <div className="match-meta">
-                                        {match.Post?.Location_name && (
-                                            <div className="meta-item">
-                                                <LocationIcon style={{ fontSize: '14px' }} />
-                                                <span className="meta-text">{match.Post.Location_name}</span>
-                                            </div>
-                                        )}
-                                        {match.Post?.Category_name && (
-                                            <div className="meta-item">
-                                                <LabelIcon style={{ fontSize: '14px' }} />
-                                                <span className="meta-text">{match.Post.Category_name}</span>
-                                            </div>
-                                        )}
-                                        <div className="meta-item">
-                                            <TimeIcon style={{ fontSize: '14px' }} />
-                                            <span className="meta-text">{formatDate(match.Matched_at)}</span>
-                                        </div>
-                                        <div className="meta-item">
-                                            <PersonIcon style={{ fontSize: '14px' }} />
-                                            <span className="meta-text">
-                                                {match.Post?.Post_type === 'lost' ? 'Đồ mất' : 'Đồ nhặt được'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Your Post Reference */}
-                                    {match.Your_Post && (
-                                        <div className="your-post-ref">
-                                            ↳ Khớp với: <strong>"{match.Your_Post.Post_Title}"</strong>
-                                        </div>
-                                    )}
-
-                                    <div className="match-actions">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleViewPost(match);
-                                            }}
-                                            className="btn-view"
-                                            title="Xem bài đăng"
-                                        >
-                                            Xem chi tiết
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleChatWithMatch(match);
-                                            }}
-                                            className="btn-chat"
-                                            title="Chat với người đăng"
-                                        >
-                                            Nhắn tin
-                                        </button>
-                                        {/* Hide delete button in selection mode */}
-                                        {!isSelectionMode && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteMatch(match.Match_id);
-                                                }}
-                                                className="btn-delete"
-                                                title="Xóa match này"
-                                            >
-                                                ×
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                <>
+                    {/* High Confidence Matches Section (>= 80%) */}
+                    {highMatches.length > 0 && (
+                        <div className="matches-section">
+                            <div className="section-header high-match-header">
+                                <h3>🔥 Bài đăng phù hợp nhất</h3>
+                                <span className="section-count">{highMatches.length} kết quả</span>
                             </div>
-                        );
-                    })}
-                </div>
+                            <div className="matches-list">
+                                {highMatches.map(match => renderMatchCard(match, true))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Regular Matches Section (< 80%) */}
+                    {regularMatches.length > 0 && (
+                        <div className="matches-section">
+                            {highMatches.length > 0 && (
+                                <div className="section-header">
+                                    <h3>Các kết quả khác</h3>
+                                    <span className="section-count">{regularMatches.length} kết quả</span>
+                                </div>
+                            )}
+                            <div className="matches-list">
+                                {regularMatches.map(match => renderMatchCard(match, false))}
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

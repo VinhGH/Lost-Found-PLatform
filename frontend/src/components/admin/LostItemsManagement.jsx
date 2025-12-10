@@ -32,6 +32,7 @@ const LostItemsManagement = ({ onPostChange }) => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSelectionMode, setIsSelectionMode] = useState(false); // ✅ New selection mode state
 
   // ✅ Load posts từ API (admin sẽ thấy tất cả bài pending)
   const loadPosts = async (skipIfLoading = true) => {
@@ -79,9 +80,8 @@ const LostItemsManagement = ({ onPostChange }) => {
         // Sử dụng Map với key là `${type}-${id}` để đảm bảo unique
         const uniquePostsMap = new Map();
         pendingPosts.forEach((post) => {
-          const uniqueKey = `${post.type || "unknown"}-${
-            post.id || post.post_id || "unknown"
-          }`;
+          const uniqueKey = `${post.type || "unknown"}-${post.id || post.post_id || "unknown"
+            }`;
           if (!uniquePostsMap.has(uniqueKey)) {
             uniquePostsMap.set(uniqueKey, post);
           } else {
@@ -211,6 +211,95 @@ const LostItemsManagement = ({ onPostChange }) => {
     }
   };
 
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedPosts([]); // Reset selection when toggling
+  };
+
+  const clearSelection = () => {
+    setSelectedPosts([]);
+  };
+
+  // ✅ Xử lý duyệt nhiều bài cùng lúc
+  const handleBulkApprove = async () => {
+    if (!window.confirm(`Bạn có chắc muốn duyệt ${selectedPosts.length} bài đăng đã chọn?`)) {
+      return;
+    }
+
+    try {
+      const promises = selectedPosts.map(postId => {
+        const post = posts.find(p => p.id === postId);
+        if (!post) return Promise.resolve();
+        // Return promise of the API call
+        return httpClient.patch(
+          `/posts/${postId}/approve?type=${post.type}`,
+          {},
+          {},
+          { preferAdmin: true }
+        );
+      });
+
+      // Execute all requests
+      await Promise.all(promises);
+
+      alert(`✅ Đã duyệt ${selectedPosts.length} bài đăng!`);
+
+      // Reset & Reload
+      setSelectedPosts([]);
+      setIsSelectionMode(false);
+      loadPosts(false);
+
+      // Dispatch update event
+      window.dispatchEvent(
+        new CustomEvent("postsUpdated", {
+          detail: { action: "bulk_approve", count: selectedPosts.length }
+        })
+      );
+
+    } catch (error) {
+      console.error("❌ Bulk approve error:", error);
+      alert("❌ Có lỗi xảy ra khi duyệt nhiều bài.");
+    }
+  };
+
+  // ✅ Xử lý xóa nhiều bài cùng lúc
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`⚠️ CẢNH BÁO: Bạn có chắc muốn XÓA VĨNH VIỄN ${selectedPosts.length} bài đăng đã chọn? Hành động này không thể hoàn tác!`)) {
+      return;
+    }
+
+    try {
+      const promises = selectedPosts.map(postId => {
+        const post = posts.find(p => p.id === postId);
+        if (!post) return Promise.resolve();
+        return httpClient.delete(
+          `/posts/${postId}`,
+          { type: post.type },
+          {},
+          { preferAdmin: true }
+        );
+      });
+
+      await Promise.all(promises);
+
+      alert(`✅ Đã xóa ${selectedPosts.length} bài đăng!`);
+
+      setSelectedPosts([]);
+      setIsSelectionMode(false);
+      loadPosts(false);
+
+      window.dispatchEvent(
+        new CustomEvent("postsUpdated", {
+          detail: { action: "bulk_delete", count: selectedPosts.length }
+        })
+      );
+
+    } catch (error) {
+      console.error("❌ Bulk delete error:", error);
+      alert("❌ Có lỗi xảy ra khi xóa nhiều bài.");
+    }
+  };
+
   // ✅ Duyệt bài đăng qua API
   const handleApprovePost = async (postId) => {
     try {
@@ -334,12 +423,10 @@ const LostItemsManagement = ({ onPostChange }) => {
         // ✅ Xóa bài đăng khỏi state ngay lập tức (optimistic update)
         setPosts((prevPosts) =>
           prevPosts.filter((p) => {
-            const uniqueKey = `${p.type || "unknown"}-${
-              p.id || p.post_id || "unknown"
-            }`;
-            const deletedKey = `${postToDelete.type || "unknown"}-${
-              postId || "unknown"
-            }`;
+            const uniqueKey = `${p.type || "unknown"}-${p.id || p.post_id || "unknown"
+              }`;
+            const deletedKey = `${postToDelete.type || "unknown"}-${postId || "unknown"
+              }`;
             return uniqueKey !== deletedKey;
           })
         );
@@ -391,7 +478,7 @@ const LostItemsManagement = ({ onPostChange }) => {
       console.error("❌ Lỗi khi xóa bài đăng:", error);
       alert(
         "❌ Có lỗi xảy ra khi xóa bài đăng: " +
-          (error.message || "Lỗi không xác định")
+        (error.message || "Lỗi không xác định")
       );
     }
   };
@@ -448,6 +535,12 @@ const LostItemsManagement = ({ onPostChange }) => {
             <span className="stat-number">{posts.length}</span>
             <span className="stat-label">Bài cần duyệt</span>
           </div>
+          <button
+            className={`btn-select-mode ${isSelectionMode ? 'active' : ''}`}
+            onClick={toggleSelectionMode}
+          >
+            {isSelectionMode ? 'Hủy chọn' : 'Chọn nhiều'}
+          </button>
         </div>
       </div>
 
@@ -479,140 +572,183 @@ const LostItemsManagement = ({ onPostChange }) => {
         </div>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div
-          className="loading-state"
-          style={{ textAlign: "center", padding: "40px" }}
-        >
-          <p>Đang tải bài đăng chờ duyệt...</p>
+      {/* ✅ Bulk Action Bar */}
+      {isSelectionMode && (
+        <div className="bulk-action-bar-admin">
+          <div className="bulk-info">
+            <span className="selected-count">{selectedPosts.length} đã chọn</span>
+            <button className="btn-text" onClick={handleSelectAll}>
+              {selectedPosts.length === filteredPosts.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+            </button>
+          </div>
+          <div className="bulk-actions">
+            <button
+              className="btn-bulk-approve"
+              onClick={handleBulkApprove}
+              disabled={selectedPosts.length === 0}
+            >
+              <ApproveIcon fontSize="small" /> Duyệt ({selectedPosts.length})
+            </button>
+            <button
+              className="btn-bulk-delete"
+              onClick={handleBulkDelete}
+              disabled={selectedPosts.length === 0}
+            >
+              <DeleteIcon fontSize="small" /> Xóa ({selectedPosts.length})
+            </button>
+          </div>
         </div>
       )}
+
+
+      {/* Loading State */}
+      {
+        loading && (
+          <div
+            className="loading-state"
+            style={{ textAlign: "center", padding: "40px" }}
+          >
+            <p>Đang tải bài đăng chờ duyệt...</p>
+          </div>
+        )
+      }
 
       {/* Posts Grid */}
-      {!loading && (
-        <div className="posts-grid">
-          {filteredPosts.map((post) => {
-            const postImages =
-              post.images &&
-              Array.isArray(post.images) &&
-              post.images.length > 0
-                ? post.images
-                : post.image
-                ? [post.image]
-                : [];
+      {
+        !loading && (
+          <div className="posts-grid">
+            {filteredPosts.map((post) => {
+              const postImages =
+                post.images &&
+                  Array.isArray(post.images) &&
+                  post.images.length > 0
+                  ? post.images
+                  : post.image
+                    ? [post.image]
+                    : [];
 
-            // ✅ Sử dụng key unique để tránh conflict giữa lost và found posts
-            const uniqueKey = `${post.type || "unknown"}-${
-              post.id || post.post_id || "unknown"
-            }`;
+              // ✅ Sử dụng key unique để tránh conflict giữa lost và found posts
+              const uniqueKey = `${post.type || "unknown"}-${post.id || post.post_id || "unknown"
+                }`;
 
-            return (
-              <div
-                key={uniqueKey}
-                className={`post-card ${
-                  selectedPosts.includes(post.id) ? "selected" : ""
-                }`}
-                onClick={(e) => {
-                  if (
-                    !e.target.closest(".post-actions") &&
-                    !e.target.closest(".post-checkbox") &&
-                    !e.target.closest("input")
-                  ) {
-                    setSelectedPost(post);
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="post-header">
-                  <div className="post-type">{getTypeBadge(post.type)}</div>
-                  <input
-                    type="checkbox"
-                    checked={selectedPosts.includes(post.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleSelectPost(post.id);
-                    }}
-                    className="post-checkbox"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
+              return (
+                <div
+                  key={uniqueKey}
+                  className={`post-card ${selectedPosts.includes(post.id) ? "selected" : ""
+                    }`}
+                  onClick={(e) => {
+                    if (
+                      !e.target.closest(".post-actions") &&
+                      !e.target.closest(".post-checkbox") &&
+                      !e.target.closest("input")
+                    ) {
+                      setSelectedPost(post);
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="post-header">
+                    <div className="post-type">{getTypeBadge(post.type)}</div>
+                    {isSelectionMode && (
+                      <div
+                        className="post-checkbox-wrapper"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectPost(post.id);
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedPosts.includes(post.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectPost(post.id);
+                          }}
+                          className="post-checkbox"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-                <div className="post-content">
-                  {postImages.length > 0 && (
-                    <div className="post-image-preview">
-                      <ImageCarousel images={postImages} postId={post.id} />
-                    </div>
-                  )}
-                  <h3 className="post-title">{post.title}</h3>
-                  <p className="post-description">{post.description}</p>
+                  <div className="post-content">
+                    {postImages.length > 0 && (
+                      <div className="post-image-preview">
+                        <ImageCarousel images={postImages} postId={post.id} />
+                      </div>
+                    )}
+                    <h3 className="post-title">{post.title}</h3>
+                    <p className="post-description">{post.description}</p>
 
-                  <div className="post-details">
-                    <div className="detail-item">
-                      <span className="detail-label">
-                        <FolderIcon /> danh mục
-                      </span>
-                      <span className="detail-value">{post.category}</span>
+                    <div className="post-details">
+                      <div className="detail-item">
+                        <span className="detail-label">
+                          <FolderIcon /> danh mục
+                        </span>
+                        <span className="detail-value">{post.category}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">
+                          <LocationIcon /> địa điểm
+                        </span>
+                        <span className="detail-value">{post.location}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">
+                          <CalendarIcon /> ngày đăng
+                        </span>
+                        <span className="detail-value">
+                          {post.createdAt
+                            ? new Date(post.createdAt).toLocaleDateString("vi-VN")
+                            : post.date
+                              ? new Date(post.date).toLocaleDateString("vi-VN")
+                              : "N/A"}
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">
+                          <PersonIcon /> người đăng
+                        </span>
+                        <span className="detail-value">
+                          {post.author || post.reporter}
+                        </span>
+                      </div>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">
-                        <LocationIcon /> địa điểm
-                      </span>
-                      <span className="detail-value">{post.location}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">
-                        <CalendarIcon /> ngày đăng
-                      </span>
-                      <span className="detail-value">
-                        {post.createdAt
-                          ? new Date(post.createdAt).toLocaleDateString("vi-VN")
-                          : post.date
-                          ? new Date(post.date).toLocaleDateString("vi-VN")
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">
-                        <PersonIcon /> người đăng
-                      </span>
-                      <span className="detail-value">
-                        {post.author || post.reporter}
-                      </span>
+                  </div>
+
+                  <div className="post-footer">
+                    <div
+                      className="post-actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        className="action-btn approve"
+                        onClick={() => handleApprovePost(post.id)}
+                      >
+                        <ApproveIcon /> Duyệt bài
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => handleOpenDeleteModal(post.id, post.title)}
+                      >
+                        <DeleteIcon /> Xóa bài
+                      </button>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )
+      }
 
-                <div className="post-footer">
-                  <div
-                    className="post-actions"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      className="action-btn approve"
-                      onClick={() => handleApprovePost(post.id)}
-                    >
-                      <ApproveIcon /> Duyệt bài
-                    </button>
-                    <button
-                      className="action-btn delete"
-                      onClick={() => handleOpenDeleteModal(post.id, post.title)}
-                    >
-                      <DeleteIcon /> Xóa bài
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!loading && filteredPosts.length === 0 && (
-        <div className="no-results">
-          <p>Không có bài đăng nào chờ duyệt.</p>
-        </div>
-      )}
+      {
+        !loading && filteredPosts.length === 0 && (
+          <div className="no-results">
+            <p>Không có bài đăng nào chờ duyệt.</p>
+          </div>
+        )
+      }
 
       <ConfirmDeleteModal
         isOpen={deleteModal.isOpen}
@@ -623,15 +759,17 @@ const LostItemsManagement = ({ onPostChange }) => {
         postTitle={deleteModal.postTitle}
       />
 
-      {selectedPost && (
-        <PostDetailModal
-          post={selectedPost}
-          onClose={() => setSelectedPost(null)}
-          currentTab={selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được"}
-          categoryPath={selectedPost.category}
-        />
-      )}
-    </div>
+      {
+        selectedPost && (
+          <PostDetailModal
+            post={selectedPost}
+            onClose={() => setSelectedPost(null)}
+            currentTab={selectedPost.type === "lost" ? "Đồ mất" : "Đồ nhặt được"}
+            categoryPath={selectedPost.category}
+          />
+        )
+      }
+    </div >
   );
 };
 

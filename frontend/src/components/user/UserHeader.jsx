@@ -141,7 +141,7 @@ const UserHeader = ({
                     setShowUserMenu(false);
                   }}
                 >
-                  <PersonIcon style={{ fontSize: '16px' }} /> Hồ sơ của tôi
+                  <PersonIcon style={{ fontSize: '16px' }} /> Hồ sơ của {user?.name || 'bạn'}
                 </button>
                 <button
                   className="dropdown-item"
