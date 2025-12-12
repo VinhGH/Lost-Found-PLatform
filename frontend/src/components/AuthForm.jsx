@@ -48,6 +48,8 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   const otpInputRefs = useRef([]);
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
   const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
 
   // ✅ State cho tính năng xác minh OTP khi đăng ký
@@ -91,9 +93,25 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     if (!password) {
       return 'Mật khẩu không được để trống';
     }
-    if (password.length < 6) {
-      return 'Mật khẩu phải có ít nhất 6 ký tự';
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự';
     }
+    
+    // Kiểm tra có chữ cái
+    if (!/[a-zA-Z]/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái';
+    }
+    
+    // Kiểm tra có số
+    if (!/\d/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một chữ số';
+    }
+    
+    // Kiểm tra có ký tự đặc biệt
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*...)';
+    }
+    
     return '';
   };
 
@@ -124,8 +142,15 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     const emailError = validateEmail(formData.email);
     if (emailError) errors.email = emailError;
 
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) errors.password = passwordError;
+    // ✅ Validation mật khẩu: Đăng nhập chỉ check empty, Đăng ký check đầy đủ
+    if (isLogin) {
+      if (!formData.password) {
+        errors.password = 'Mật khẩu không được để trống';
+      }
+    } else {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) errors.password = passwordError;
+    }
 
     if (!isLogin) {
       const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
@@ -259,7 +284,8 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   // ✅ Xử lý "Quên mật khẩu"
   const handleForgotPassword = () => {
     setShowForgotPassword(true);
-    setForgotPasswordEmail('');
+    // ✅ Tự động điền email từ form đăng nhập (nếu có)
+    setForgotPasswordEmail(formData.email || '');
     setForgotPasswordStep('email');
     setOtpInputs(['', '', '', '', '', '']);
     setForgotNewPassword('');
@@ -290,7 +316,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
           setToastNotification({
             type: 'success',
             title: 'Đã gửi mã OTP',
-            message: 'Vui lòng kiểm tra email để lấy mã OTP đặt lại mật khẩu.'
+            message: response.message || 'Vui lòng kiểm tra email để lấy mã OTP đặt lại mật khẩu.'
           });
 
           setTimeout(() => {
@@ -674,6 +700,9 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                 {validationErrors.password && (
                   <span className="validation-error">{validationErrors.password}</span>
                 )}
+                {!isLogin && !validationErrors.password && (
+                  <span className="password-hint">Ít nhất 8 ký tự, bao gồm chữ, số và ký tự đặc biệt</span>
+                )}
               </div>
 
               {!isLogin && (
@@ -792,6 +821,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                           setValidationErrors({ ...validationErrors, email: '' });
                         }
                       }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleForgotPasswordAction()}
                       className={validationErrors.email ? 'input-error' : ''}
                     />
                     {validationErrors.email && (
@@ -830,36 +860,69 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   </p>
                   <div className="form-group">
                     <label>Mật khẩu mới</label>
-                    <input
-                      type="password"
-                      placeholder="••••••••••"
-                      value={forgotNewPassword}
-                      onChange={(e) => {
-                        setForgotNewPassword(e.target.value);
-                        if (validationErrors.newPassword) {
-                          setValidationErrors({ ...validationErrors, newPassword: '' });
-                        }
-                      }}
-                      className={validationErrors.newPassword ? 'input-error' : ''}
-                    />
+                    <div className="password-input">
+                      <input
+                        type={showForgotNewPassword ? 'text' : 'password'}
+                        placeholder="••••••••••"
+                        value={forgotNewPassword}
+                        onChange={(e) => {
+                          setForgotNewPassword(e.target.value);
+                          if (validationErrors.newPassword) {
+                            setValidationErrors({ ...validationErrors, newPassword: '' });
+                          }
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleForgotPasswordAction()}
+                        className={validationErrors.newPassword ? 'input-error' : ''}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                        tabIndex="-1"
+                      >
+                        {showForgotNewPassword ? (
+                          <VisibilityOffIcon className="eye-icon" />
+                        ) : (
+                          <VisibilityIcon className="eye-icon" />
+                        )}
+                      </button>
+                    </div>
                     {validationErrors.newPassword && (
                       <span className="validation-error">{validationErrors.newPassword}</span>
+                    )}
+                    {!validationErrors.newPassword && (
+                      <span className="password-hint">Ít nhất 8 ký tự, bao gồm chữ, số và ký tự đặc biệt</span>
                     )}
                   </div>
                   <div className="form-group">
                     <label>Nhập lại mật khẩu mới</label>
-                    <input
-                      type="password"
-                      placeholder="••••••••••"
-                      value={forgotConfirmPassword}
-                      onChange={(e) => {
-                        setForgotConfirmPassword(e.target.value);
-                        if (validationErrors.confirmPassword) {
-                          setValidationErrors({ ...validationErrors, confirmPassword: '' });
-                        }
-                      }}
-                      className={validationErrors.confirmPassword ? 'input-error' : ''}
-                    />
+                    <div className="password-input">
+                      <input
+                        type={showForgotConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••••"
+                        value={forgotConfirmPassword}
+                        onChange={(e) => {
+                          setForgotConfirmPassword(e.target.value);
+                          if (validationErrors.confirmPassword) {
+                            setValidationErrors({ ...validationErrors, confirmPassword: '' });
+                          }
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleForgotPasswordAction()}
+                        className={validationErrors.confirmPassword ? 'input-error' : ''}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                        tabIndex="-1"
+                      >
+                        {showForgotConfirmPassword ? (
+                          <VisibilityOffIcon className="eye-icon" />
+                        ) : (
+                          <VisibilityIcon className="eye-icon" />
+                        )}
+                      </button>
+                    </div>
                     {validationErrors.confirmPassword && (
                       <span className="validation-error">{validationErrors.confirmPassword}</span>
                     )}

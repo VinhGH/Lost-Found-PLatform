@@ -2,6 +2,7 @@ import otpModel from './otpModel.js';
 import accountModel from '../account/accountModel.js';
 import { sendOtpEmail } from '../../utils/emailService.js';
 import { hashPassword } from '../../utils/hash.js';
+import { validatePassword } from '../../utils/passwordValidator.js';
 
 /**
  * Generate 6-digit OTP code
@@ -32,6 +33,15 @@ export const requestOtp = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Email must end with @dtu.edu.vn'
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message
       });
     }
 
@@ -210,10 +220,9 @@ export const requestPasswordResetOtp = async (req, res, next) => {
 
     const user = await accountModel.getByEmail(email);
     if (!user) {
-      // Avoid email enumeration - pretend success
       return res.status(200).json({
         success: true,
-        message: 'OTP has been sent to your email'
+        message: 'Nếu địa chỉ email này có trong hệ thống, chúng tôi đã gửi mã OTP đến hộp thư của bạn.'
       });
     }
 
@@ -253,7 +262,7 @@ export const requestPasswordResetOtp = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'OTP has been sent to your email'
+      message: 'Nếu địa chỉ email này có trong hệ thống, chúng tôi đã gửi mã OTP đến hộp thư của bạn.'
     });
   } catch (error) {
     console.error('❌ Request password reset OTP error:', error);
@@ -290,10 +299,12 @@ export const resetPassword = async (req, res, next) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters'
+        message: passwordValidation.message
       });
     }
 

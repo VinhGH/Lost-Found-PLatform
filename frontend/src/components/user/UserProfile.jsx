@@ -16,7 +16,7 @@ import {
   ExitToApp as LogoutIcon,
   Visibility as VisibilityIcon,
   Edit as EditIcon,
-  Settings as SettingsIcon,
+  VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
 
 // 🔹 Đồng bộ cách hiển thị thời gian
@@ -619,11 +619,11 @@ const UserProfile = ({
               )}
 
               <button
-                className="btn-logout"
-                onClick={() => setShowLogoutModal(true)}
+                className="btn-change-password"
+                onClick={() => setShowChangePasswordModal(true)}
               >
-                <LogoutIcon style={{ fontSize: 18, marginRight: 8 }} />
-                Đăng xuất
+                <VpnKeyIcon style={{ fontSize: 18, marginRight: 8 }} />
+                Đổi mật khẩu
               </button>
             </>
           )}
@@ -937,13 +937,7 @@ const UserProfile = ({
                     <ArticleIcon /> Bài đăng của tôi
                   </button>
 
-                  <button
-                    className={`nav-item ${activeTab === "settings" ? "active" : ""
-                      }`}
-                    onClick={() => setActiveTab("settings")}
-                  >
-                    <SettingsIcon /> Cài đặt
-                  </button>
+
                 </>
               )}
             </div>

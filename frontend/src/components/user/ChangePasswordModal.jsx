@@ -80,9 +80,25 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
     if (!password) {
       return "Mật khẩu không được để trống";
     }
-    if (password.length < 6) {
-      return "Mật khẩu phải có ít nhất 6 ký tự";
+    if (password.length < 8) {
+      return "Mật khẩu phải có ít nhất 8 ký tự";
     }
+    
+    // Kiểm tra có chữ cái
+    if (!/[a-zA-Z]/.test(password)) {
+      return "Mật khẩu phải chứa ít nhất một chữ cái";
+    }
+    
+    // Kiểm tra có số
+    if (!/\d/.test(password)) {
+      return "Mật khẩu phải chứa ít nhất một chữ số";
+    }
+    
+    // Kiểm tra có ký tự đặc biệt
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*...)";
+    }
+    
     return "";
   };
 
@@ -115,14 +131,13 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
     const confirmPasswordError = validateConfirmPassword(newPassword, confirmPassword);
     if (confirmPasswordError) errors.confirmPassword = confirmPasswordError;
 
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      setIsLoading(false);
-      return;
+    // ✅ Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+    if (!errors.newPassword && currentPassword && newPassword && currentPassword === newPassword) {
+      errors.newPassword = "Mật khẩu mới phải khác mật khẩu hiện tại";
     }
 
-    if (currentPassword === newPassword) {
-      setError("Mật khẩu mới phải khác mật khẩu hiện tại");
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       setIsLoading(false);
       return;
     }
@@ -422,6 +437,9 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     {validationErrors.newPassword}
                   </span>
                 )}
+                {!validationErrors.newPassword && (
+                  <span className="password-hint">Ít nhất 8 ký tự, bao gồm chữ, số và ký tự đặc biệt</span>
+                )}
               </div>
 
               <div className="form-group">
@@ -637,6 +655,9 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                       <span className="validation-error">
                         {validationErrors.newPassword}
                       </span>
+                    )}
+                    {!validationErrors.newPassword && (
+                      <span className="password-hint">Ít nhất 8 ký tự, bao gồm chữ, số và ký tự đặc biệt</span>
                     )}
                   </div>
                   <div className="form-group">
