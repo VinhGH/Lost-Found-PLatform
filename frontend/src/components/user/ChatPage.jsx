@@ -6,6 +6,10 @@ import {
   MoreVert as MoreVertIcon,
   Send as SendIcon,
   Delete as DeleteIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+  ArrowUpward as ArrowUpIcon,
+  ArrowDownward as ArrowDownIcon,
 } from "@mui/icons-material";
 import ChatContextBox from "./ChatContextBox";
 import realApi from "../../services/realApi";
@@ -18,7 +22,11 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
   const [isLoading, setIsLoading] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [chatPostData, setChatPostData] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(""); // State cho search
+  const [searchQuery, setSearchQuery] = useState(""); // State cho search sidebar
+  const [messageSearchQuery, setMessageSearchQuery] = useState(""); // ✅ Search trong messages
+  const [showMessageSearch, setShowMessageSearch] = useState(false); // ✅ Show/hide search input
+  const [searchResults, setSearchResults] = useState([]); // ✅ Search results
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0); // ✅ Current result index
   const processingChatTarget = useRef(null);
 
   // ✅ Load conversations từ API khi component mount
@@ -197,6 +205,8 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             text: msg.message,
             time: vnTime,
             timestamp: utcDate, // ✅ Thêm timestamp đầy đủ để so sánh ngày
+            isRead: msg.is_read || false, // ✅ Read status
+            senderId: msg.sender_id, // ✅ Sender ID for checking ownership
           };
         });
 
@@ -370,6 +380,14 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
     // Load messages
     await loadMessages(conv.conversation_id);
 
+    // ✅ Mark messages as read when opening conversation
+    try {
+      await realApi.markMessagesAsRead(conv.conversation_id);
+      console.log("✓✓ Messages marked as read");
+    } catch (error) {
+      console.error("❌ Error marking messages as read:", error);
+    }
+
     // Set chat post data
     const postType = conv.lost_post_id ? 'lost' : 'found';
     const postData = extractPostDataFromConversation(conv, postType);
@@ -435,17 +453,27 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                 const conversationName = getConversationName(conv);
                 return conversationName.toLowerCase().includes(searchQuery.toLowerCase());
               })
+              // ✅ Sort by last message time (newest first)
+              .sort((a, b) => {
+                const timeA = a.last_message?.created_at ? new Date(a.last_message.created_at).getTime() : 0;
+                const timeB = b.last_message?.created_at ? new Date(b.last_message.created_at).getTime() : 0;
+                return timeB - timeA; // Descending order (newest first)
+              })
               .map((conv) => {
                 const conversationName = getConversationName(conv);
                 const conversationAvatar = getConversationAvatar(conv);
                 const lastMessagePreview = getLastMessagePreview(conv);
                 const postType = conv.lost_post_id ? 'lost' : 'found';
 
+                // ✅ Check if conversation has unread messages
+                const hasUnread = conv.last_message &&
+                  !conv.last_message.is_read &&
+                  conv.last_message.sender_id !== user?.account_id;
+
                 return (
                   <div
                     key={conv.conversation_id}
-                    className={`conversation-item ${activeConversation?.conversation_id === conv.conversation_id ? "active" : ""
-                      }`}
+                    className={`conversation-item ${activeConversation?.conversation_id === conv.conversation_id ? "active" : ""} ${hasUnread ? "unread" : ""}`}
                     onClick={() => handleConversationClick(conv)}
                   >
                     <img
@@ -462,7 +490,18 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <strong style={{ flex: 1, minWidth: 0 }}>{conversationName}</strong>
+                        <strong style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontWeight: hasUnread ? 700 : 600, // ✅ Bold if unread
+                          color: hasUnread ? '#000' : 'inherit' // ✅ Darker if unread
+                        }}>
+                          {conversationName}
+                        </strong>
+                        {/* ✅ Unread badge */}
+                        {hasUnread && (
+                          <span className="conversation-unread-badge">●</span>
+                        )}
                         <span
                           className={`conversation-post-badge conversation-post-badge-${postType}`}
                           style={{
@@ -477,7 +516,12 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                           {postType === "found" ? "Nhặt được" : "Tìm đồ"}
                         </span>
                       </div>
-                      <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
+                      <p style={{
+                        fontSize: "12px",
+                        color: hasUnread ? "#333" : "#555", // ✅ Darker if unread
+                        margin: 0,
+                        fontWeight: hasUnread ? 600 : 400 // ✅ Semi-bold if unread
+                      }}>
                         {lastMessagePreview}
                       </p>
                     </div>
@@ -504,7 +548,6 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                   />
                   <div>
                     <h3>{getConversationName(activeConversation)}</h3>
-                    <span>Đang hoạt động</span>
                   </div>
                 </div>
                 <div className="chat-actions">
@@ -526,6 +569,20 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                     {showMoreMenu && (
                       <div className="more-menu-dropdown">
                         <button
+                          className="dropdown-item"
+                          onClick={() => {
+                            setShowMessageSearch(!showMessageSearch);
+                            setShowMoreMenu(false);
+                            if (!showMessageSearch) {
+                              setMessageSearchQuery("");
+                              setSearchResults([]);
+                            }
+                          }}
+                        >
+                          <SearchIcon style={{ fontSize: "18px", marginRight: "8px" }} />
+                          Tìm kiếm tin nhắn
+                        </button>
+                        <button
                           className="dropdown-item delete"
                           onClick={handleDeleteConversation}
                         >
@@ -537,6 +594,78 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                   </div>
                 </div>
               </div>
+
+              {/* ✅ Message Search Bar */}
+              {showMessageSearch && (
+                <div className="message-search-bar">
+                  <SearchIcon style={{ fontSize: "18px", color: "#666" }} />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm tin nhắn..."
+                    value={messageSearchQuery}
+                    onChange={(e) => {
+                      const query = e.target.value;
+                      setMessageSearchQuery(query);
+                      if (query.trim()) {
+                        const results = messages.filter(msg =>
+                          msg.text.toLowerCase().includes(query.toLowerCase())
+                        );
+                        setSearchResults(results);
+                        setCurrentSearchIndex(0);
+                        // Scroll to first result
+                        if (results.length > 0) {
+                          setTimeout(() => {
+                            const firstResult = document.getElementById(`msg-${results[0].id}`);
+                            if (firstResult) {
+                              firstResult.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }
+                          }, 100);
+                        }
+                      } else {
+                        setSearchResults([]);
+                      }
+                    }}
+                    className="message-search-input"
+                  />
+                  {searchResults.length > 0 && (
+                    <div className="search-results-info">
+                      <span>{currentSearchIndex + 1}/{searchResults.length}</span>
+                      <button
+                        onClick={() => {
+                          const newIndex = currentSearchIndex > 0 ? currentSearchIndex - 1 : searchResults.length - 1;
+                          setCurrentSearchIndex(newIndex);
+                          const msg = document.getElementById(`msg-${searchResults[newIndex].id}`);
+                          if (msg) msg.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }}
+                        className="search-nav-btn"
+                      >
+                        <ArrowUpIcon style={{ fontSize: "16px" }} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newIndex = currentSearchIndex < searchResults.length - 1 ? currentSearchIndex + 1 : 0;
+                          setCurrentSearchIndex(newIndex);
+                          const msg = document.getElementById(`msg-${searchResults[newIndex].id}`);
+                          if (msg) msg.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }}
+                        className="search-nav-btn"
+                      >
+                        <ArrowDownIcon style={{ fontSize: "16px" }} />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowMessageSearch(false);
+                      setMessageSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                    className="search-close-btn"
+                  >
+                    <CloseIcon style={{ fontSize: "18px" }} />
+                  </button>
+                </div>
+              )}
 
               {/* Chat Context Box - Hiển thị thông tin bài đăng */}
               {chatPostData && (
@@ -560,11 +689,22 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
 
                       {/* Message */}
                       <div
-                        className={`message ${msg.from === "Bạn" ? "own" : "other"}`}
+                        id={`msg-${msg.id}`}
+                        className={`message ${msg.from === "Bạn" ? "own" : "other"} ${searchResults.some(r => r.id === msg.id) ? "search-highlight" : ""
+                          } ${searchResults[currentSearchIndex]?.id === msg.id ? "search-active" : ""
+                          }`}
                       >
                         <div className="message-content">
                           <p className="message-text">{msg.text}</p>
-                          <span className="message-time">{msg.time}</span>
+                          <div className="message-footer">
+                            <span className="message-time">{msg.time}</span>
+                            {/* ✅ Read receipts for sent messages */}
+                            {msg.senderId === user?.account_id && (
+                              <span className={`message-status ${msg.isRead ? 'read' : 'sent'}`}>
+                                {msg.isRead ? '✓✓' : '✓'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </React.Fragment>

@@ -621,6 +621,46 @@ class ChatModel {
     }
   }
 
+  /**
+   * Mark all messages as read in a conversation for current user
+   * @param {string} conversationId
+   * @param {number} currentUserId - ID of user viewing the conversation
+   * @returns {Promise<Object>}
+   */
+  async markMessagesAsRead(conversationId, currentUserId) {
+    try {
+      // Mark all unread messages from OTHER users as read
+      const { data, error } = await supabase
+        .from('Message')
+        .update({
+          is_read: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('conversation_id', conversationId)
+        .eq('is_read', false)
+        .neq('sender_id', currentUserId) // Only mark messages from others
+        .select();
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        data: {
+          marked_count: data?.length || 0,
+          messages: data || []
+        },
+        error: null
+      };
+    } catch (err) {
+      console.error('Error marking messages as read:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
 }
 
 export default new ChatModel();

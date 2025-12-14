@@ -1117,6 +1117,40 @@ class RealApiService {
   }
 
   /**
+   * Mark all messages as read in a conversation
+   * @param {number} conversationId
+   * @returns {Promise<Object>}
+   */
+  async markMessagesAsRead(conversationId) {
+    try {
+      if (!this.isAuthenticated()) {
+        return {
+          success: false,
+          error: "Bạn cần đăng nhập",
+        };
+      }
+
+      console.log("✓✓ MARK MESSAGES AS READ:", conversationId);
+
+      const response = await httpClient.patch(
+        `/chat/conversations/${conversationId}/messages/read`,
+        {},
+        {},
+        { preferUserToken: true }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("❌ Mark messages as read error:", error);
+      return {
+        success: false,
+        error: error.message || "Không thể đánh dấu tin nhắn đã đọc",
+      };
+    }
+  }
+
+
+  /**
    * Delete conversation (soft delete for current user)
    * @param {number} conversationId
    * @returns {Promise<Object>}

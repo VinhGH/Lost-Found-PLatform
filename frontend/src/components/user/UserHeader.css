@@ -6,12 +6,18 @@
   transform: translateX(-50%);
   width: calc(100% - 48px);
   max-width: 1400px;
-  background: rgba(220, 20, 60, 0.85); /* Semi-transparent red - darker */
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  /* Glassmorphism / Liquid Glass Effect */
+  background: rgba(255, 255, 255, 0.35); /* Tăng độ đục để thấy rõ hơn trên nền trắng */
+  backdrop-filter: blur(30px) saturate(200%); /* Blur mạnh cho hiệu ứng liquid */
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5), /* Highlight phía trên */
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2), /* Highlight phía dưới */
+    0 0 30px rgba(220, 20, 60, 0.2), /* Viền đỏ loang loang */
+    0 0 60px rgba(220, 20, 60, 0.1); /* Viền đỏ loang xa hơn */
   z-index: 1000;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(220, 20, 60, 0.3); /* Border đỏ nhẹ */
   border-radius: 20px;
 }
 
@@ -52,6 +58,7 @@
   height: 45px;
   object-fit: contain;
   flex-shrink: 0;
+  border-radius: 8px; /* Bo tròn góc logo */
 }
 
 .logo-text {
@@ -64,14 +71,16 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
-  color: white;
+  color: #DC143C; /* Crimson red */
+  text-shadow: 0 2px 8px rgba(220, 20, 60, 0.3);
   line-height: 1.1;
   white-space: nowrap;
 }
 
 .logo-text span {
   font-size: 0.65rem;
-  color: #FFE4E1; 
+  color: #DC143C; /* Crimson red */
+  text-shadow: 0 1px 4px rgba(220, 20, 60, 0.2);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -87,12 +96,15 @@
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
+  background: rgba(255, 255, 255, 0.15); /* Glass effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 12px 20px;
   border-radius: 10px;
   font-weight: 600;
-  color: white;
+  color: #DC143C; /* Crimson red */
+  text-shadow: 0 1px 3px rgba(220, 20, 60, 0.2);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -100,17 +112,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(0);
 }
 
 .nav-btn:hover {
-  background: #004080; /* Màu xanh biển đậm */
+  background: #DC143C; /* Crimson red khi hover */
   color: white;
   transform: translateY(-3px) scale(1.05);
   box-shadow: 
-    0 8px 16px rgba(0, 64, 128, 0.4),
-    0 4px 8px rgba(0, 64, 128, 0.3),
+    0 8px 16px rgba(220, 20, 60, 0.4),
+    0 4px 8px rgba(220, 20, 60, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -118,16 +130,16 @@
 .nav-btn:active {
   transform: translateY(-1px) scale(1.02);
   box-shadow: 
-    0 4px 8px rgba(0, 64, 128, 0.3),
-    0 2px 4px rgba(0, 64, 128, 0.2);
+    0 4px 8px rgba(220, 20, 60, 0.3),
+    0 2px 4px rgba(220, 20, 60, 0.2);
 }
 
 .nav-btn.active {
-  background: rgba(255, 255, 255, 0.25);
+  background: #DC143C; /* Crimson red cho active state */
   color: white;
   box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 4px 8px rgba(220, 20, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .nav-btn.active::after {
@@ -143,6 +155,36 @@
   box-shadow: 0 -2px 4px rgba(255, 255, 255, 0.3);
 }
 
+/* ✅ Unread Message Badge */
+.nav-btn .unread-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff4444;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+
 /* Search */
 .header-search {
   flex-shrink: 0;
@@ -153,17 +195,28 @@
 .search-form {
   display: flex;
   align-items: center;
-  background: white; 
+  background: rgba(255, 255, 255, 0.2); /* Glass effect - trong suốt */
+  backdrop-filter: blur(10px); /* Blur background */
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 25px;
   padding: 8px 8px 8px 16px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(220, 20, 60, 0.5); /* Viền đỏ đậm hơn - tăng từ 0.3 lên 0.5 */
   transition: all 0.3s ease;
+  box-shadow: 
+    0 0 0 3px rgba(220, 20, 60, 0.15), /* Glow đỏ gần */
+    0 0 20px rgba(220, 20, 60, 0.2),   /* Glow đỏ loang */
+    0 0 40px rgba(220, 20, 60, 0.1);   /* Glow đỏ loang xa */
 }
 
 .search-form:focus-within {
-  border-color: #0052a3; /* Màu xanh nước biển đậm */
-  background: white; 
-  box-shadow: 0 0 0 3px rgba(0, 82, 163, 0.15);
+  border-color: rgba(220, 20, 60, 0.5); /* Viền đỏ đậm hơn khi focus */
+  background: rgba(255, 255, 255, 0.25); /* Glass effect đậm hơn khi focus */
+  backdrop-filter: blur(15px); /* Blur mạnh hơn */
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: 
+    0 0 0 4px rgba(220, 20, 60, 0.2),  /* Glow đậm hơn khi focus */
+    0 0 25px rgba(220, 20, 60, 0.3),   /* Glow loang đậm hơn */
+    0 0 50px rgba(220, 20, 60, 0.15);  /* Glow loang xa đậm hơn */
 }
 
 .search-icon-btn {
@@ -183,7 +236,7 @@
 }
 
 .search-icon-right {
-  color: #666;
+  color: #DC143C; /* Crimson red */
   pointer-events: none;
 }
 
@@ -195,12 +248,14 @@
   font-size: 14px;
   width: 200px; /* Giảm từ 250px xuống 200px */
   max-width: 200px;
-  color: rgb(0, 0, 0);
+  color: #1a1a1a; /* Text đen đậm */
+  font-weight: 500; /* Text đậm hơn */
   flex: 0 0 auto; /* Không cho flex grow */
 }
 
 .header-search-input::placeholder {
-  color: #999;
+  color: #333; /* Placeholder đen đậm hơn */
+  font-weight: 500;
 }
 
 .search-btn {
@@ -235,9 +290,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.9); /* Màu trắng trong suốt - liquid/glass effect */
-  color: #DC143C; /* Màu đỏ cho text */
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.5); /* Đục hơn - tăng từ 0.2 lên 0.5 */
+  backdrop-filter: blur(10px); /* Blur background */
+  -webkit-backdrop-filter: blur(10px);
+  color: #DC143C; /* Màu đỏ crimson cho text */
+  border: 1px solid rgba(220, 20, 60, 0.4); /* Viền đỏ đậm hơn */
   padding: 12px 20px;
   border-radius: 10px;
   font-weight: 600;
@@ -246,30 +303,31 @@
   white-space: nowrap;
   font-size: 14px;
   flex-shrink: 0;
+  /* Hiệu ứng 3D nổi khối */
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px); /* Hiệu ứng glass/liquid */
-  -webkit-backdrop-filter: blur(10px);
+    0 4px 12px rgba(220, 20, 60, 0.25), /* Shadow đỏ chính */
+    0 8px 24px rgba(0, 0, 0, 0.15), /* Shadow đen tạo độ sâu */
+    inset 0 2px 0 rgba(255, 255, 255, 0.5), /* Highlight trên */
+    inset 0 -2px 0 rgba(220, 20, 60, 0.1); /* Shadow dưới */
   transform: translateY(0);
 }
 
 .post-btn:hover {
-  background: #004080; /* Màu xanh biển đậm */
+  background: #DC143C; /* Màu đỏ crimson khi hover */
   color: white;
-  transform: translateY(-3px) scale(1.05);
+  transform: translateY(-4px) scale(1.05); /* Nổi lên cao hơn */
   box-shadow: 
-    0 8px 16px rgba(0, 64, 128, 0.4),
-    0 4px 8px rgba(0, 64, 128, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+    0 12px 24px rgba(220, 20, 60, 0.4), /* Shadow đỏ mạnh hơn */
+    0 16px 40px rgba(0, 0, 0, 0.2), /* Shadow đen sâu hơn */
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .post-btn:active {
-  transform: translateY(-1px) scale(1.02);
+  transform: translateY(-2px) scale(1.02); /* Nhấn xuống nhẹ */
   box-shadow: 
-    0 4px 8px rgba(0, 64, 128, 0.3),
-    0 2px 4px rgba(0, 64, 128, 0.2);
+    0 6px 16px rgba(220, 20, 60, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* User Menu */
@@ -300,13 +358,17 @@
   width: 35px;
   height: 35px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3); /* Nền trong suốt cho avatar */
-  color: white;
+  background: rgba(255, 255, 255, 0.25); /* Glass effect cho avatar */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #DC143C; /* Crimson red */
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 14px;
+  text-shadow: 0 1px 3px rgba(220, 20, 60, 0.2);
 }
 
 .user-name {
@@ -315,7 +377,8 @@
 
 .dropdown-icon {
   font-size: 10px;
-  color: white;
+  color: #DC143C; /* Crimson red */
+  filter: drop-shadow(0 1px 2px rgba(220, 20, 60, 0.2));
   transition: transform 0.3s ease;
 }
 
@@ -329,10 +392,19 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e9ecef;
+  /* Glassmorphism effect - đục hơn để dễ đọc chữ */
+  background: rgba(255, 255, 255, 0.75); /* Tăng lên 0.75 để đục hơn, dễ đọc */
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border-radius: 12px;
+  /* Red glow border giống header */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2),
+    0 0 30px rgba(220, 20, 60, 0.2),
+    0 0 60px rgba(220, 20, 60, 0.1);
+  border: 1px solid rgba(220, 20, 60, 0.3);
   min-width: 200px;
   z-index: 1001;
   overflow: visible;
@@ -341,7 +413,7 @@
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
-  padding-top: 8px; /* Tạo vùng buffer phía trên */
+  padding-top: 8px;
 }
 
 .user-dropdown::before {
@@ -356,8 +428,8 @@
 }
 
 .dropdown-content {
-  background: white;
-  border-radius: 8px;
+  background: transparent; /* Trong suốt để thấy glass effect */
+  border-radius: 12px;
   overflow: hidden;
 }
 

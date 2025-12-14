@@ -54,6 +54,8 @@ const UserUI = ({ onLogout, user: initialUser }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
   const [profileTargetUser, setProfileTargetUser] = useState(null); // State để lưu user cần xem profile
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0); // ✅ Unread messages count
+
 
   const handlePostViewed = (postId) => {
     setPosts((prev) =>
@@ -598,6 +600,35 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     }
   };
 
+  // ✅ Fetch unread message count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await userApi.getConversations();
+        if (response.success && response.data) {
+          const conversations = response.data.data || response.data;
+          // Count conversations with unread messages
+          let totalUnread = 0;
+          conversations.forEach(conv => {
+            if (conv.last_message && !conv.last_message.is_read && conv.last_message.sender_id !== user?.account_id) {
+              totalUnread++;
+            }
+          });
+          setUnreadMessageCount(totalUnread);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching unread count:', error);
+      }
+    };
+
+    if (user?.account_id) {
+      fetchUnreadCount();
+      // Poll every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.account_id]);
+
   return (
     <div className="user-dashboard">
       <UserHeader
@@ -609,9 +640,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
         onLogout={onLogout}
         onCreatePostClick={() => setShowCreateModal(true)}
         onSearch={handleSearch}
+        unreadMessageCount={unreadMessageCount} // ✅ Pass unread count
       />
 
-      <main className="user-main">
+      <main className={`user-main ${activeTab === 'home' ? 'home-page' : ''}`}>
         {isLoadingPosts && !isInitialized && (
           <>
             <style>{`
@@ -672,19 +704,34 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       {activeTab !== "chat" && (
         <NotificationsButton
           onNotificationClick={(postId, postType) => {
-            setActiveTab(postType === "lost" ? "lost" : "found");
-            setTimeout(() => {
-              const el = document.getElementById(`post-${postId}`);
-              if (el) {
-                el.scrollIntoView({ behavior: "smooth" });
-                el.style.transition = "box-shadow 0.3s";
-                el.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.3)";
-                setTimeout(() => (el.style.boxShadow = ""), 2000);
-              } else {
-                const post = posts.find((p) => p.id === postId);
-                if (post) setSelectedPost(post);
-              }
-            }, 300);
+            // ✅ Nếu là thông báo "Bài đăng đã được duyệt", chuyển đến tab "Bài đăng của tôi"
+            if (postType === "post_approved") {
+              setActiveTab("posts");
+              setTimeout(() => {
+                const el = document.getElementById(`post-${postId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  el.style.transition = "box-shadow 0.3s";
+                  el.style.boxShadow = "0 0 0 3px rgba(220, 20, 60, 0.4)"; // Red highlight
+                  setTimeout(() => (el.style.boxShadow = ""), 2000);
+                }
+              }, 300);
+            } else {
+              // ✅ Các thông báo khác (AI matching, etc.) - chuyển đến tab lost/found
+              setActiveTab(postType === "lost" ? "lost" : "found");
+              setTimeout(() => {
+                const el = document.getElementById(`post-${postId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth" });
+                  el.style.transition = "box-shadow 0.3s";
+                  el.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.3)";
+                  setTimeout(() => (el.style.boxShadow = ""), 2000);
+                } else {
+                  const post = posts.find((p) => p.id === postId);
+                  if (post) setSelectedPost(post);
+                }
+              }, 300);
+            }
           }}
         />
       )}

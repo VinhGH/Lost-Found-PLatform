@@ -33,6 +33,8 @@ code {
 }
 
 html, body {
+  margin: 0;
+  padding: 0;
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden; /* Ngăn scroll ngang */
@@ -72,8 +74,13 @@ html, body {
   color: var(--text);
 }
 [data-theme='dark'] .user-name,
-[data-theme='dark'] .logo-text h1,
 [data-theme='dark'] .dropdown-icon { color: var(--text); }
+
+/* Logo luôn giữ màu đỏ crimson trong cả light và dark mode */
+[data-theme='dark'] .logo-text h1,
+[data-theme='dark'] .logo-text span { 
+  color: #DC143C !important; /* Crimson red - override dark mode */
+}
 
 [data-theme='dark'] .search-form {
   background: #111827;
@@ -455,7 +462,7 @@ html, body {
   }
 
   /* Adjust common spacing */
-  .user-main {
+  .user-main:not(.home-page) {
     padding-top: 70px;
   }
 }
@@ -481,7 +488,7 @@ html, body {
   }
 
   /* Adjust main content area */
-  .user-main {
+  .user-main:not(.home-page) {
     padding-top: 60px;
   }
 
@@ -541,7 +548,7 @@ html, body {
   }
 
   /* Further reduce spacing */
-  .user-main {
+  .user-main:not(.home-page) {
     padding-top: 56px;
   }
 

@@ -280,6 +280,129 @@
   white-space: nowrap;
 }
 
+/* ✅ Unread Conversation Indicator */
+.conversation-unread-badge {
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 4px;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.conversation-item.unread {
+  background: linear-gradient(to right, rgba(102, 126, 234, 0.08), transparent);
+  border-left: 3px solid #667eea;
+}
+
+.conversation-item.unread:hover {
+  background: linear-gradient(to right, rgba(102, 126, 234, 0.12), transparent);
+}
+
+/* ✅ Message Search Bar */
+.message-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  border-top: 1px solid #e0e0e0;
+}
+
+.message-search-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.message-search-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-results-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.search-nav-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.search-nav-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.search-close-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.search-close-btn:hover {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+/* ✅ Search Highlight Styles */
+.message.search-highlight {
+  animation: highlight-pulse 1s ease-in-out;
+}
+
+.message.search-highlight .message-content {
+  background: rgba(255, 235, 59, 0.3) !important;
+  border: 2px solid rgba(255, 235, 59, 0.6);
+}
+
+.message.search-active .message-content {
+  background: rgba(255, 152, 0, 0.4) !important;
+  border: 2px solid rgba(255, 152, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+
 .chat-main {
   flex: 1;
   display: flex;
@@ -486,10 +609,35 @@
   line-height: 1.4;
 }
 
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .message-time {
   font-size: 0.7rem;
   opacity: 0.7;
 }
+
+/* ✅ Read Receipt Checkmarks */
+.message-status {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.message-status.sent {
+  color: rgba(255, 255, 255, 0.6); /* Gray for unread */
+}
+
+.message-status.read {
+  color: #4fc3f7; /* Blue for read */
+  font-weight: 600;
+}
+
 
 /* Date Separator */
 .date-separator {

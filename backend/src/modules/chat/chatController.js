@@ -411,3 +411,48 @@ export const deleteConversation = async (req, res, next) => {
   }
 };
 
+/**
+ * PATCH /api/chat/conversations/:id/messages/read
+ * Mark all messages as read in a conversation
+ */
+export const markMessagesAsRead = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const accountId = req.user?.accountId;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Conversation ID is required'
+      });
+    }
+
+    // Check if user is a participant
+    const isParticipant = await chatModel.isParticipant(id, accountId);
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to access this conversation'
+      });
+    }
+
+    const result = await chatModel.markMessagesAsRead(id, accountId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to mark messages as read',
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${result.data.marked_count} messages marked as read`,
+      data: result.data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

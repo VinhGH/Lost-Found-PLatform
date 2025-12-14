@@ -174,9 +174,16 @@ const MatchesPage = ({ user, onNavigateToChat, onNavigateToPost }) => {
     const handleChatWithMatch = (match) => {
         // Navigate to chat with the matched post owner
         if (match.Post && match.Post.Account_id && onNavigateToChat) {
+            // Parse Post_id: "L43" -> "43", "F44" -> "44"
+            const postId = match.Post.Post_id.replace(/^[LF]/, '');
+            const postType = match.Post.Post_type || 'found';
+            const postAuthorId = match.Post.Account_id;
+
+            // ✅ Pass complete post information for conversation creation
             onNavigateToChat({
-                id: match.Post.Account_id,
-                name: match.Post.Post_Title || 'User'
+                postId: postId,
+                postType: postType,
+                postAuthorId: postAuthorId
             });
         }
     };

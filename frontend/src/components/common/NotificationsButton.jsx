@@ -25,20 +25,41 @@ export default function NotificationsButton({ onNotificationClick }) {
         const backendNotifications = response.data;
 
         // Map backend format to frontend format
-        const mappedNotifications = backendNotifications.map(notif => ({
-          id: notif.notification_id,
-          title: notif.title,
-          message: notif.message,
-          type: notif.type,
-          read: notif.is_read,
-          time: notif.created_at,
-          createdAt: notif.created_at,
-          postId: notif.post_id,
-          postType: notif.post_type,
-          // Keep other fields if they exist
-          similarity: notif.similarity,
-          matchedPost: notif.matched_post
-        }));
+        const mappedNotifications = backendNotifications.map(notif => {
+          // ✅ Extract postId and postType from link field
+          // Link format: /posts/{type}/{id} or /matches/{id}
+          let postId = notif.post_id;
+          let postType = notif.post_type;
+
+          // Parse link if postId/postType not available
+          if (notif.link && !postId) {
+            const linkMatch = notif.link.match(/\/posts\/(lost|found)\/(\d+)/);
+            if (linkMatch) {
+              postType = linkMatch[1]; // 'lost' or 'found'
+              postId = parseInt(linkMatch[2]);
+            }
+          }
+
+          // ✅ For post_approved notifications, use the type field
+          if (notif.type === 'post_approved') {
+            postType = 'post_approved';
+          }
+
+          return {
+            id: notif.notification_id,
+            title: notif.title,
+            message: notif.message,
+            type: notif.type,
+            read: notif.is_read,
+            time: notif.created_at,
+            createdAt: notif.created_at,
+            postId: postId,
+            postType: postType,
+            // Keep other fields if they exist
+            similarity: notif.similarity,
+            matchedPost: notif.matched_post
+          };
+        });
 
         setNotifications(mappedNotifications);
         setUnreadCount(mappedNotifications.filter(n => !n.read).length);
