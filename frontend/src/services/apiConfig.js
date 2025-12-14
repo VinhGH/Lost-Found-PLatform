@@ -4,7 +4,7 @@
  */
 
 // API Base URL - sử dụng biến môi trường hoặc URL mặc định
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://lost-found-platform.onrender.com/api';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     requestOtp: '/auth/request-otp',
     verifyOtp: '/auth/verify-otp',
     requestPasswordReset: '/auth/request-password-reset',
+    verifyPasswordResetOtp: '/auth/verify-password-reset-otp',
     resetPassword: '/auth/reset-password',
   },
   accounts: {

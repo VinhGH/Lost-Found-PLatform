@@ -1,0 +1,517 @@
+/* ============================================
+   AI Matches Page - Modern Flat Design
+   ============================================ */
+
+.matches-page {
+  padding: 32px;
+  background: white;
+  min-height: 100vh;
+}
+
+/* Header Section */
+.matches-header {
+  margin-bottom: 32px;
+}
+
+.matches-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.matches-subtitle {
+  font-size: 15px;
+  color: #64748B;
+  font-weight: 400;
+}
+
+/* Empty State */
+.no-matches {
+  text-align: center;
+  padding: 80px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+}
+
+.no-matches-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 16px;
+}
+
+.no-matches h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 12px 0;
+}
+
+.no-matches p {
+  font-size: 15px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Matches Section Container */
+.matches-section {
+  margin-bottom: 48px;
+}
+
+.matches-section:last-child {
+  margin-bottom: 0;
+}
+
+/* High-Match Section Background */
+.matches-section:has(.high-match-header) {
+  background: linear-gradient(to bottom, #FFFBEB 0%, #FEF3C7 100%);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #FDE68A;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.section-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header.high-match-header h3 {
+  color: #F97316;
+}
+
+.section-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.high-match-header .section-count {
+  background: #FFF7ED;
+  color: #F97316;
+}
+
+/* Matches List */
+.matches-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 400px));
+  gap: 30px;
+  margin-bottom: 40px;
+  justify-content: space-evenly;
+}
+
+/* Match Card - Post Card Style */
+.match-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 200ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.match-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* High Match Card (>= 80%) - Orange Highlight */
+.match-card.high-match {
+  border: 2px solid #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  background: linear-gradient(to bottom, #FFF7ED 0%, white 100%);
+}
+
+.match-card.high-match:hover {
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2), 0 8px 20px rgba(249, 115, 22, 0.15);
+  transform: translateY(-3px);
+}
+
+/* Image Section */
+.match-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: #F1F5F9;
+  overflow: hidden;
+}
+
+.match-no-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+}
+
+.match-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.match-badge::before {
+  content: '✓';
+  margin-right: 4px;
+}
+
+/* High Match Badge - Orange */
+.high-match .match-badge {
+  background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+}
+
+/* Checkbox Wrapper in Selection Mode */
+.match-checkbox-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  background: white;
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Content Section */
+.match-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.match-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.match-description {
+  font-size: 14px;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Meta Information */
+.match-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.meta-item svg {
+  font-size: 14px;
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Your Post Reference */
+.your-post-ref {
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+  border-left: 3px solid #2563EB;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #3730A3;
+  line-height: 1.6;
+}
+
+.your-post-ref strong {
+  color: #1E40AF;
+  font-weight: 600;
+}
+
+/* Actions */
+.match-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.match-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-view {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.btn-view:hover {
+  background: #E2E8F0;
+  color: #334155;
+}
+
+.btn-chat {
+  background: #2563EB;
+  color: white;
+}
+
+.btn-chat:hover {
+  background: #1D4ED8;
+}
+
+.btn-delete {
+  background: #FEF2F2;
+  color: #DC2626;
+  flex: 0 0 auto;
+  padding: 10px 12px;
+}
+
+.btn-delete:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* Loading State */
+.loading-container {
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #E2E8F0;
+  border-top-color: #2563EB;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  font-size: 15px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Error State */
+.error-container {
+  text-align: center;
+  padding: 80px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #FEE2E2;
+}
+
+.error-container p {
+  font-size: 15px;
+  color: #DC2626;
+  margin: 0 0 20px 0;
+}
+
+.retry-btn {
+  background: #2563EB;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.retry-btn:hover {
+  background: #1D4ED8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .matches-page {
+    padding: 20px 16px;
+  }
+
+  .matches-header h2 {
+    font-size: 24px;
+  }
+
+  .matches-list {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .match-card {
+    padding: 16px;
+  }
+
+  .match-actions {
+    flex-direction: column;
+  }
+
+  .match-actions button {
+    width: 100%;
+  }
+
+  .match-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   Bulk Delete / Selection Mode Styles
+   ============================================ */
+
+/* Selection Mode Toggle Button */
+.selection-toggle-btn {
+  padding: 8px 16px;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.selection-toggle-btn:hover {
+  background: #2563EB;
+}
+
+.selection-toggle-btn.cancel {
+  background: #6B7280;
+}
+
+.selection-toggle-btn.cancel:hover {
+  background: #4B5563;
+}
+
+/* Bulk Action Bar */
+.bulk-action-bar {
+  position: sticky;
+  top: 80px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.btn-select-toggle {
+  padding: 6px 12px;
+  background: #F1F5F9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-select-toggle:hover {
+  background: #E2E8F0;
+  color: #334155;
+}
+
+.btn-bulk-delete {
+  padding: 8px 16px;
+  background: #DC2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-bulk-delete:hover {
+  background: #B91C1C;
+}
+
+/* Selected Match Card */
+.match-card.selected {
+  border: 2px solid #3B82F6;
+  background: #EFF6FF;
+}
+
+.match-card.selectable {
+  cursor: pointer;
+}
+
+.match-card.selectable:hover {
+  border-color: #93C5FD;
+}
+
+/* Checkbox in Selection Mode */
+.match-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-right: 12px;
+  accent-color: #3B82F6;
+}

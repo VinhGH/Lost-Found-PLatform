@@ -13,7 +13,7 @@ const ToastNotification = ({ notification, onClose, onClick }) => {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(() => onClose(), 300); // Đợi animation xong rồi mới close
-    }, 5000);
+    }, 8000);
 
     return () => clearTimeout(timer);
   }, [onClose]);

@@ -1,13 +1,18 @@
 /* User Header Styles */
 .user-header {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: #DC143C; 
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48px);
+  max-width: 1400px;
+  background: rgba(220, 20, 60, 0.85); /* Semi-transparent red - darker */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  border-bottom: 1px solid #ba4141;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
 }
 
 .header-container {
@@ -34,7 +39,7 @@
   cursor: pointer;
   padding: 8px 0;
   transition: transform 0.2s ease;
-  margin-left: -20px; /* Đưa logo sát bên trái hơn nữa */
+  margin-left: -40px; /* Đưa logo sát bên trái hơn nữa */
   margin-right: 20px; /* Tạo khoảng cách với menu */
 }
 
@@ -278,12 +283,13 @@
   gap: 8px;
   background: none;
   border: none;
-  padding: 8px 10px; /* Giảm padding ngang */
+  padding: 8px 16px; /* Tăng padding để chứa tên dài */
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0; /* Không cho co lại */
   min-width: fit-content; /* Đảm bảo hiển thị đầy đủ */
+  max-width: none; /* Cho phép mở rộng */
 }
 
 .user-menu-btn:hover {
@@ -304,12 +310,7 @@
 }
 
 .user-name {
-  font-weight: 500;
-  color: white; /* Tên người dùng màu trắng */
-  font-size: 14px;
-  white-space: nowrap; /* Không cho xuống dòng */
-  overflow: visible; /* Cho phép hiển thị đầy đủ */
-  text-overflow: clip; /* Không cắt chữ */
+  display: none; /* Ẩn tên user ở header */
 }
 
 .dropdown-icon {
@@ -426,6 +427,7 @@
   
   .user-name {
     font-size: 13px;
+    max-width: 100px; /* Giới hạn độ rộng trên tablet */
   }
 }
 

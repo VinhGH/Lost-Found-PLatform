@@ -196,6 +196,7 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             from: msg.sender_id === user?.account_id ? "Bạn" : msg.Sender?.user_name || "User",
             text: msg.message,
             time: vnTime,
+            timestamp: utcDate, // ✅ Thêm timestamp đầy đủ để so sánh ngày
           };
         });
 
@@ -207,6 +208,47 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
       console.error("❌ Error loading messages:", error);
       if (reset) setMessages([]);
     }
+  };
+
+  // ✅ Helper function to format date for separator
+  const formatDateSeparator = (date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Reset time to compare only dates
+    const messageDate = new Date(date);
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+
+    if (messageDate.getTime() === today.getTime()) {
+      return "Hôm nay";
+    } else if (messageDate.getTime() === yesterday.getTime()) {
+      return "Hôm qua";
+    } else {
+      return date.toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  };
+
+  // ✅ Helper function to check if date changed between messages
+  const shouldShowDateSeparator = (currentMsg, previousMsg) => {
+    if (!previousMsg) return true; // Show for first message
+
+    const currentDate = new Date(currentMsg.timestamp);
+    const previousDate = new Date(previousMsg.timestamp);
+
+    // Compare only date part (ignore time)
+    return (
+      currentDate.getDate() !== previousDate.getDate() ||
+      currentDate.getMonth() !== previousDate.getMonth() ||
+      currentDate.getFullYear() !== previousDate.getFullYear()
+    );
   };
 
   const handleSendMessage = async () => {
@@ -508,16 +550,24 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
               <div className="messages-container">
                 <div className="messages-list">
                   {messages.map((msg, i) => (
-                    <div
-                      key={msg.id || i} // ✅ Dùng message_id làm key
-                      className={`message ${msg.from === "Bạn" ? "own" : "other"
-                        }`}
-                    >
-                      <div className="message-content">
-                        <p className="message-text">{msg.text}</p>
-                        <span className="message-time">{msg.time}</span>
+                    <React.Fragment key={msg.id || i}>
+                      {/* Date Separator */}
+                      {shouldShowDateSeparator(msg, messages[i - 1]) && (
+                        <div className="date-separator">
+                          <span>{formatDateSeparator(msg.timestamp)}</span>
+                        </div>
+                      )}
+
+                      {/* Message */}
+                      <div
+                        className={`message ${msg.from === "Bạn" ? "own" : "other"}`}
+                      >
+                        <div className="message-content">
+                          <p className="message-text">{msg.text}</p>
+                          <span className="message-time">{msg.time}</span>
+                        </div>
                       </div>
-                    </div>
+                    </React.Fragment>
                   ))}
                 </div>
               </div>

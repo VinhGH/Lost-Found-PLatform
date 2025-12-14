@@ -5,6 +5,7 @@ import UserProfile from "./UserProfile";
 import FoundPage from "./FoundPage";
 import LostPage from "./LostPage";
 import ChatPage from "./ChatPage";
+import MatchesPage from "./MatchesPage";
 import CreatePostModal from "./CreatePostModal";
 import PostDetailModal from "./PostDetailModal";
 
@@ -34,7 +35,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       const savedTab = localStorage.getItem("userActiveTab");
       if (
         savedTab &&
-        ["home", "found", "lost", "chat", "profile", "posts"].includes(savedTab)
+        ["home", "found", "lost", "chat", "profile", "posts", "matches"].includes(savedTab)
       ) {
         return savedTab;
       }
@@ -573,6 +574,23 @@ const UserUI = ({ onLogout, user: initialUser }) => {
             }}
             onShowToast={setToastNotification}
             viewUser={profileTargetUser}
+          />
+        );
+      case "matches":
+        return (
+          <MatchesPage
+            user={user}
+            onNavigateToChat={(targetUser) => {
+              setChatTarget(targetUser);
+              setActiveTab("chat");
+            }}
+            onNavigateToPost={(postId, type) => {
+              setActiveTab(type === "lost" ? "lost" : "found");
+              setTimeout(() => {
+                const el = document.getElementById(`post-${postId}`);
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }, 120);
+            }}
           />
         );
       default:

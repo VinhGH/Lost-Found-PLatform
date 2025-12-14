@@ -28,7 +28,153 @@
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
-  box-sizing: border-box;
+  box-sizing: border-box; /* Đảm bảo tính toán đúng */
+}
+
+/* Bulk Action Bar Styles for Admin */
+.btn-select-mode {
+  margin-left: 16px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid #06b6d4;
+  background: #06b6d4;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
+}
+
+.btn-select-mode:hover {
+  background: #0891b2;
+  border-color: #0891b2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(6, 182, 212, 0.3);
+}
+
+.btn-select-mode.active {
+  background: #0e7490;
+  border-color: #0e7490;
+  color: white;
+}
+
+.bulk-action-bar-admin {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+  padding: 12px 24px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.bulk-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #334155;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-bulk-approve {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-bulk-approve:hover:not(:disabled) {
+  background: #16a34a;
+  transform: translateY(-1px);
+}
+
+.btn-bulk-approve:disabled {
+  background: #bbf7d0;
+  cursor: not-allowed;
+}
+
+.btn-bulk-delete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-bulk-delete:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-bulk-delete:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+}
+
+.post-checkbox-wrapper {
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.post-checkbox-wrapper:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.post-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
 }
 
 /* Breadcrumb */

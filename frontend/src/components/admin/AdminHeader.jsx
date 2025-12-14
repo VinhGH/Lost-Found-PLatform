@@ -3,41 +3,11 @@ import './AdminHeader.css';
 import {
   Person as PersonIcon,
   Logout as LogoutIcon,
-  Notifications as NotificationsIcon,
-  Close as CloseIcon,
-  Info as InfoIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
 
 const AdminHeader = ({ onLogout, adminUser, onProfileClick }) => {
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-
-  const notifications = [
-    {
-      id: 1,
-      title: 'Tài khoản mới đăng ký',
-      message: 'Nguyễn Văn A đã đăng ký tài khoản developer',
-      time: '5 phút trước',
-      type: 'info'
-    },
-    {
-      id: 2,
-      title: 'Bài đăng cần duyệt',
-      message: 'Có 3 bài đăng mới cần được duyệt',
-      time: '10 phút trước',
-      type: 'warning'
-    },
-    {
-      id: 3,
-      title: 'Hệ thống cập nhật',
-      message: 'Phiên bản mới đã được cập nhật',
-      time: '1 giờ trước',
-      type: 'success'
-    }
-  ];
 
   const userMenuItems = [
     { label: 'Hồ sơ', icon: <PersonIcon />, action: 'profile' },
@@ -66,52 +36,6 @@ const AdminHeader = ({ onLogout, adminUser, onProfileClick }) => {
       </div>
 
       <div className="header-right">
-        {/* Notifications */}
-        <div className="notification-container">
-          <button
-            className="notification-btn"
-            onClick={() => setShowNotifications(!showNotifications)}
-          >
-            <NotificationsIcon />
-            {notifications.length > 0 && (
-              <span className="notification-badge">{notifications.length}</span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <div className="notification-dropdown">
-              <div className="dropdown-header">
-                <h4>Thông báo</h4>
-                <button 
-                  className="close-btn"
-                  onClick={() => setShowNotifications(false)}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              <div className="notification-list">
-                {notifications.map(notification => (
-                  <div key={notification.id} className="notification-item">
-                    <div className="notification-icon">
-                      {notification.type === 'info' && <InfoIcon />}
-                      {notification.type === 'warning' && <WarningIcon />}
-                      {notification.type === 'success' && <CheckCircleIcon />}
-                    </div>
-                    <div className="notification-content">
-                      <h5>{notification.title}</h5>
-                      <p>{notification.message}</p>
-                      <span className="notification-time">{notification.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="dropdown-footer">
-                <button className="view-all-btn">Xem tất cả</button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* User Menu */}
         <div 
           className="user-container"
