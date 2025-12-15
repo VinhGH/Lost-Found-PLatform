@@ -23,6 +23,15 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
   const [zoomedImage, setZoomedImage] = useState(null); // Ảnh đang được phóng to
   const modalRef = useRef(null);
 
+  // 🔹 Refs cho các trường input để focus khi có lỗi
+  const titleRef = useRef(null);
+  const imageRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const categoryRef = useRef(null);
+  const buildingRef = useRef(null);
+  const dateRef = useRef(null);
+  const contactRef = useRef(null);
+
   // 🔹 Lock body scroll khi modal mở
   useEffect(() => {
     // Save current scroll position
@@ -50,6 +59,38 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     };
   }, []);
 
+  // 🔹 Kiểm tra xem người dùng đã nhập dữ liệu chưa
+  const hasUserEnteredData = () => {
+    // Kiểm tra các trường text
+    const hasTextData = 
+      (formData.title && formData.title.trim().length > 0) ||
+      (formData.description && formData.description.trim().length > 0) ||
+      (formData.room && formData.room.trim().length > 0) ||
+      (formData.address && formData.address.trim().length > 0);
+    
+    // Kiểm tra xem có ảnh được upload chưa
+    const hasImages = images.length > 0;
+    
+    // Kiểm tra xem building có khác giá trị mặc định không (nếu user đã chọn)
+    const hasSelectedBuilding = formData.building && formData.building.trim().length > 0;
+    
+    return hasTextData || hasImages || hasSelectedBuilding;
+  };
+
+  // 🔹 Xử lý khi người dùng nhấn nút Hủy
+  const handleCancel = () => {
+    if (mode === "create" && hasUserEnteredData()) {
+      const confirmCancel = window.confirm(
+        "Bạn đã nhập một số thông tin. Bạn có chắc chắn muốn hủy bài đăng này không? Tất cả dữ liệu sẽ bị mất."
+      );
+      if (confirmCancel) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   // 🔹 Xử lý ESC key để đóng modal
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -57,7 +98,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
         if (zoomedImage) {
           setZoomedImage(null);
         } else {
-          onClose();
+          handleCancel();
         }
       }
     };
@@ -67,7 +108,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose, zoomedImage]);
+  }, [onClose, zoomedImage, mode, formData, images]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -227,6 +268,13 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       newErrors.title = "Tiêu đề phải có ít nhất 5 ký tự.";
     }
 
+    // Validation cho hình ảnh (bắt buộc, tối đa 3 ảnh)
+    if (images.length === 0) {
+      newErrors.image = "Vui lòng tải lên ít nhất 1 ảnh cho bài đăng.";
+    } else if (images.length > 3) {
+      newErrors.image = "Bạn chỉ có thể tải tối đa 3 ảnh.";
+    }
+
     // Validation cho mô tả (tối thiểu 8 ký tự)
     if (!formData.description || formData.description.trim().length < 8) {
       newErrors.description = "Mô tả phải có ít nhất 8 ký tự.";
@@ -264,20 +312,47 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       newErrors.contact = "Số điện thoại không hợp lệ. Vui lòng nhập 9-11 số (bắt đầu bằng 0 hoặc +84).";
     }
 
-    // Validation cho hình ảnh (bắt buộc, tối đa 3 ảnh)
-    if (images.length === 0) {
-      newErrors.image = "Vui lòng tải lên ít nhất 1 ảnh cho bài đăng.";
-    } else if (images.length > 3) {
-      newErrors.image = "Bạn chỉ có thể tải tối đa 3 ảnh.";
-    }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // 🔹 Trả về object chứa validation status và tên field lỗi đầu tiên
+    const fieldOrder = ['title', 'image', 'description', 'category', 'building', 'date', 'contact'];
+    const firstErrorField = fieldOrder.find(field => newErrors[field]);
+    
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      firstErrorField: firstErrorField || null
+    };
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validateForm()) {
+    const validation = validateForm();
+    
+    if (!validation.isValid) {
+      // 🔹 Focus vào field đầu tiên có lỗi
+      const fieldRefMap = {
+        title: titleRef,
+        image: imageRef,
+        description: descriptionRef,
+        category: categoryRef,
+        building: buildingRef,
+        date: dateRef,
+        contact: contactRef
+      };
+      
+      const errorRef = fieldRefMap[validation.firstErrorField];
+      if (errorRef && errorRef.current) {
+        // Scroll đến element với smooth behavior
+        errorRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Focus vào element sau khi scroll (delay nhỏ để đảm bảo scroll hoàn tất)
+        setTimeout(() => {
+          errorRef.current.focus();
+        }, 300);
+      }
       return;
     }
     const parts = [];
@@ -307,7 +382,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       onClick={(e) => {
         // Chỉ đóng khi click vào overlay (không phải modal)
         if (e.target === e.currentTarget) {
-          onClose();
+          handleCancel();
         }
       }}
     >
@@ -315,7 +390,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
         {/* Header */}
         <div className="modal-header">
           <h2>{mode === "edit" ? "Chỉnh sửa bài đăng" : "Tạo bài đăng mới"}</h2>
-          <button type="button" className="close-modal-btn" onClick={onClose} aria-label="Đóng">
+          <button type="button" className="close-modal-btn" onClick={handleCancel} aria-label="Đóng">
             <CloseIcon />
           </button>
         </div>
@@ -366,6 +441,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           <div className="form-group">
             <label>Tiêu đề <span className="required-star">*</span></label>
             <input
+              ref={titleRef}
               type="text"
               name="title"
               placeholder="Nhập tiêu đề bài viết"
@@ -379,7 +455,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           {/* Upload ảnh */}
           <div className="upload-section">
             <label>Tải ảnh của bạn <span className="required-star">*</span> <span style={{ fontSize: "12px", color: "#666", fontWeight: "normal" }}>(Tối đa 3 ảnh)</span></label>
-            <div className={`upload-container ${errors.image ? "input-error" : ""}`}>
+            <div ref={imageRef} tabIndex="-1" className={`upload-container ${errors.image ? "input-error" : ""}`}>
               {images.length === 0 ? (
                 <label className="upload-label">
                   Kéo thả hoặc chọn ảnh để tải lên (tối đa 3 ảnh)
@@ -432,6 +508,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           <div className="form-group">
             <label>Mô tả chi tiết <span className="required-star">*</span></label>
             <textarea
+              ref={descriptionRef}
               name="description"
               placeholder="Mô tả chi tiết về đồ vật, địa điểm, thời gian..."
               rows="4"
@@ -448,6 +525,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             <div className="form-group">
               <label>Danh mục <span className="required-star">*</span></label>
               <select 
+                ref={categoryRef}
                 name="category" 
                 value={formData.category} 
                 onChange={handleChange}
@@ -466,6 +544,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             <div className="form-group">
               <label>Tòa <span className="required-star">*</span></label>
               <select 
+                ref={buildingRef}
                 name="building" 
                 value={formData.building} 
                 onChange={handleChange}
@@ -514,6 +593,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             <div className="form-group">
               <label>Ngày xảy ra <span className="required-star">*</span></label>
               <input
+                ref={dateRef}
                 type="date"
                 name="date"
                 value={formData.date}
@@ -525,6 +605,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             <div className="form-group">
               <label>Số điện thoại liên hệ <span className="required-star">*</span></label>
               <input
+                ref={contactRef}
                 type="text"
                 name="contact"
                 placeholder="Nhập số điện thoại của bạn"
@@ -538,7 +619,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
 
           {/* Footer */}
           <div className="modal-footer">
-            <button type="button" className="cancel-btn" onClick={onClose}>
+            <button type="button" className="cancel-btn" onClick={handleCancel}>
               <span>Hủy</span>
             </button>
             <button type="submit" className="submit-btn"> 

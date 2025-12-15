@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Close as CloseIcon } from "@mui/icons-material";
 import "./CreatePostModal.css"; // dùng chung style
 
@@ -20,15 +20,18 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
   const [images, setImages] = useState([]); // Mảng để lưu nhiều ảnh (tối đa 3)
   const [errors, setErrors] = useState({});
   const [zoomedImage, setZoomedImage] = useState(null); // Ảnh đang được phóng to
+  const [originalData, setOriginalData] = useState(null); // Lưu dữ liệu gốc để so sánh
+  const titleRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const imageRef = useRef(null);
+  const categoryRef = useRef(null);
+  const buildingRef = useRef(null);
+  const contactRef = useRef(null);
 
-  // ✅ Lock body scroll when modal is open
   useEffect(() => {
-    // Save original body overflow style
     const originalOverflow = document.body.style.overflow;
-    // Lock body scroll
     document.body.style.overflow = 'hidden';
 
-    // Cleanup function to restore original overflow
     return () => {
       document.body.style.overflow = originalOverflow;
     };
@@ -56,7 +59,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         ? postData.images
         : (postData.imageUrl || postData.image ? [postData.imageUrl || postData.image] : []);
 
-      setFormData({
+      const initialFormData = {
         postType: postData.type || "lost",
         author: postData.author || "",
         title: postData.title || "",
@@ -82,20 +85,56 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         date: postData.date || "",
         contact: postData.contact || "",
         image: null,
-      });
+      };
+
+      setFormData(initialFormData);
 
       // Load tất cả ảnh vào images array
-      if (existingImages.length > 0) {
-        setImages(existingImages.map((img, index) => ({
-          file: null, // Ảnh cũ không có file object
-          preview: img,
-          id: Date.now() + index
-        })));
-      } else {
-        setImages([]);
-      }
+      const initialImages = existingImages.length > 0
+        ? existingImages.map((img, index) => ({
+            file: null, // Ảnh cũ không có file object
+            preview: img,
+            id: Date.now() + index
+          }))
+        : [];
+
+      setImages(initialImages);
+
+      // 🔹 Lưu dữ liệu gốc để so sánh sau này
+      setOriginalData({
+        formData: initialFormData,
+        images: initialImages
+      });
     }
   }, [postData]);
+
+  // 🔹 Kiểm tra xem người dùng đã thay đổi dữ liệu chưa
+  const hasChanges = () => {
+    if (!originalData) return false;
+
+    // So sánh form data
+    const formChanged = Object.keys(formData).some(key => {
+      if (key === 'image') return false; // Bỏ qua image vì đã check images array
+      return formData[key] !== originalData.formData[key];
+    });
+
+    // So sánh images
+    const imagesChanged = () => {
+      if (images.length !== originalData.images.length) return true;
+      
+      // Kiểm tra xem có ảnh mới (có file) không
+      const hasNewImages = images.some(img => img.file instanceof File);
+      if (hasNewImages) return true;
+
+      // So sánh preview URLs
+      return images.some((img, index) => {
+        const originalImg = originalData.images[index];
+        return !originalImg || img.preview !== originalImg.preview;
+      });
+    };
+
+    return formChanged || imagesChanged();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -195,6 +234,11 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       newErrors.description = "Mô tả phải có ít nhất 8 ký tự.";
     }
 
+    // Validation cho hình ảnh (tối đa 3 ảnh, nhưng không bắt buộc vì có thể giữ ảnh cũ)
+    if (images.length > 3) {
+      newErrors.image = "Bạn chỉ có thể tải tối đa 3 ảnh.";
+    }
+
     // Validation cho danh mục
     if (!formData.category) {
       newErrors.category = "Vui lòng chọn danh mục.";
@@ -216,20 +260,58 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
       newErrors.contact = "Số điện thoại không hợp lệ. Vui lòng nhập 9-11 số (bắt đầu bằng 0 hoặc +84).";
     }
 
-    // Validation cho hình ảnh (tối đa 3 ảnh, nhưng không bắt buộc vì có thể giữ ảnh cũ)
-    if (images.length > 3) {
-      newErrors.image = "Bạn chỉ có thể tải tối đa 3 ảnh.";
-    }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // 🔹 Trả về object chứa validation status và tên field lỗi đầu tiên
+    const fieldOrder = ['title', 'description', 'image', 'category', 'building', 'contact'];
+    const firstErrorField = fieldOrder.find(field => newErrors[field]);
+    
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      firstErrorField: firstErrorField || null
+    };
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const validation = validateForm();
+    
+    if (!validation.isValid) {
+      // 🔹 Focus vào field đầu tiên có lỗi
+      const fieldRefMap = {
+        title: titleRef,
+        description: descriptionRef,
+        image: imageRef,
+        category: categoryRef,
+        building: buildingRef,
+        contact: contactRef
+      };
+      
+      const errorRef = fieldRefMap[validation.firstErrorField];
+      if (errorRef && errorRef.current) {
+        // Scroll đến element với smooth behavior
+        errorRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Focus vào element sau khi scroll (delay nhỏ để đảm bảo scroll hoàn tất)
+        setTimeout(() => {
+          errorRef.current.focus();
+        }, 300);
+      }
       return;
+    }
+
+    // 🔹 Kiểm tra xem có thay đổi không, nếu có thì hỏi xác nhận
+    if (hasChanges()) {
+      const confirmUpdate = window.confirm(
+        "Bạn có chắc chắn muốn cập nhật bài đăng này không?"
+      );
+      if (!confirmUpdate) {
+        return; // Người dùng không muốn cập nhật
+      }
     }
 
     // Xử lý ảnh: nếu có ảnh mới thì dùng ảnh mới, nếu không thì giữ ảnh cũ
@@ -294,12 +376,26 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     alert("✅ Bài đăng đã được cập nhật thành công!");
   };
 
+  // 🔹 Xử lý khi người dùng nhấn nút Hủy hoặc đóng modal
+  const handleCancel = () => {
+    if (hasChanges()) {
+      const confirmCancel = window.confirm(
+        "Bạn đã thay đổi một số thông tin. Bạn có chắc chắn muốn hủy cập nhật không? Tất cả thay đổi sẽ bị mất."
+      );
+      if (confirmCancel) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <div className="overlay">
       <div className="modal">
         <div className="modal-header">
           <h2>Chỉnh sửa bài đăng</h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={handleCancel}>
             <CloseIcon style={{ fontSize: "22px" }} />
           </button>
         </div>
@@ -348,6 +444,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           <div className="form-group">
             <label>Tiêu đề <span className="required-star">*</span></label>
             <input
+              ref={titleRef}
               type="text"
               name="title"
               value={formData.title}
@@ -361,6 +458,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           <div className="form-group">
             <label>Mô tả chi tiết <span className="required-star">*</span></label>
             <textarea
+              ref={descriptionRef}
               name="description"
               rows="4"
               value={formData.description}
@@ -373,7 +471,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
 
           <div className="upload-section">
             <label>Tải ảnh của bạn <span style={{ fontSize: "12px", color: "#666", fontWeight: "normal" }}>(Tối đa 3 ảnh, để trống sẽ giữ ảnh cũ)</span></label>
-            <div className={`upload-container ${errors.image ? "input-error" : ""}`}>
+            <div ref={imageRef} tabIndex="-1" className={`upload-container ${errors.image ? "input-error" : ""}`}>
               {images.length === 0 ? (
                 <label className="upload-label">
                   Kéo thả hoặc chọn ảnh để tải lên (tối đa 3 ảnh)
@@ -427,6 +525,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             <div className="form-group">
               <label>Danh mục <span className="required-star">*</span></label>
               <select
+                ref={categoryRef}
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
@@ -447,6 +546,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             <div className="form-group">
               <label>Tòa <span className="required-star">*</span></label>
               <select
+                ref={buildingRef}
                 name="building"
                 value={formData.building}
                 onChange={handleChange}
@@ -507,6 +607,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
             <div className="form-group">
               <label>Số điện thoại liên hệ <span className="required-star">*</span></label>
               <input
+                ref={contactRef}
                 type="text"
                 name="contact"
                 value={formData.contact}
@@ -519,7 +620,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="cancel-btn" onClick={onClose}>
+            <button type="button" className="cancel-btn" onClick={handleCancel}>
               Hủy
             </button>
             <button type="submit" className="submit-btn">

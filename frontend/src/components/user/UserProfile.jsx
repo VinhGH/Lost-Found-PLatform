@@ -425,6 +425,8 @@ const UserProfile = ({
         description: updated.description,
         category: updated.category,
         location: updated.location,
+        date: updated.date, // ✅ Thêm ngày xảy ra
+        contact: updated.contact, // ✅ Thêm số điện thoại liên hệ
         // ✅ CHỈ gửi images nếu có ảnh mới (base64)
         ...(imagesToSend !== undefined && { images: imagesToSend }),
         // ✅ KHÔNG gửi status - user không được thay đổi status khi update
@@ -862,15 +864,19 @@ const UserProfile = ({
                     </div>
 
                     <div className="post-actions">
-                      <button
-                        className="btn-go-post"
-                        onClick={() =>
-                          onNavigateToPost &&
-                          onNavigateToPost(post.id, post.type)
-                        }
-                      >
-                        Đi tới bài đăng
-                      </button>
+                      {/* Only show "Go to Post" button for approved/active posts */}
+                      {(post.status?.toLowerCase() === "approved" || 
+                        post.status?.toLowerCase() === "active") && (
+                        <button
+                          className="btn-go-post"
+                          onClick={() =>
+                            onNavigateToPost &&
+                            onNavigateToPost(post.id, post.type)
+                          }
+                        >
+                          Đi tới bài đăng
+                        </button>
+                      )}
 
                       {post.status !== "Rejected" && (
                         <button
