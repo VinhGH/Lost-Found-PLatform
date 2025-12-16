@@ -7,6 +7,7 @@ import {
   DEFAULT_HEADERS,
   REQUEST_TIMEOUT,
   OTP_REQUEST_TIMEOUT,
+  MATCH_REQUEST_TIMEOUT,
   STORAGE_KEYS,
 } from "./apiConfig";
 
@@ -19,6 +20,7 @@ class HttpClient {
   /**
    * Get timeout duration based on endpoint
    * OTP endpoints need more time for email sending
+   * AI Matching endpoints need more time for AI processing
    */
   getTimeoutForEndpoint(endpoint) {
     const otpEndpoints = [
@@ -28,8 +30,18 @@ class HttpClient {
       '/auth/reset-password'
     ];
 
+    const matchEndpoints = [
+      '/matches/my',
+      '/matches/post',
+      '/matches/scan'
+    ];
+
     const isOtpEndpoint = otpEndpoints.some(otp => endpoint.includes(otp));
-    return isOtpEndpoint ? OTP_REQUEST_TIMEOUT : REQUEST_TIMEOUT;
+    const isMatchEndpoint = matchEndpoints.some(match => endpoint.includes(match));
+
+    if (isMatchEndpoint) return MATCH_REQUEST_TIMEOUT;
+    if (isOtpEndpoint) return OTP_REQUEST_TIMEOUT;
+    return REQUEST_TIMEOUT;
   }
 
   /**
