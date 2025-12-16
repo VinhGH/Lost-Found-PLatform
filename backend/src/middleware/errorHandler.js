@@ -1,8 +1,18 @@
 const errorHandler = (err, req, res, next) => {
-  console.error('🔥 Global Error Handler:', err.stack || err);
-  res.status(500).json({
+  // Set CORS headers even on errors
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+
+  console.error('❌ Error:', err.message);
+  console.error('Stack:', err.stack);
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message,
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 };
 

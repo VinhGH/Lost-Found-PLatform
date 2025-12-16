@@ -29,7 +29,7 @@ export const sendOtpEmail = async (to, otpCode) => {
     console.log('📧 Attempting to send OTP email to:', to);
     console.log('📮 SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
     console.log('📮 EMAIL_FROM:', process.env.EMAIL_FROM || 'NOT SET');
-    
+
     // Validate configuration
     if (!process.env.SMTP_USER) {
       console.error('❌ SMTP_USER not configured in .env file');
@@ -130,8 +130,15 @@ Vui lòng không trả lời email này.
     console.log('   From:', process.env.EMAIL_FROM);
     console.log('   To:', to);
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
+    // Send email with timeout (45 seconds max)
+    const emailTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Email sending timeout after 45 seconds')), 45000);
+    });
+
+    const info = await Promise.race([
+      transporter.sendMail(mailOptions),
+      emailTimeout
+    ]);
 
     console.log('✅ OTP email sent successfully to:', to);
     console.log('📧 Message ID:', info.messageId);
