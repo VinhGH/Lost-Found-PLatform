@@ -67,3 +67,6 @@ export const DEFAULT_HEADERS = {
 // Request timeout (milliseconds)
 export const REQUEST_TIMEOUT = 30000; // 30 seconds
 
+// OTP Request timeout (longer for email sending)
+export const OTP_REQUEST_TIMEOUT = 60000; // 60 seconds
+

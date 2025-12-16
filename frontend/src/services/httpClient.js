@@ -6,6 +6,7 @@ import {
   API_BASE_URL,
   DEFAULT_HEADERS,
   REQUEST_TIMEOUT,
+  OTP_REQUEST_TIMEOUT,
   STORAGE_KEYS,
 } from "./apiConfig";
 
@@ -13,6 +14,22 @@ class HttpClient {
   constructor() {
     this.baseURL = API_BASE_URL;
     this.timeout = REQUEST_TIMEOUT;
+  }
+
+  /**
+   * Get timeout duration based on endpoint
+   * OTP endpoints need more time for email sending
+   */
+  getTimeoutForEndpoint(endpoint) {
+    const otpEndpoints = [
+      '/auth/request-otp',
+      '/auth/request-password-reset',
+      '/auth/verify-otp',
+      '/auth/reset-password'
+    ];
+
+    const isOtpEndpoint = otpEndpoints.some(otp => endpoint.includes(otp));
+    return isOtpEndpoint ? OTP_REQUEST_TIMEOUT : REQUEST_TIMEOUT;
   }
 
   /**
@@ -100,9 +117,12 @@ class HttpClient {
     return data;
   }
 
-  async requestWithTimeout(url, options) {
+  async requestWithTimeout(url, options, endpoint = '') {
+    const timeout = this.getTimeoutForEndpoint(endpoint);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    console.log(`⏱️ Request timeout set to ${timeout / 1000}s for ${endpoint}`);
 
     try {
       const response = await fetch(url, {
@@ -116,7 +136,7 @@ class HttpClient {
       clearTimeout(timeoutId);
 
       if (error.name === "AbortError") {
-        throw new Error("Request timeout - vui lòng thử lại");
+        throw new Error(`Request timeout (${timeout / 1000}s) - vui lòng thử lại`);
       }
 
       throw error;
@@ -142,7 +162,7 @@ class HttpClient {
       const response = await this.requestWithTimeout(url, {
         method: "GET",
         headers,
-      });
+      }, endpoint);
 
       const data = await this.handleResponse(response);
       console.log(`✅ GET ${endpoint} - Success`, data);
@@ -174,7 +194,7 @@ class HttpClient {
         method: "POST",
         headers,
         body: JSON.stringify(body),
-      });
+      }, endpoint);
 
       const data = await this.handleResponse(response);
       console.log(`✅ POST ${endpoint} - Success`, data);
@@ -203,7 +223,7 @@ class HttpClient {
         method: "PUT",
         headers,
         body: JSON.stringify(body),
-      });
+      }, endpoint);
 
       const data = await this.handleResponse(response);
       console.log(`✅ PUT ${endpoint} - Success`, data);
@@ -231,7 +251,7 @@ class HttpClient {
         method: "PATCH",
         headers,
         body: JSON.stringify(body),
-      });
+      }, endpoint);
 
       const data = await this.handleResponse(response);
 
@@ -257,7 +277,7 @@ class HttpClient {
       const response = await this.requestWithTimeout(url, {
         method: "DELETE",
         headers,
-      });
+      }, endpoint);
 
       const data = await this.handleResponse(response);
 
