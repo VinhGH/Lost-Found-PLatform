@@ -108,6 +108,20 @@ class HttpClient {
         localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
       }
 
+      // ✅ AUTO-LOGOUT on 403 if account is locked
+      if (response.status === 403 && data.message?.includes("bị khóa")) {
+        console.warn("🔒 Account locked - Auto logout");
+        localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
+        sessionStorage.removeItem('currentView');
+
+        // Show alert and redirect to login
+        alert("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        window.location.href = "/";
+      }
+
       const error = new Error(data.message || "API request failed");
       error.status = response.status;
       error.data = data;

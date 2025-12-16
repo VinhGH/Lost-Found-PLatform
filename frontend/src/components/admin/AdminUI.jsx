@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
-// ✅ Đã xóa import - UserAccountsManagement và AdminAccountsManagement không được sử dụng
-// import UserAccountsManagement from './UserAccountsManagement';
-// import AdminAccountsManagement from './AdminAccountsManagement';
 import LostItemsManagement from './LostItemsManagement';
 import ApprovedPostsView from './ApprovedPostsView';
 import AdminProfile from './AdminProfile';
+import CategoryManagement from './CategoryManagement';
+import UserManagement from './UserManagement';
 import './AdminUI.css';
 import './AdminGlobalOverrides.css';
 
@@ -16,33 +15,33 @@ const AdminUI = ({ onLogout, adminUser }) => {
     // ✅ Force set theme về light mode cho Admin
     const root = document.documentElement;
     let isUpdating = false; // ✅ Flag để tránh infinite loop
-    
+
     const forceLightMode = () => {
       if (isUpdating) return; // ✅ Tránh infinite loop
       isUpdating = true;
-      
+
       if (root.getAttribute('data-theme') !== 'light') {
         root.setAttribute('data-theme', 'light');
       }
       if (document.body.classList.contains('dark')) {
         document.body.classList.remove('dark');
       }
-      
+
       // ✅ Reset flag sau một chút
       setTimeout(() => {
         isUpdating = false;
       }, 10);
     };
-    
+
     forceLightMode();
-    
+
     // ✅ Thêm class để identify admin dashboard
     root.classList.add('admin-mode');
-    
+
     // ✅ Lắng nghe thay đổi của data-theme và force lại về light mode
     const observer = new MutationObserver((mutations) => {
       if (isUpdating) return; // ✅ Tránh xử lý khi đang update
-      
+
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
           const currentTheme = root.getAttribute('data-theme');
@@ -53,17 +52,17 @@ const AdminUI = ({ onLogout, adminUser }) => {
         }
       });
     });
-    
+
     // ✅ Observe thay đổi của data-theme attribute
     observer.observe(root, {
       attributes: true,
       attributeFilter: ['data-theme']
     });
-    
+
     // ✅ Lắng nghe thay đổi của body class
     const bodyObserver = new MutationObserver((mutations) => {
       if (isUpdating) return; // ✅ Tránh xử lý khi đang update
-      
+
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
           if (document.body.classList.contains('dark')) {
@@ -73,12 +72,12 @@ const AdminUI = ({ onLogout, adminUser }) => {
         }
       });
     });
-    
+
     bodyObserver.observe(document.body, {
       attributes: true,
       attributeFilter: ['class']
     });
-    
+
     // ✅ Cleanup: remove class và disconnect observers khi unmount
     return () => {
       root.classList.remove('admin-mode');
@@ -91,7 +90,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const savedTab = localStorage.getItem("adminActiveTab");
-      if (savedTab && ["lost-items", "approved-posts", "profile"].includes(savedTab)) {
+      if (savedTab && ["lost-items", "approved-posts", "categories", "users", "profile"].includes(savedTab)) {
         console.log("✅ Đã load tab:", savedTab, "từ localStorage");
         return savedTab;
       }
@@ -101,7 +100,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
     console.log("ℹ️ Sử dụng tab mặc định: lost-items");
     return "lost-items";
   });
-  
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem("adminSidebarCollapsed");
@@ -110,7 +109,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
       return false;
     }
   });
-  
+
   // 🔹 Khởi tạo currentAdminUser từ localStorage và merge với adminUser prop
   const [currentAdminUser, setCurrentAdminUser] = useState(() => {
     try {
@@ -142,7 +141,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
       role: "Quản trị viên"
     };
   });
-  
+
   const [tabInitialized, setTabInitialized] = useState(false);
 
   // 🔹 Đánh dấu đã khởi tạo xong tab
@@ -153,7 +152,7 @@ const AdminUI = ({ onLogout, adminUser }) => {
   // 🔹 Load profile từ localStorage khi component mount hoặc adminUser thay đổi
   useEffect(() => {
     if (!adminUser?.email) return;
-    
+
     try {
       const profileKey = `adminProfile_${adminUser.email}`;
       const saved = localStorage.getItem(profileKey);
@@ -234,9 +233,19 @@ const AdminUI = ({ onLogout, adminUser }) => {
           // Trigger re-render khi có thay đổi bài đăng
           window.dispatchEvent(new Event('postsUpdated'));
         }} />;
+
+      // Category Management
+      case 'categories':
+        return <CategoryManagement />;
+
+      // User Management
+      case 'users':
+        return <UserManagement />;
+
+      // Profile
       case 'profile':
         return <AdminProfile adminUser={currentAdminUser} onProfileUpdate={handleProfileUpdate} />;
-      
+
       default:
         return <LostItemsManagement onPostChange={() => {
           window.dispatchEvent(new Event('postsUpdated'));
@@ -246,20 +255,20 @@ const AdminUI = ({ onLogout, adminUser }) => {
 
   return (
     <div className="admin-dashboard admin-light-mode">
-      <AdminSidebar 
+      <AdminSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isCollapsed={sidebarCollapsed}
         setIsCollapsed={setSidebarCollapsed}
       />
-      
+
       <div className="admin-main">
-        <AdminHeader 
-          onLogout={onLogout} 
+        <AdminHeader
+          onLogout={onLogout}
           adminUser={currentAdminUser}
           onProfileClick={() => setActiveTab('profile')}
         />
-        
+
         <main className="admin-content">
           {renderContent()}
         </main>

@@ -206,6 +206,7 @@ const LostPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onView
         onClose={() => setShowFilters(false)}
         initial={filters}
         onApply={(f) => setFilters(f)}
+        postType="lost"
       />
 
       <RecentPosts

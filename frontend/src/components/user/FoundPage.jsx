@@ -207,6 +207,7 @@ const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onVie
         onClose={() => setShowFilters(false)}
         initial={filters}
         onApply={(f) => setFilters(f)}
+        postType="found"
       />
 
       <RecentPosts

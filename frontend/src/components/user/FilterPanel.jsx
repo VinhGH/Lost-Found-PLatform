@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./FilterPanel.css";
-import userApi from "../../services/realApi"; // ✅ REAL API
+import httpClient from "../../services/httpClient";
 import { FilterList as FilterIcon, RestartAlt as ResetIcon } from "@mui/icons-material";
 
 const dateOptions = [
@@ -11,17 +11,34 @@ const dateOptions = [
   { value: "30d", label: "Trong 30 ngày" },
 ];
 
-const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
+const FilterPanel = ({ open, onClose, onApply, initial = {}, postType = "lost" }) => {
   const buildingOptions = ["A", "B", "C", "D", "E", "F", "G", "NULL"];
-
-  // Hardcoded categories to match CreatePostModal
-  const categories = ["Ví/Túi", "Điện thoại", "Laptop", "Chìa khóa", "Phụ kiện", "Khác"];
+  const [categories, setCategories] = useState([]);
 
   const [form, setForm] = useState({
     building: initial.building || "",
     category: initial.category || "",
     date: initial.date || "any",
   });
+
+  // Load categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await httpClient.get("/categories");
+        if (response.success && response.data) {
+          // Filter by postType (lost/found)
+          const filtered = response.data.filter(
+            cat => cat.type.toLowerCase() === postType.toLowerCase()
+          );
+          setCategories(filtered);
+        }
+      } catch (error) {
+        console.error("Error loading categories:", error);
+      }
+    };
+    fetchCategories();
+  }, [postType]);
 
   useEffect(() => {
     setForm({
@@ -72,8 +89,8 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
           <label>Danh mục</label>
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
             <option value="">Tất cả</option>
-            {categories.map((x) => (
-              <option key={x} value={x}>{x}</option>
+            {categories.map((cat) => (
+              <option key={cat.category_id} value={cat.name}>{cat.name}</option>
             ))}
           </select>
         </div>
@@ -94,5 +111,3 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
 };
 
 export default FilterPanel;
-
-

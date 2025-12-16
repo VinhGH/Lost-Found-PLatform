@@ -4,7 +4,9 @@ import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  Folder as FolderIcon,
+  People as PeopleIcon,
 } from '@mui/icons-material';
 
 const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
@@ -34,7 +36,7 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
     };
   }, []);
 
-  // ✅ 2 menu items riêng biệt, không còn submenu
+  // ✅ Menu items with new categories and users tabs
   const menuItems = [
     {
       id: 'lost-items',
@@ -46,6 +48,16 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
       id: 'approved-posts',
       label: 'Bài đăng đã duyệt',
       icon: <VisibilityIcon />
+    },
+    {
+      id: 'categories',
+      label: 'Quản lý chuyên mục',
+      icon: <FolderIcon />
+    },
+    {
+      id: 'users',
+      label: 'Quản lý người dùng',
+      icon: <PeopleIcon />
     }
   ];
 

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { supabase } from '../config/db.js';
 
 export const optionalAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -27,7 +28,7 @@ export const optionalAuth = (req, res, next) => {
   next();
 };
 
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -37,6 +38,27 @@ export const verifyToken = (req, res, next) => {
   try {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // ✅ CHECK IF ACCOUNT IS LOCKED (even with valid token)
+    const { data: user, error } = await supabase
+      .from('Account')
+      .select('is_locked, role')
+      .eq('account_id', decoded.accountId)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.is_locked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.',
+      });
+    }
 
     req.user = {
       accountId: decoded.accountId,

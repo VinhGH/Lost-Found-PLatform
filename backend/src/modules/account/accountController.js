@@ -23,6 +23,14 @@ export const login = async (req, res, next) => {
         .status(401)
         .json({ success: false, message: "Invalid email or password" });
 
+    // ✅ CHECK IF ACCOUNT IS LOCKED
+    if (user.is_locked) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+      });
+    }
+
     const valid = await comparePassword(password, user.password);
     if (!valid)
       return res

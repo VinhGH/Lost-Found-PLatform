@@ -27,7 +27,7 @@ app.use(
       "*"
     ].filter(Boolean),
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "PreferUserToken"],
+    allowedHeaders: ["Content-Type", "Authorization", "PreferUserToken", "preferadmin"],
     credentials: true,
   })
 );

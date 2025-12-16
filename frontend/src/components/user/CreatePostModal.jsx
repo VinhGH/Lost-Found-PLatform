@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Close as CloseIcon } from "@mui/icons-material";
+import httpClient from "../../services/httpClient";
 import "./CreatePostModal.css";
 
 const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = null, lockPostType = false, initialPostType = "lost", user = null }) => {
@@ -21,6 +22,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
   const [images, setImages] = useState([]); // Mảng để lưu nhiều ảnh (tối đa 3)
   const [errors, setErrors] = useState({});
   const [zoomedImage, setZoomedImage] = useState(null); // Ảnh đang được phóng to
+  const [categories, setCategories] = useState([]); // Categories from API
   const modalRef = useRef(null);
 
   // 🔹 Lock body scroll khi modal mở
@@ -32,13 +34,13 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     const originalPosition = document.body.style.position;
     const originalTop = document.body.style.top;
     const originalWidth = document.body.style.width;
-    
+
     // Lock body scroll by setting position fixed
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
-    
+
     // Cleanup function to restore original styles and scroll position
     return () => {
       document.body.style.overflow = originalOverflow;
@@ -82,16 +84,31 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     }
   };
 
+  // 🔹 Load categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await httpClient.get("/categories");
+        if (response.success && response.data) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error("Error loading categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   // 🔹 Tự động fill author, contact, date và category từ user khi component mount
   useEffect(() => {
     if (mode === "create") {
       const today = new Date();
       const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-      
+
       setFormData(prev => {
         // Set category mặc định dựa trên postType
         const defaultCategory = prev.postType === "lost" ? "Ví/Túi" : "Điện thoại";
-        
+
         return {
           ...prev,
           author: user?.name || prev.author,
@@ -151,7 +168,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
 
     // Lọc chỉ lấy file ảnh
     const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    
+
     if (imageFiles.length === 0) {
       setErrors(prev => ({
         ...prev,
@@ -172,7 +189,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
     // Đọc tất cả ảnh
     let loadedCount = 0;
     const newImages = [];
-    
+
     imageFiles.forEach((file, index) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -181,7 +198,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           preview: reader.result,
           id: Date.now() + index
         });
-        
+
         loadedCount++;
         // Khi đã đọc xong tất cả ảnh
         if (loadedCount === imageFiles.length) {
@@ -219,7 +236,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Tên người đăng tự động lấy từ user prop, không cần validate
 
     // Validation cho tiêu đề
@@ -291,10 +308,10 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       parts.push(formData.address.trim());
     }
     const composedLocation = parts.join(" - ");
-    
+
     // Gửi images thay vì image đơn lẻ
-    onSubmit({ 
-      ...formData, 
+    onSubmit({
+      ...formData,
       location: composedLocation,
       images: images.map(img => img.file),
       imagePreviews: images.map(img => img.preview)
@@ -302,8 +319,8 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
   };
 
   return (
-    <div 
-      className="overlay" 
+    <div
+      className="overlay"
       onClick={(e) => {
         // Chỉ đóng khi click vào overlay (không phải modal)
         if (e.target === e.currentTarget) {
@@ -329,12 +346,11 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
               <div className="post-type-group">
                 <button
                   type="button"
-                  className={`type-btn ${
-                    formData.postType === "lost" ? "active" : ""
-                  }`}
+                  className={`type-btn ${formData.postType === "lost" ? "active" : ""
+                    }`}
                   onClick={() => {
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       postType: "lost",
                       category: "Ví/Túi" // Set category mặc định khi chọn "lost"
                     });
@@ -346,8 +362,8 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
                   type="button"
                   className={`type-btn ${formData.postType === "found" ? "active" : ""}`}
                   onClick={() => {
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       postType: "found",
                       category: "Điện thoại" // Set category mặc định khi chọn "found"
                     });
@@ -395,15 +411,15 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
                 <div className="upload-preview-grid">
                   {images.map((img) => (
                     <div key={img.id} className="upload-preview-item">
-                      <img 
-                        src={img.preview} 
-                        alt="preview" 
-                        className="preview-image" 
+                      <img
+                        src={img.preview}
+                        alt="preview"
+                        className="preview-image"
                         onClick={() => setZoomedImage(img.preview)}
                         style={{ cursor: "pointer" }}
                       />
-                      <span 
-                        className="remove-image-text" 
+                      <span
+                        className="remove-image-text"
                         onClick={() => handleClearImage(img.id)}
                       >
                         Remove
@@ -447,27 +463,29 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
           <div className="form-row">
             <div className="form-group">
               <label>Danh mục <span className="required-star">*</span></label>
-              <select 
-                name="category" 
-                value={formData.category} 
+              <select
+                name="category"
+                value={formData.category}
                 onChange={handleChange}
                 className={errors.category ? "input-error" : ""}
               >
                 <option value="">Chọn danh mục</option>
-                <option value="Ví/Túi">Ví/Túi</option>
-                <option value="Điện thoại">Điện thoại</option>
-                <option value="Laptop">Laptop</option>
-                <option value="Chìa khóa">Chìa khóa</option>
-                <option value="Phụ kiện">Phụ kiện</option>
-                <option value="Khác">Khác</option>
+                {categories
+                  .filter(cat => cat.type.toLowerCase() === formData.postType.toLowerCase())
+                  .map(cat => (
+                    <option key={cat.category_id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))
+                }
               </select>
               {errors.category && <p className="field-error">{errors.category}</p>}
             </div>
             <div className="form-group">
               <label>Tòa <span className="required-star">*</span></label>
-              <select 
-                name="building" 
-                value={formData.building} 
+              <select
+                name="building"
+                value={formData.building}
                 onChange={handleChange}
                 className={errors.building ? "input-error" : ""}
               >
@@ -541,7 +559,7 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
             <button type="button" className="cancel-btn" onClick={onClose}>
               <span>Hủy</span>
             </button>
-            <button type="submit" className="submit-btn"> 
+            <button type="submit" className="submit-btn">
               <span>{mode === "edit" ? "Lưu thay đổi" : "Đăng bài"}</span>
             </button>
           </div>
