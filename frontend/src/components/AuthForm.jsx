@@ -39,7 +39,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [toastNotification, setToastNotification] = useState(null);
-  
+
   // ✅ State cho tính năng "Quên mật khẩu"
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState('email'); // 'email' | 'otp' | 'newPassword'
@@ -96,22 +96,22 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
     if (password.length < 8) {
       return 'Mật khẩu phải có ít nhất 8 ký tự';
     }
-    
+
     // Kiểm tra có chữ cái
     if (!/[a-zA-Z]/.test(password)) {
       return 'Mật khẩu phải chứa ít nhất một chữ cái';
     }
-    
+
     // Kiểm tra có số
     if (!/\d/.test(password)) {
       return 'Mật khẩu phải chứa ít nhất một chữ số';
     }
-    
+
     // Kiểm tra có ký tự đặc biệt
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
       return 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*...)';
     }
-    
+
     return '';
   };
 
@@ -178,12 +178,12 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
             email: formData.email,
             password: formData.password
           });
-          
+
           // Chuyển sang stage OTP
           setStage('otp');
           setResendCountdown(30); // Start countdown 30s
           setIsLoading(false);
-          
+
           // Focus vào ô OTP đầu tiên
           setTimeout(() => {
             if (registerOtpInputRefs.current[0]) {
@@ -333,7 +333,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
       } finally {
         setIsForgotPasswordLoading(false);
       }
-    } 
+    }
     // Bước 2: Xác nhận mã OTP đã nhập (không gọi API)
     else if (forgotPasswordStep === 'otp') {
       const enteredOtp = otpInputs.join('');
@@ -513,7 +513,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
           title: 'Xác minh email thành công',
           message: 'Tạo tài khoản thành công! Hãy đăng nhập.'
         });
-        
+
         // ✅ Chuyển về stage LOGIN
         // KHÔNG lưu token, KHÔNG gọi onLoginSuccess, chỉ quay về login
         setIsLoading(false);
@@ -621,7 +621,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
 
           <div className="dtu-branding">
             <img
-              src="/img/logo_dtu_while.png"
+              src="/img/logo_dtu.png"
               alt="DTU Logo"
               className="logo-image-full"
               onError={(e) => {
@@ -629,9 +629,14 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                 e.target.nextSibling.style.display = 'flex';
               }}
             />
+            <div className="university-name">
+              <span>Đại học Duy Tân</span>
+            </div>
             <span className="logo-text-fallback" style={{ display: 'none' }}>DTU</span>
           </div>
         </div>
+
+
 
         <div className="auth-right">
           {onBack && (
@@ -786,8 +791,8 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                   setForgotPasswordStep('email');
                   setForgotPasswordEmail('');
                   setOtpInputs(['', '', '', '', '', '']);
-                      setForgotNewPassword('');
-                      setForgotConfirmPassword('');
+                  setForgotNewPassword('');
+                  setForgotConfirmPassword('');
                   setError('');
                   setValidationErrors({});
                 }}
@@ -797,11 +802,11 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
               </button>
 
               <h3 className="forgot-password-title">
-                {forgotPasswordStep === 'email' 
-                  ? 'Quên mật khẩu' 
+                {forgotPasswordStep === 'email'
+                  ? 'Quên mật khẩu'
                   : forgotPasswordStep === 'otp'
-                  ? 'Nhập mã OTP'
-                  : 'Đặt lại mật khẩu'}
+                    ? 'Nhập mã OTP'
+                    : 'Đặt lại mật khẩu'}
               </h3>
 
               {forgotPasswordStep === 'email' ? (
@@ -939,18 +944,18 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                 {isForgotPasswordLoading ? (
                   <>
                     <span className="loading-spinner"></span>
-                    {forgotPasswordStep === 'email' 
-                      ? 'Đang gửi...' 
+                    {forgotPasswordStep === 'email'
+                      ? 'Đang gửi...'
                       : forgotPasswordStep === 'otp'
-                      ? 'Đang xác minh...'
-                      : 'Đang xử lý...'}
+                        ? 'Đang xác minh...'
+                        : 'Đang xử lý...'}
                   </>
                 ) : (
-                  forgotPasswordStep === 'email' 
-                    ? 'Gửi mã' 
+                  forgotPasswordStep === 'email'
+                    ? 'Gửi mã'
                     : forgotPasswordStep === 'otp'
-                    ? 'Xác nhận mã'
-                    : 'Đặt lại mật khẩu'
+                      ? 'Xác nhận mã'
+                      : 'Đặt lại mật khẩu'
                 )}
               </button>
             </div>

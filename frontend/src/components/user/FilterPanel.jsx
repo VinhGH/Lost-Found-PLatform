@@ -12,26 +12,16 @@ const dateOptions = [
 ];
 
 const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
-  const buildingOptions = ["A","B","C","D","E","F","G","NULL"];
-  const [categories, setCategories] = useState([]);
+  const buildingOptions = ["A", "B", "C", "D", "E", "F", "G", "NULL"];
+
+  // Hardcoded categories to match CreatePostModal
+  const categories = ["Ví/Túi", "Điện thoại", "Laptop", "Chìa khóa", "Phụ kiện", "Khác"];
+
   const [form, setForm] = useState({
     building: initial.building || "",
     category: initial.category || "",
     date: initial.date || "any",
   });
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const catRes = await userApi.getCategories();
-      if (mounted) {
-        setCategories(catRes?.data || []);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     setForm({
@@ -71,7 +61,9 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
           <select value={form.building} onChange={(e) => setForm({ ...form, building: e.target.value })}>
             <option value="">Tất cả</option>
             {buildingOptions.map((x) => (
-              <option key={x} value={x}>Tòa {x}</option>
+              <option key={x} value={x}>
+                {x === "NULL" ? "Không xác định" : `Tòa ${x}`}
+              </option>
             ))}
           </select>
         </div>

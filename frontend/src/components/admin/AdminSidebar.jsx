@@ -10,7 +10,7 @@ import {
 const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
   // ✅ Tính số lượng bài đăng chờ duyệt (sẽ được cập nhật từ LostItemsManagement)
   const [pendingCount, setPendingCount] = useState(0);
-  
+
   // ✅ Lắng nghe event khi posts thay đổi để cập nhật count
   useEffect(() => {
     const handlePendingCountUpdate = (event) => {
@@ -19,21 +19,21 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
         setPendingCount(event.detail.pendingCount);
       }
     };
-    
+
     const handlePostsUpdated = () => {
       // Có thể gọi API để lấy count nếu cần
       // Hoặc đợi LostItemsManagement dispatch event
     };
-    
+
     window.addEventListener('pendingCountUpdated', handlePendingCountUpdate);
     window.addEventListener('postsUpdated', handlePostsUpdated);
-    
+
     return () => {
       window.removeEventListener('pendingCountUpdated', handlePendingCountUpdate);
       window.removeEventListener('postsUpdated', handlePostsUpdated);
     };
   }, []);
-  
+
   // ✅ 2 menu items riêng biệt, không còn submenu
   const menuItems = [
     {
@@ -58,7 +58,7 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
       {/* Logo Section */}
       <div className="sidebar-header">
         <div className="logo-container">
-          <img src="/img/logo_dtu_while.png" alt="DTU Logo" className="sidebar-logo" />
+          <img src="/img/logo_dtu.png" alt="DTU Logo" className="sidebar-logo" />
           {!isCollapsed && (
             <div className="logo-text">
               <h3>DTU Admin</h3>
@@ -66,7 +66,7 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
             </div>
           )}
         </div>
-        <button 
+        <button
           className="collapse-btn"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >

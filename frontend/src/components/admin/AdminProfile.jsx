@@ -9,8 +9,8 @@ const AdminProfile = ({ adminUser }) => {
   const profileData = {
     name: adminUser?.name || adminUser?.user_name || "System Admin",
     email: adminUser?.email,
-    phone: adminUser?.phone || "",
-    address: adminUser?.address || "",
+    phone: (adminUser?.phone && adminUser.phone !== "012") ? adminUser.phone : "0339464751",
+    address: adminUser?.address || "Đà Nẵng",
     avatar: adminUser?.avatar || null,
   };
 
@@ -113,6 +113,7 @@ const AdminProfile = ({ adminUser }) => {
                   disabled={!isEditing}
                   value={formData.phone}
                   onChange={handleInputChange("phone")}
+                  className="info-input"
                 />
               </div>
 
@@ -124,6 +125,7 @@ const AdminProfile = ({ adminUser }) => {
                   disabled={!isEditing}
                   value={formData.address}
                   onChange={handleInputChange("address")}
+                  className="info-input"
                 />
               </div>
 

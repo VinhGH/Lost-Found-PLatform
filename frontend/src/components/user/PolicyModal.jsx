@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Close as CloseIcon } from '@mui/icons-material';
 import './PolicyModal.css';
 
@@ -7,11 +8,11 @@ const PolicyModal = ({ onClose }) => {
   useEffect(() => {
     // Get current scroll position
     const scrollY = window.scrollY;
-    
+
     // Add class to body to lock scroll
     document.body.classList.add('modal-open');
     document.documentElement.classList.add('modal-open');
-    
+
     // Set inline styles as backup
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
@@ -19,14 +20,14 @@ const PolicyModal = ({ onClose }) => {
     document.body.style.width = '100%';
     document.body.style.left = '0';
     document.body.style.right = '0';
-    
+
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
       // Remove class
       document.body.classList.remove('modal-open');
       document.documentElement.classList.remove('modal-open');
-      
+
       // Restore styles
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -35,7 +36,7 @@ const PolicyModal = ({ onClose }) => {
       document.body.style.left = '';
       document.body.style.right = '';
       document.documentElement.style.overflow = '';
-      
+
       // Restore scroll position
       window.scrollTo(0, scrollY);
     };
@@ -54,7 +55,7 @@ const PolicyModal = ({ onClose }) => {
     };
   }, [onClose]);
 
-  return (
+  return ReactDOM.createPortal(
     <div className="policy-overlay" onClick={onClose}>
       <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -210,7 +211,8 @@ const PolicyModal = ({ onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -1,0 +1,526 @@
+/* Donation Modal - Matching other modals design */
+
+/* Modal Overlay */
+.donation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Modal */
+.donation-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+/* Modal Header */
+.donation-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  flex-shrink: 0;
+}
+
+.donation-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.donation-title-icon {
+  font-size: 28px;
+}
+
+.donation-modal-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.donation-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.donation-modal-close-btn svg {
+  font-size: 20px;
+}
+
+/* Modal Content */
+.donation-modal-content {
+  padding: 28px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Custom Scrollbar */
+.donation-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.donation-modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.donation-modal-content::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 4px;
+}
+
+.donation-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Appeal Box */
+.donation-appeal-box {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+  text-align: center;
+}
+
+.donation-heart-icon {
+  font-size: 40px !important;
+  color: white;
+  margin-bottom: 12px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.donation-appeal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: white;
+}
+
+.donation-appeal-text {
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Donation Details */
+.donation-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Account Info */
+.donation-account-info {
+  background: #f8f9fa;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.donation-info-item {
+  margin-bottom: 20px;
+}
+
+.donation-info-item:last-child {
+  margin-bottom: 0;
+}
+
+.donation-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.donation-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: block;
+}
+
+.donation-account-number {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.donation-account-number span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #dc143c;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.donation-copy-btn {
+  background: #e2e8f0;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.donation-copy-btn:hover {
+  background: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.donation-copy-btn svg {
+  font-size: 16px;
+  color: #475569;
+}
+
+.copied-tooltip {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #10b981;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  animation: fadeInOut 2s ease;
+}
+
+.copied-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #10b981;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(5px);
+  }
+  10%, 90% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* QR Code Container */
+.donation-qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.donation-qr-card {
+  background: linear-gradient(180deg, #6366f1 0%, #1e40af 100%);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-card-header {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.qr-bank-logo {
+  text-align: center;
+}
+
+.qr-bank-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.qr-code-wrapper {
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.qr-code-image {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  border-radius: 6px;
+}
+
+.qr-card-footer {
+  width: 100%;
+  text-align: center;
+}
+
+.qr-payment-logos {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.qr-logo-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.qr-account-info {
+  color: white;
+}
+
+.qr-account-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: white;
+}
+
+.qr-account-number {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Courier New', monospace;
+}
+
+/* Thank You Box */
+.donation-thank-box {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.donation-check-icon {
+  font-size: 28px !important;
+  color: white;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.donation-thank-text {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .donation-modal-overlay {
+    padding: 10px;
+  }
+
+  .donation-modal {
+    max-height: 95vh;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  .donation-modal-header {
+    padding: 20px;
+  }
+
+  .donation-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .donation-modal-content {
+    padding: 20px;
+  }
+
+  .donation-details {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .donation-appeal-box,
+  .donation-thank-box {
+    padding: 20px;
+  }
+
+  .donation-account-info {
+    padding: 20px;
+  }
+
+  .donation-appeal-title {
+    font-size: 18px;
+  }
+
+  .donation-appeal-text,
+  .donation-thank-text {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .donation-modal-header {
+    padding: 16px;
+  }
+
+  .donation-modal-header h2 {
+    font-size: 16px;
+  }
+
+  .donation-title-icon {
+    font-size: 24px;
+  }
+
+  .donation-modal-content {
+    padding: 16px;
+  }
+
+  .donation-heart-icon {
+    font-size: 32px !important;
+  }
+
+  .donation-appeal-title {
+    font-size: 16px;
+  }
+
+  .donation-account-number span {
+    font-size: 16px;
+  }
+
+  .donation-value {
+    font-size: 14px;
+  }
+
+  .qr-bank-name {
+    font-size: 16px;
+  }
+
+  .qr-code-image {
+    max-width: 180px;
+  }
+}
+
+/* Dark Mode Support */
+[data-theme='dark'] .donation-modal {
+  background: #1e293b;
+}
+
+[data-theme='dark'] .donation-account-info {
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+[data-theme='dark'] .donation-label {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .donation-value {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .donation-account-number span {
+  color: #f87171;
+}
+
+[data-theme='dark'] .donation-copy-btn {
+  background: #334155;
+}
+
+[data-theme='dark'] .donation-copy-btn:hover {
+  background: #475569;
+}
+
+[data-theme='dark'] .donation-copy-btn svg {
+  color: #cbd5e1;
+}
