@@ -15,6 +15,7 @@ const AdminProfile = ({ adminUser }) => {
   };
 
   const [formData, setFormData] = useState(profileData);
+  const [originalData, setOriginalData] = useState(profileData); // Store original data for cancel
 
   const handleInputChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -30,9 +31,44 @@ const AdminProfile = ({ adminUser }) => {
     rd.readAsDataURL(file);
   };
 
+  const handleEdit = () => {
+    // Save current data as original before entering edit mode
+    setOriginalData({ ...formData });
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    // Check if data has changed
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
+    
+    if (hasChanges) {
+      // Show confirmation dialog if there are changes
+      const confirmed = window.confirm("Bạn có chắc chắn muốn hủy cập nhật thông tin không? Các thay đổi sẽ không được lưu.");
+      
+      if (confirmed) {
+        // User confirmed, restore original data and exit edit mode
+        setFormData({ ...originalData });
+        setIsEditing(false);
+      }
+      // If not confirmed, do nothing (stay in edit mode)
+    } else {
+      // No changes, just exit edit mode
+      setIsEditing(false);
+    }
+  };
+
   const handleSave = () => {
-    alert("⚠ FE không cho admin thay đổi hồ sơ (trừ avatar). BE sẽ không nhận yêu cầu này.");
-    setIsEditing(false);
+    // Show confirmation dialog
+    const confirmed = window.confirm("Bạn có chắc chắn muốn lưu thông tin này không?");
+    
+    if (confirmed) {
+      // User confirmed, proceed with save
+      alert("⚠ FE không cho admin thay đổi hồ sơ (trừ avatar). BE sẽ không nhận yêu cầu này.");
+      // Update original data to current form data after successful save
+      setOriginalData({ ...formData });
+      setIsEditing(false);
+    }
+    // If not confirmed, do nothing (stay in edit mode)
   };
 
   return (
@@ -66,11 +102,11 @@ const AdminProfile = ({ adminUser }) => {
           <div className="profile-actions">
             {isEditing ? (
               <div className="edit-actions">
-                <button className="btn-cancel" onClick={() => setIsEditing(false)}>Hủy</button>
+                <button className="btn-cancel" onClick={handleCancel}>Hủy</button>
                 <button className="btn-save" onClick={handleSave}>Lưu</button>
               </div>
             ) : (
-              <button className="btn-edit" onClick={() => setIsEditing(true)}>
+              <button className="btn-edit" onClick={handleEdit}>
                 Chỉnh sửa hồ sơ
               </button>
             )}
@@ -113,6 +149,7 @@ const AdminProfile = ({ adminUser }) => {
                   disabled={!isEditing}
                   value={formData.phone}
                   onChange={handleInputChange("phone")}
+                  className={`info-input ${!isEditing ? 'disabled' : ''}`}
                 />
               </div>
 
@@ -124,6 +161,7 @@ const AdminProfile = ({ adminUser }) => {
                   disabled={!isEditing}
                   value={formData.address}
                   onChange={handleInputChange("address")}
+                  className={`info-input ${!isEditing ? 'disabled' : ''}`}
                 />
               </div>
 

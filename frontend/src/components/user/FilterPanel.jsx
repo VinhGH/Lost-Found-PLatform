@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./FilterPanel.css";
-import userApi from "../../services/realApi"; // ✅ REAL API
 import { FilterList as FilterIcon, RestartAlt as ResetIcon } from "@mui/icons-material";
 
 const dateOptions = [
@@ -12,26 +11,33 @@ const dateOptions = [
 ];
 
 const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
-  const buildingOptions = ["A","B","C","D","E","F","G","NULL"];
-  const [categories, setCategories] = useState([]);
+  const buildingOptions = [
+    { value: "A", label: "Tòa A" },
+    { value: "B", label: "Tòa B" },
+    { value: "C", label: "Tòa C" },
+    { value: "D", label: "Tòa D" },
+    { value: "E", label: "Tòa E" },
+    { value: "F", label: "Tòa F" },
+    { value: "G", label: "Tòa G" },
+    { value: "NULL", label: "Không xác định" }
+  ];
+  
+  // Hardcoded categories to ensure they always display
+  const categoryOptions = [
+    "Ví/Túi",
+    "Điện thoại",
+    "Laptop",
+    "Chìa khóa",
+    "Sách vở",
+    "Phụ kiện",
+    "Khác"
+  ];
+  
   const [form, setForm] = useState({
     building: initial.building || "",
     category: initial.category || "",
     date: initial.date || "any",
   });
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const catRes = await userApi.getCategories();
-      if (mounted) {
-        setCategories(catRes?.data || []);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     setForm({
@@ -70,8 +76,8 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
           <label>Tòa</label>
           <select value={form.building} onChange={(e) => setForm({ ...form, building: e.target.value })}>
             <option value="">Tất cả</option>
-            {buildingOptions.map((x) => (
-              <option key={x} value={x}>Tòa {x}</option>
+            {buildingOptions.map((building) => (
+              <option key={building.value} value={building.value}>{building.label}</option>
             ))}
           </select>
         </div>
@@ -80,8 +86,8 @@ const FilterPanel = ({ open, onClose, onApply, initial = {} }) => {
           <label>Danh mục</label>
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
             <option value="">Tất cả</option>
-            {categories.map((x) => (
-              <option key={x} value={x}>{x}</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>{category}</option>
             ))}
           </select>
         </div>

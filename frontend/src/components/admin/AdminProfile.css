@@ -196,6 +196,13 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.info-input.disabled {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #e9ecef;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .admin-profile-container {
