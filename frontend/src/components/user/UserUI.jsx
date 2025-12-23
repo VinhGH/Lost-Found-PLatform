@@ -596,7 +596,15 @@ const UserUI = ({ onLogout, user: initialUser }) => {
           />
         );
       default:
-        return <UserHome searchQuery={searchQuery} />;
+        return (
+          <UserHome
+            searchQuery={searchQuery}
+            onCreatePost={(type) => {
+              setShowCreateModal(true);
+              // You can optionally set the modal type here if needed
+            }}
+          />
+        );
     }
   };
 

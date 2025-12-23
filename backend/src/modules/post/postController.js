@@ -162,10 +162,12 @@ export const createPost = async (req, res, next) => {
       title: title.trim(),
       description: description.trim(),
       category: category || 'Khác',
-      location: location || '',
+      location: location && location.trim() ? location.trim() : null,
       images: images || []
       // Note: 'date' field is ignored, we use created_at instead
     };
+
+    console.log(`🔍 Controller - postData.location: "${postData.location}"`);
 
     const result = await postModel.createPost(postData);
 

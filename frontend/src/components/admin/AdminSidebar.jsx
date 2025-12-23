@@ -111,7 +111,6 @@ const AdminSidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) 
         {!isCollapsed && (
           <div className="footer-info">
             <p>DTU Lost & Found</p>
-            <span>Version 1.0.0</span>
           </div>
         )}
       </div>

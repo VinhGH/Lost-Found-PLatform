@@ -16,7 +16,7 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 
-const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
+const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated, onCreatePost }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('lost');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -27,7 +27,13 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
   const parallaxBackgroundRef = useRef(null);
 
   const openModal = (type) => {
-    // Check if user is authenticated
+    // ✅ If onCreatePost is provided (from UserUI), use it directly
+    if (onCreatePost) {
+      onCreatePost(type);
+      return;
+    }
+
+    // ✅ Otherwise, check authentication (for LandingPage)
     if (!isAuthenticated && !userApi.isAuthenticated()) {
       // If not authenticated, open auth form
       if (onOpenAuth) {
@@ -390,7 +396,7 @@ const UserHome = ({ searchQuery, onOpenAuth, isAuthenticated }) => {
               </li>
               <li>
                 <EmailIcon className="footer-contact-icon" />
-                <span>t.vinh.1109z@gmail.com</span>
+                <span>lostandfounddtu.1711@gmail.com</span>
               </li>
             </ul>
           </div>

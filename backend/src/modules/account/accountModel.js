@@ -5,14 +5,14 @@ class AccountModel {
     try {
       const { data, error } = await supabase
         .from('Account')
-        .select('account_id, email, password, role, user_name, avatar, phone_number, address') // ✅ Thêm address
+        .select('account_id, email, password, role, user_name, avatar, phone_number, address, is_locked') // ✅ Added is_locked
         .eq('email', email)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error getting account by email:', err.message);
@@ -33,11 +33,11 @@ class AccountModel {
         })
         .select('account_id, email, role')
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error creating account:', err.message);
@@ -52,11 +52,11 @@ class AccountModel {
         .select('account_id, email, user_name, phone_number, address, avatar, role, created_at') // ✅ Thêm address
         .eq('account_id', accountId)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error getting account by ID:', err.message);
@@ -71,11 +71,11 @@ class AccountModel {
         .select('account_id, email, password, role')
         .eq('account_id', accountId)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error getting account with password:', err.message);
@@ -86,19 +86,19 @@ class AccountModel {
   async update(accountId, updateData) {
     try {
       console.log('🔄 Supabase UPDATE:', { accountId, updateData });
-      
+
       const { data, error } = await supabase
         .from('Account')
         .update(updateData)
         .eq('account_id', accountId)
         .select('account_id, email, user_name, phone_number, address, avatar, role, created_at') // ✅ Thêm address
         .single();
-      
+
       if (error) {
         console.error('❌ Supabase UPDATE ERROR:', error);
         throw error;
       }
-      
+
       console.log('✅ Supabase UPDATE SUCCESS:', data);
       return data || null;
     } catch (err) {
@@ -115,11 +115,11 @@ class AccountModel {
         .eq('account_id', accountId)
         .select('account_id')
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error updating password:', err.message);
@@ -135,11 +135,11 @@ class AccountModel {
         .eq('email', email)
         .select('account_id, email')
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data || null;
     } catch (err) {
       console.error('Error updating password by email:', err.message);

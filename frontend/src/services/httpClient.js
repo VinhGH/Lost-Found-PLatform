@@ -120,18 +120,21 @@ class HttpClient {
         localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
       }
 
-      // ✅ AUTO-LOGOUT on 403 if account is locked
+      // ✅ AUTO-LOGOUT on 403 if account is locked (only for already logged-in users)
+      // For login attempts with locked accounts, backend will return 403 and frontend will show error in form
       if (response.status === 403 && data.message?.includes("bị khóa")) {
-        console.warn("🔒 Account locked - Auto logout");
-        localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-        localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
-        sessionStorage.removeItem('currentView');
-
-        // Show alert and redirect to login
-        alert("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
-        window.location.href = "/";
+        console.warn("🔒 Account locked");
+        // Only auto-logout if user is already logged in (has token)
+        const hasToken = localStorage.getItem(STORAGE_KEYS.USER_TOKEN) || localStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN);
+        if (hasToken) {
+          localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
+          sessionStorage.removeItem('currentView');
+          window.location.href = "/";
+        }
+        // Don't show alert - let the calling component handle the error display
       }
 
       const error = new Error(data.message || "API request failed");
