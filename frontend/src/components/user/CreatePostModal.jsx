@@ -133,7 +133,11 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
         // cố gắng parse từ location cũ nếu có định dạng "Tòa X - Phòng Y - Địa chỉ"
         building: (() => {
           const loc = existingData.location || "";
-          const match = loc.match(/Tòa\s*([A-G]|NULL)/i);
+          // Check if location contains "Không xác định"
+          if (loc.includes("Không xác định")) {
+            return "NULL";
+          }
+          const match = loc.match(/Tòa\s*([A-G])/i);
           return match ? match[1].toUpperCase() : "";
         })(),
         room: (() => {
@@ -298,16 +302,21 @@ const CreatePostModal = ({ onClose, onSubmit, mode = "create", existingData = nu
       return;
     }
     const parts = [];
-    if (formData.building) {
+
+    // Handle building - show "Không xác định" if "NULL"
+    if (formData.building && formData.building !== "NULL") {
       parts.push(`Tòa ${formData.building}`);
+    } else if (formData.building === "NULL") {
+      parts.push("Không xác định");
     }
+
     if (formData.room) {
       parts.push(`Phòng ${formData.room}`);
     }
     if (formData.address) {
       parts.push(formData.address.trim());
     }
-    const composedLocation = parts.join(" - ");
+    const composedLocation = parts.length > 0 ? parts.join(" - ") : "Không xác định";
 
     // Gửi images thay vì image đơn lẻ
     onSubmit({

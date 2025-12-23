@@ -127,10 +127,18 @@ class PostModel {
    */
   _formatLocation(location) {
     const parts = [];
-    if (location.building) parts.push(`Tòa ${location.building}`);
+
+    // Handle building - show "Không xác định" if null or "NULL"
+    if (location.building && location.building !== 'NULL') {
+      parts.push(`Tòa ${location.building}`);
+    } else if (location.building === 'NULL' || location.building === null) {
+      parts.push('Không xác định');
+    }
+
     if (location.room) parts.push(`Phòng ${location.room}`);
     if (location.address) parts.push(location.address);
-    return parts.join(" - ");
+
+    return parts.length > 0 ? parts.join(" - ") : "Không xác định";
   }
 
   /**

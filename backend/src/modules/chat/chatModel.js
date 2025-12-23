@@ -137,17 +137,24 @@ class ChatModel {
       // ✅ Batch fetch participants for all conversations
       const { data: allParticipants } = await supabase
         .from('ConversationParticipant')
-        .select(`
-          conversation_id,
-          account_id,
-          Account:account_id (
-            account_id,
-            user_name,
-            email,
-            avatar
-          )
-        `)
+        .select('conversation_id, account_id')
         .in('conversation_id', conversationIds);
+
+      // ✅ Batch fetch account details
+      let accountMap = {};
+      if (allParticipants && allParticipants.length > 0) {
+        const uniqueAccountIds = [...new Set(allParticipants.map(p => p.account_id))];
+        const { data: accounts } = await supabase
+          .from('Account')
+          .select('account_id, user_name, email, avatar, phone_number')
+          .in('account_id', uniqueAccountIds);
+
+        if (accounts) {
+          accounts.forEach(acc => {
+            accountMap[acc.account_id] = acc;
+          });
+        }
+      }
 
       // ✅ Batch fetch last messages for all conversations
       const { data: allMessages } = await supabase
@@ -165,7 +172,11 @@ class ChatModel {
           if (!participantsByConv[p.conversation_id]) {
             participantsByConv[p.conversation_id] = [];
           }
-          participantsByConv[p.conversation_id].push(p);
+          // Attach account info to participant
+          participantsByConv[p.conversation_id].push({
+            ...p,
+            Account: accountMap[p.account_id] || null
+          });
         });
       }
 
@@ -215,21 +226,27 @@ class ChatModel {
           message: message,
           created_at: new Date().toISOString()
         }])
-        .select(`
-          *,
-          Sender:sender_id (
-            account_id,
-            user_name,
-            avatar
-          )
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
 
+      // Fetch sender details separately
+      const { data: sender } = await supabase
+        .from('Account')
+        .select('account_id, user_name, avatar')
+        .eq('account_id', senderId)
+        .single();
+
+      // Attach sender info
+      const messageWithSender = {
+        ...data,
+        Sender: sender || null
+      };
+
       return {
         success: true,
-        data: data,
+        data: messageWithSender,
         error: null
       };
     } catch (err) {
@@ -252,25 +269,50 @@ class ChatModel {
     try {
       const { limit = 50, offset = 0 } = options;
 
-      const { data, error } = await supabase
+      // First get messages
+      const { data: messages, error } = await supabase
         .from('Message')
-        .select(`
-          *,
-          Sender:sender_id (
-            account_id,
-            user_name,
-            avatar
-          )
-        `)
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
+      if (!messages || messages.length === 0) {
+        return {
+          success: true,
+          data: [],
+          error: null
+        };
+      }
+
+      // Get unique sender IDs
+      const senderIds = [...new Set(messages.map(m => m.sender_id))];
+
+      // Fetch sender details
+      const { data: senders } = await supabase
+        .from('Account')
+        .select('account_id, user_name, avatar')
+        .in('account_id', senderIds);
+
+      // Map sender details to messages
+      const senderMap = {};
+      if (senders) {
+        senders.forEach(sender => {
+          senderMap[sender.account_id] = sender;
+        });
+      }
+
+      // Attach sender info to each message
+      const messagesWithSender = messages.map(msg => ({
+        ...msg,
+        Sender: senderMap[msg.sender_id] || null
+      }));
+
       return {
         success: true,
-        data: data || [],
+        data: messagesWithSender,
         error: null
       };
     } catch (err) {
@@ -343,18 +385,33 @@ class ChatModel {
         // Get participants
         const { data: participants } = await supabase
           .from('ConversationParticipant')
-          .select(`
-            account_id,
-            Account:account_id (
-              account_id,
-              user_name,
-              email,
-              avatar
-            )
-          `)
+          .select('account_id, conversation_id')
           .eq('conversation_id', conversationId);
 
-        data.participants = participants || [];
+        // Fetch account details for each participant
+        if (participants && participants.length > 0) {
+          const accountIds = participants.map(p => p.account_id);
+          const { data: accounts } = await supabase
+            .from('Account')
+            .select('account_id, user_name, email, avatar, phone_number')
+            .in('account_id', accountIds);
+
+          // Map accounts to participants
+          const accountMap = {};
+          if (accounts) {
+            accounts.forEach(acc => {
+              accountMap[acc.account_id] = acc;
+            });
+          }
+
+          // Attach account info to participants
+          data.participants = participants.map(p => ({
+            ...p,
+            Account: accountMap[p.account_id] || null
+          }));
+        } else {
+          data.participants = [];
+        }
       }
 
       return {
@@ -552,19 +609,33 @@ class ChatModel {
           // Get all participants
           const { data: participants } = await supabase
             .from('ConversationParticipant')
-            .select(`
-              account_id,
-              is_deleted,
-              Account:account_id (
-                account_id,
-                user_name,
-                email,
-                avatar
-              )
-            `)
+            .select('account_id, is_deleted, conversation_id')
             .eq('conversation_id', conv.conversation_id);
 
-          conv.participants = participants || [];
+          // Fetch account details for participants
+          if (participants && participants.length > 0) {
+            const accountIds = participants.map(p => p.account_id);
+            const { data: accounts } = await supabase
+              .from('Account')
+              .select('account_id, user_name, email, avatar, phone_number')
+              .in('account_id', accountIds);
+
+            // Map accounts to participants
+            const accountMap = {};
+            if (accounts) {
+              accounts.forEach(acc => {
+                accountMap[acc.account_id] = acc;
+              });
+            }
+
+            // Attach account info to participants
+            conv.participants = participants.map(p => ({
+              ...p,
+              Account: accountMap[p.account_id] || null
+            }));
+          } else {
+            conv.participants = [];
+          }
 
           return {
             success: true,
