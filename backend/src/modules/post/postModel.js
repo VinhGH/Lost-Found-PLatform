@@ -73,6 +73,12 @@ class PostModel {
       return new Date(normalized).getTime();
     };
 
+    // 🔍 DEBUG: Log location data
+    console.log(`🔍 DEBUG _formatPost for post ${postId}:`, {
+      location,
+      formattedLocation: location ? this._formatLocation(location) : "",
+    });
+
     return {
       id: postId,
       type,
@@ -437,6 +443,8 @@ class PostModel {
    */
   async createPost(postData) {
     try {
+      console.log(`🔍 createPost called with postData:`, JSON.stringify(postData, null, 2));
+
       const {
         account_id,
         type,
@@ -447,10 +455,14 @@ class PostModel {
         images = [],
       } = postData;
 
+      console.log(`📍 Extracted location from postData: "${location}"`);
+
       // Find or create location
       let locationId = null;
       if (location) {
         locationId = await this._findOrCreateLocation(location);
+      } else {
+        console.warn(`⚠️ No location provided in postData`);
       }
 
       // Find or create category
@@ -471,6 +483,8 @@ class PostModel {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+
+      console.log(`💾 Inserting post with location_id: ${locationId}`);
 
       const { data: post, error } = await supabase
         .from(tableName)
@@ -504,6 +518,8 @@ class PostModel {
    * @private
    */
   async _findOrCreateLocation(locationString) {
+    console.log(`🔍 _findOrCreateLocation called with: "${locationString}"`);
+
     // Parse location string
     const parts = locationString.split(" - ");
     let building = null,
@@ -517,22 +533,63 @@ class PostModel {
       else address = part.trim();
     });
 
-    // Try to find existing
+    console.log(`📍 Parsed location:`, { building, room, address });
+
+    // Try to find existing location with exact match (including null values)
     let query = supabase.from("Location").select("location_id");
-    if (building) query = query.eq("building", building);
-    if (room) query = query.eq("room", room);
-    if (address) query = query.eq("address", address);
 
-    const { data: existing } = await query.limit(1).single();
-    if (existing) return existing.location_id;
+    // Match building
+    if (building) {
+      query = query.eq("building", building);
+    } else {
+      query = query.is("building", null);
+    }
 
-    // Create new
-    const { data: newLoc } = await supabase
+    // Match room
+    if (room) {
+      query = query.eq("room", room);
+    } else {
+      query = query.is("room", null);
+    }
+
+    // Match address
+    if (address) {
+      query = query.eq("address", address);
+    } else {
+      query = query.is("address", null);
+    }
+
+    // Use maybeSingle() instead of single() to avoid error when no match
+    const { data: existing, error: findError } = await query.limit(1).maybeSingle();
+
+    if (findError) {
+      console.error("❌ Error finding location:", findError);
+    }
+
+    if (existing) {
+      console.log(`✅ Found existing location_id: ${existing.location_id}`);
+      return existing.location_id;
+    }
+
+    // Create new location with actual null values (not "N/A")
+    console.log(`➕ Creating new location:`, { building, room, address });
+
+    const { data: newLoc, error: insertError } = await supabase
       .from("Location")
-      .insert([{ building, room, address: address || "N/A" }])
+      .insert([{
+        building: building || null,
+        room: room || null,
+        address: address || null
+      }])
       .select("location_id")
       .single();
 
+    if (insertError) {
+      console.error("❌ Error creating location:", insertError);
+      return null;
+    }
+
+    console.log(`✅ Created new location_id: ${newLoc?.location_id}`);
     return newLoc?.location_id;
   }
 

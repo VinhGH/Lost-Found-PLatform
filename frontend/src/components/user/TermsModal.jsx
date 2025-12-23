@@ -231,7 +231,7 @@ const TermsModal = ({ onClose }) => {
                             Nếu bạn có bất kỳ câu hỏi nào về điều khoản sử dụng, vui lòng liên hệ:
                         </p>
                         <ul className="terms-list">
-                            <li><strong>Email:</strong> t.vinh.1109z@gmail.com</li>
+                            <li><strong>Email:</strong> lostandfounddtu.1711@gmail.com</li>
                             <li><strong>Số điện thoại:</strong> 0339464751</li>
                         </ul>
                     </section>
@@ -246,7 +246,8 @@ const TermsModal = ({ onClose }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
