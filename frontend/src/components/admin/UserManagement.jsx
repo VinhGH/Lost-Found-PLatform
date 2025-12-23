@@ -18,9 +18,20 @@ const UserManagement = () => {
   const [selectedAdmins, setSelectedAdmins] = useState([]);
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   const currentAdmin = JSON.parse(localStorage.getItem("adminData") || "null");
   const currentAdminId = currentAdmin?.id || null;
+
+  // Auto-dismiss toast after 4 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     const loadAdmins = async () => {
@@ -76,7 +87,10 @@ const UserManagement = () => {
       return;
     }
 
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản admin này?")) {
+    const user = admins.find(a => a.id === adminId || a.account_id === adminId);
+    const userName = user?.name || user?.user_name || user?.email || "người dùng này";
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${userName}"?`)) {
       return;
     }
 
@@ -88,7 +102,7 @@ const UserManagement = () => {
     );
 
     if (response.success) {
-      alert("Đã xóa tài khoản admin!");
+      setToast({ type: 'success', message: 'Đã xóa tài khoản người dùng!' });
 
       const refreshed = await httpClient.get(
         "/admin/users",
@@ -99,7 +113,7 @@ const UserManagement = () => {
 
       if (refreshed.success) setAdmins(refreshed.data);
     } else {
-      alert("Không thể xóa admin: " + (response.error || "Lỗi"));
+      setToast({ type: 'error', message: 'Không thể xóa người dùng: ' + (response.error || 'Lỗi') });
     }
   };
 
@@ -113,6 +127,13 @@ const UserManagement = () => {
     const user = admins.find(a => a.id === adminId || a.account_id === adminId);
     const isLocked = user?.isLocked || user?.is_locked;
     const userId = user?.id || user?.account_id || adminId;
+    const action = isLocked ? "Mở khóa" : "Khóa";
+    const userName = user?.name || user?.user_name || user?.email || "người dùng này";
+
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action} tài khoản "${userName}"?`)) {
+      return;
+    }
+
     const endpoint = isLocked ? `/admin/users/${userId}/unlock` : `/admin/users/${userId}/lock`;
     const response = await httpClient.put(
       endpoint,
@@ -123,7 +144,7 @@ const UserManagement = () => {
     );
 
     if (response.success) {
-      alert("Đã thay đổi trạng thái thành công!");
+      setToast({ type: 'success', message: 'Đã thay đổi trạng thái thành công!' });
 
       const refreshed = await httpClient.get(
         "/admin/users",
@@ -237,7 +258,7 @@ const UserManagement = () => {
   const getLockStatus = (isLocked) =>
     isLocked ? (
       <span className="lock-badge locked">
-        <LockIcon /> Đã khóa
+        Đã khóa
       </span>
     ) : (
       <span className="lock-badge unlocked">
@@ -358,7 +379,9 @@ const UserManagement = () => {
                         disabled={admin.id === currentAdminId}
                       >
                         {admin.isLocked ? (
-                          "Mở khóa"
+                          <>
+                            <LockOpenIcon /> Mở khóa
+                          </>
                         ) : (
                           <>
                             <LockIcon /> Khóa
@@ -386,6 +409,13 @@ const UserManagement = () => {
       {!loading && filteredAdmins.length === 0 && (
         <div className="no-results">
           <p>⚠️ Hiện chưa có tài khoản admin nào.</p>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`admin-toast ${toast.type}`}>
+          <span>{toast.message}</span>
         </div>
       )}
     </div>
