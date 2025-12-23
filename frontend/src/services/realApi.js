@@ -381,6 +381,33 @@ class RealApiService {
   }
 
   /**
+   * Verify OTP for password reset (without resetting password)
+   * @param {Object} data - { email, otp }
+   * @returns {Promise<Object>}
+   */
+  async verifyPasswordResetOtp(data) {
+    try {
+      console.log("🔍 VERIFY PASSWORD RESET OTP:", data.email);
+
+      const response = await httpClient.post(
+        API_ENDPOINTS.auth.verifyPasswordResetOtp,
+        {
+          email: data.email,
+          otp: data.otp,
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("❌ Verify password reset OTP error:", error);
+      return {
+        success: false,
+        error: error.message || "Mã OTP không hợp lệ hoặc đã hết hạn",
+      };
+    }
+  }
+
+  /**
    * Reset password using OTP
    * @param {Object} data - { email, otp, newPassword }
    * @returns {Promise<Object>}

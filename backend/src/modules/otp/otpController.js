@@ -151,8 +151,8 @@ export const verifyOtp = async (req, res, next) => {
     // Check if email already registered (double check)
     const existingUser = await accountModel.getByEmail(email);
     if (existingUser) {
-      // Mark OTP as used even if account exists
-      await otpModel.markAsUsed(otpRecord.id);
+      // Xóa OTP nếu email đã tồn tại
+      await otpModel.delete(otpRecord.id);
       return res.status(400).json({
         success: false,
         message: 'Email already registered'
@@ -180,8 +180,8 @@ export const verifyOtp = async (req, res, next) => {
       phone_number: null
     });
 
-    // Mark OTP as used
-    await otpModel.markAsUsed(otpRecord.id);
+    // Delete OTP after successful verification (OTP chỉ dùng 1 lần)
+    await otpModel.delete(otpRecord.id);
 
     console.log('✅ Account created via OTP verification for:', email);
 
@@ -271,6 +271,71 @@ export const requestPasswordResetOtp = async (req, res, next) => {
 };
 
 /**
+ * Verify OTP for password reset (without resetting password)
+ * POST /api/auth/verify-password-reset-otp
+ */
+export const verifyPasswordResetOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required'
+      });
+    }
+
+    if (!email.endsWith('@dtu.edu.vn')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email must end with @dtu.edu.vn'
+      });
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP must be 6 digits'
+      });
+    }
+
+    const user = await accountModel.getByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const otpRecord = await otpModel.findValidOtp(email, otp);
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP'
+      });
+    }
+
+    if (otpRecord.payload.purpose !== 'password_reset') {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP is not for password reset'
+      });
+    }
+
+    console.log('✅ OTP verified successfully for password reset:', email);
+
+    // Không xóa OTP, giữ lại để dùng khi reset password
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully'
+    });
+  } catch (error) {
+    console.error('❌ Verify password reset OTP error:', error);
+    next(error);
+  }
+};
+
+/**
  * Reset password using OTP
  * POST /api/auth/reset-password
  */
@@ -340,7 +405,9 @@ export const resetPassword = async (req, res, next) => {
 
     const hashedPassword = await hashPassword(newPassword);
     await accountModel.updatePasswordByEmail(email, hashedPassword);
-    await otpModel.markAsUsed(otpRecord.id);
+    
+    // Delete OTP after successful password reset (OTP chỉ dùng 1 lần)
+    await otpModel.delete(otpRecord.id);
 
     console.log('✅ Password reset successfully for:', email);
 

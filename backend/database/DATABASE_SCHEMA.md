@@ -276,17 +276,22 @@
 ## OTP Verification
 
 ### otp_verifications
-**Purpose**: Stores one-time passwords for email verification and password reset.
+**Purpose**: Stores one-time passwords for email verification and password reset. OTP được xóa ngay sau khi verify thành công.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique identifier |
-| `email` | VARCHAR | NOT NULL | Email address |
-| `otp_code` | VARCHAR | NOT NULL | One-time password code |
-| `payload` | JSONB | NOT NULL, DEFAULT '{}' | Additional data |
+| `email` | VARCHAR(255) | NOT NULL | Email address |
+| `otp_code` | VARCHAR(6) | NOT NULL | One-time password code (6 digits) |
+| `payload` | JSONB | DEFAULT '{}' | Additional data (lưu password tạm thời) |
 | `expires_at` | TIMESTAMP WITH TIME ZONE | NOT NULL | Expiration timestamp |
-| `is_used` | BOOLEAN | DEFAULT false | Usage flag |
 | `created_at` | TIMESTAMP WITH TIME ZONE | DEFAULT now() | Creation timestamp |
+
+**Indexes**:
+- `idx_otp_email_code` on (`email`, `otp_code`) - Tìm kiếm OTP nhanh
+- `idx_otp_expires_at` on (`expires_at`) - Xóa OTP hết hạn
+
+**Note**: OTP chỉ dùng 1 lần và được xóa ngay sau khi verify thành công.
 
 ---
 

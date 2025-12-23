@@ -334,7 +334,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         setIsForgotPasswordLoading(false);
       }
     }
-    // Bước 2: Xác nhận mã OTP đã nhập (không gọi API)
+    // Bước 2: Xác nhận mã OTP bằng cách gọi API verify
     else if (forgotPasswordStep === 'otp') {
       const enteredOtp = otpInputs.join('');
       if (enteredOtp.length !== 6) {
@@ -342,18 +342,36 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
         return;
       }
 
-      // Chỉ validate OTP đã đủ 6 số, chưa gọi API verify
-      // API verify OTP sẽ được gọi khi submit mật khẩu mới
-      setToastNotification({
-        type: 'success',
-        title: 'Xác nhận mã OTP',
-        message: 'Vui lòng nhập mật khẩu mới của bạn.'
-      });
-
-      // Chuyển sang bước nhập mật khẩu mới
-      setForgotPasswordStep('newPassword');
-      setValidationErrors({});
+      setIsForgotPasswordLoading(true);
       setError('');
+
+      try {
+        // ✅ Gọi API verify OTP ngay lập tức
+        const response = await userApi.verifyPasswordResetOtp({
+          email: forgotPasswordEmail,
+          otp: enteredOtp
+        });
+
+        if (response.success) {
+          setToastNotification({
+            type: 'success',
+            title: 'Xác nhận mã OTP',
+            message: 'Mã OTP hợp lệ! Vui lòng nhập mật khẩu mới.'
+          });
+
+          // Chuyển sang bước nhập mật khẩu mới
+          setForgotPasswordStep('newPassword');
+          setValidationErrors({});
+          setError('');
+        } else {
+          setError(response.error || response.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+        }
+      } catch (error) {
+        console.error('❌ Verify OTP error:', error);
+        setError(error.response?.data?.message || error.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+      } finally {
+        setIsForgotPasswordLoading(false);
+      }
     }
     // Bước 3: Đặt lại mật khẩu mới
     else if (forgotPasswordStep === 'newPassword') {

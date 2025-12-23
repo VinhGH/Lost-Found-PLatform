@@ -21,6 +21,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
+      "http://localhost:3001",
       "http://localhost:5173",
       "https://dtu-lostandfound-victor.vercel.app",
       process.env.CORS_ORIGIN,

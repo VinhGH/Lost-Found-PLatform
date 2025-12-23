@@ -14,8 +14,7 @@ class OtpModel {
           email: otpData.email,
           otp_code: otpData.otpCode,
           payload: otpData.payload || {},
-          expires_at: otpData.expiresAt,
-          is_used: false
+          expires_at: otpData.expiresAt
         })
         .select()
         .single();
@@ -46,7 +45,6 @@ class OtpModel {
         .select('*')
         .eq('email', email)
         .eq('otp_code', otpCode)
-        .eq('is_used', false)
         .gt('expires_at', now)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -64,15 +62,15 @@ class OtpModel {
   }
 
   /**
-   * Mark OTP as used
+   * Delete OTP record (after successful verification)
    * @param {string} otpId - UUID of OTP record
    * @returns {Promise<boolean>}
    */
-  async markAsUsed(otpId) {
+  async delete(otpId) {
     try {
       const { error } = await supabase
         .from('otp_verifications')
-        .update({ is_used: true })
+        .delete()
         .eq('id', otpId);
 
       if (error) {
@@ -81,13 +79,13 @@ class OtpModel {
 
       return true;
     } catch (err) {
-      console.error('Error marking OTP as used:', err.message);
+      console.error('Error deleting OTP:', err.message);
       throw err;
     }
   }
 
   /**
-   * Invalidate all unused OTPs for an email (optional - for security)
+   * Delete all OTPs for an email (xóa các OTP cũ trước khi tạo OTP mới)
    * @param {string} email
    * @returns {Promise<boolean>}
    */
@@ -95,9 +93,8 @@ class OtpModel {
     try {
       const { error } = await supabase
         .from('otp_verifications')
-        .update({ is_used: true })
-        .eq('email', email)
-        .eq('is_used', false);
+        .delete()
+        .eq('email', email);
 
       if (error) {
         throw error;
