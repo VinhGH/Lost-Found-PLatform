@@ -15,7 +15,7 @@ import clipImageService from './clipImageService.js';
 // - "Xenova/paraphrase-multilingual-mpnet-base-v2" - Best for multilingual (768-dim, supports Vietnamese)
 // - "Xenova/multilingual-e5-large" - Very good for multilingual but larger
 const MODEL_NAME = "Xenova/paraphrase-multilingual-mpnet-base-v2"; // Upgraded for better semantic understanding
-const SIMILARITY_THRESHOLD = 0.45; // 45% similarity threshold (increased for better accuracy)
+const SIMILARITY_THRESHOLD = 0.50; // 50% similarity threshold (increased to reduce false positives)
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Weights for combining text and image similarity
@@ -23,15 +23,39 @@ const TEXT_WEIGHT = 0.6; // 60% weight for text (increased importance)
 const IMAGE_WEIGHT = 0.4; // 40% weight for image
 
 // Text component weights (for better semantic matching)
-// ✅ Increased title weight for better exact matching
-const TITLE_WEIGHT = 0.65; // Title is most important (increased from 0.4)
-const ITEM_NAME_WEIGHT = 0.2; // Item name is second most important (decreased from 0.3)
-const DESCRIPTION_WEIGHT = 0.1; // Description adds context (decreased from 0.2)
-const LOCATION_WEIGHT = 0.025; // Location is less important
-const CATEGORY_WEIGHT = 0.025; // Category is least important
+// ✅ Cân bằng giữa Title (quan trọng nhất) và Description (bổ sung chi tiết)
+const TITLE_WEIGHT = 0.50; // Title is most important (50%)
+const DESCRIPTION_WEIGHT = 0.30; // Description adds detailed context (30%)
+const ITEM_NAME_WEIGHT = 0.15; // Item name is important (15%)
+const LOCATION_WEIGHT = 0.025; // Location is less important (2.5%)
+const CATEGORY_WEIGHT = 0.025; // Category is least important (2.5%)
 
 // Minimum text similarity required (to avoid false positives from image-only matches)
-const MIN_TEXT_SIMILARITY = 0.35; // Minimum 35% text similarity required
+const MIN_TEXT_SIMILARITY = 0.38; // Minimum 38% text similarity required
+
+// Vietnamese stop words (từ phổ biến không có ý nghĩa trong matching)
+const STOP_WORDS = new Set([
+  'chiec', 'cai', 'mon', 'thu', 'con', 'qua', 'mieng',
+  'mau', 'loai', 'kieu', 'dang', 'nay', 'kia', 'do',
+  'duoc', 'dang', 'vua', 'moi', 'tang', 'phong', 'toa',
+  'ben', 'canh', 'tren', 'duoi', 'trong', 'ngoai',
+  'cung', 'nhung', 'voi', 'cho', 'hay', 'hoac', 'thi'
+]);
+
+// Common abbreviations và typos mapping
+const TERM_MAPPING = {
+  'dth': 'dien thoai',
+  'dt': 'dien thoai',
+  'tsv': 'the sinh vien',
+  'sv': 'sinh vien',
+  'cntt': 'cong nghe thong tin',
+  'iphone': 'dien thoai iphone',
+  'samsumg': 'samsung', // typo
+  'samsum': 'samsung',   // typo
+  'oppo': 'dien thoai oppo',
+  'vivo': 'dien thoai vivo',
+  'xiaomi': 'dien thoai xiaomi'
+};
 
 class AIMatchingService {
   constructor() {
@@ -141,40 +165,66 @@ class AIMatchingService {
   }
 
   /**
-   * Normalize text: remove special chars, normalize spaces, lowercase
+   * Normalize text: keep Vietnamese diacritics, handle abbreviations, normalize spaces
    * @param {string} text - Text to normalize
    * @returns {string} - Normalized text
    */
   normalizeText(text) {
     if (!text) return '';
-    return text
+    
+    // Step 1: Lowercase and normalize Unicode (keep diacritics)
+    let normalized = text
       .toLowerCase()
-      .normalize('NFD') // Normalize Vietnamese diacritics
-      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics for better matching
-      .replace(/[^\w\s]/g, ' ') // Replace special chars with space
-      .replace(/\s+/g, ' ') // Normalize spaces
+      .normalize('NFC'); // Keep Vietnamese diacritics, just normalize Unicode form
+    
+    // Step 2: Keep ALL Vietnamese characters, numbers, dash, spaces
+    // Vietnamese alphabet includes: a-z plus á à ả ã ạ ă ắ ằ ẳ ẵ ặ â ấ ầ ẩ ẫ ậ
+    // é è ẻ ẽ ẹ ê ế ề ể ễ ệ í ì ỉ ĩ ị ó ò ỏ õ ọ ô ố ồ ổ ỗ ộ ơ ớ ờ ở ỡ ợ
+    // ú ù ủ ũ ụ ư ứ ừ ử ữ ự ý ỳ ỷ ỹ ỵ đ
+    normalized = normalized
+      .replace(/[^a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ0-9\s\-]/g, ' ')
+      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
       .trim();
+    
+    // Step 3: Apply term mapping for abbreviations and typos
+    Object.keys(TERM_MAPPING).forEach(abbr => {
+      const regex = new RegExp(`\\b${abbr}\\b`, 'g');
+      normalized = normalized.replace(regex, TERM_MAPPING[abbr]);
+    });
+    
+    return normalized;
   }
 
   /**
    * Tạo text mô tả từ post để so sánh với weights khác nhau
+   * Adaptive repetitions based on content availability
    * @param {Object} post - Post object
    * @returns {string} - Combined text with weighted repetition
    */
   createPostText(post) {
     const parts = [];
 
-    // Title is most important - repeat it more
+    // Calculate content lengths
+    const titleLen = (post.Post_Title || '').length;
+    const descLen = (post.Description || '').length;
+    const itemLen = (post.Item_name || '').length;
+    
+    // Adjust repetitions based on content availability
+    const hasDescription = descLen > 20;
+    const hasItem = itemLen > 3;
+    
+    // Title repetitions - reduce if description exists, increase if not
     if (post.Post_Title) {
       const normalizedTitle = this.normalizeText(post.Post_Title);
-      // Repeat title based on weight (more repetitions = more importance)
-      const titleRepetitions = Math.ceil(TITLE_WEIGHT * 10);
+      const titleRepetitions = hasDescription ? 
+        Math.ceil(TITLE_WEIGHT * 8) :  // Reduce if has description
+        Math.ceil(TITLE_WEIGHT * 12); // Increase if no description
       for (let i = 0; i < titleRepetitions; i++) {
         parts.push(normalizedTitle);
       }
     }
 
-    // Item name is second most important
+    // Item name
     if (post.Item_name) {
       const normalizedItem = this.normalizeText(post.Item_name);
       const itemRepetitions = Math.ceil(ITEM_NAME_WEIGHT * 10);
@@ -183,21 +233,32 @@ class AIMatchingService {
       }
     }
 
-    // Description adds context
+    // Description - more important if title is short
     if (post.Description) {
       const normalizedDesc = this.normalizeText(post.Description);
-      const descRepetitions = Math.ceil(DESCRIPTION_WEIGHT * 10);
+      const descRepetitions = titleLen < 20 ?
+        Math.ceil(DESCRIPTION_WEIGHT * 12) : // Increase if title is short
+        Math.ceil(DESCRIPTION_WEIGHT * 10);  // Normal if title is adequate
       for (let i = 0; i < descRepetitions; i++) {
         parts.push(normalizedDesc);
       }
     }
 
-    // Location and category are less important
+    // Location and category
     if (post.Location_name) {
-      parts.push(this.normalizeText(post.Location_name));
+      const normalizedLoc = this.normalizeText(post.Location_name);
+      // Repeat location based on weight
+      const locRepetitions = Math.ceil(LOCATION_WEIGHT * 20);
+      for (let i = 0; i < locRepetitions; i++) {
+        parts.push(normalizedLoc);
+      }
     }
     if (post.Category_name) {
-      parts.push(this.normalizeText(post.Category_name));
+      const normalizedCat = this.normalizeText(post.Category_name);
+      const catRepetitions = Math.ceil(CATEGORY_WEIGHT * 20);
+      for (let i = 0; i < catRepetitions; i++) {
+        parts.push(normalizedCat);
+      }
     }
 
     return parts.join(' ');
@@ -350,10 +411,11 @@ class AIMatchingService {
         console.log(`  📊 Raw text similarity: ${(textSimilarity * 100).toFixed(2)}%`);
 
         // ✅ Keyword-based boosting for exact matches
-        // Extract significant keywords (length > 3 to avoid common words)
+        // Extract significant keywords (length > 3 and not stop words)
         const extractKeywords = (text) => {
-          return text.split(' ')
-            .filter(word => word.length > 3)
+          const normalized = this.normalizeText(text);
+          return normalized.split(' ')
+            .filter(word => word.length > 3 && !STOP_WORDS.has(word))
             .map(word => word.toLowerCase().trim());
         };
 
