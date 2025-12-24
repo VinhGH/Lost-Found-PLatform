@@ -112,6 +112,7 @@ const UserProfile = ({
   const [deletingPost, setDeletingPost] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [originalProfileData, setOriginalProfileData] = useState(null); // Lưu dữ liệu gốc khi bắt đầu edit
 
   // Xác định user data cần hiển thị (viewUser hoặc user hiện tại)
   const displayUser = viewUser || user;
@@ -328,41 +329,117 @@ const UserProfile = ({
     reader.readAsDataURL(file);
   };
 
+  // 🔹 Bắt đầu chỉnh sửa - lưu dữ liệu gốc
+  const handleStartEdit = () => {
+    setOriginalProfileData({ ...profileData }); // Backup dữ liệu gốc
+    setIsEditing(true);
+  };
+
+  // 🔹 Hủy chỉnh sửa - kiểm tra thay đổi và xác nhận
+  const handleCancelEdit = () => {
+    // Kiểm tra xem có thay đổi nào không
+    const hasChanges = originalProfileData && (
+      profileData.name !== originalProfileData.name ||
+      profileData.phone !== originalProfileData.phone ||
+      profileData.address !== originalProfileData.address ||
+      profileData.avatar !== originalProfileData.avatar
+    );
+
+    if (hasChanges) {
+      // Hiển thị xác nhận nếu có thay đổi
+      const confirmed = window.confirm(
+        "Các thông tin đã thay đổi sẽ bị xóa và không được lưu lại. Bạn có chắc chắn muốn hủy?"
+      );
+      
+      if (confirmed) {
+        // Khôi phục dữ liệu gốc
+        setProfileData({ ...originalProfileData });
+        setIsEditing(false);
+        setOriginalProfileData(null);
+      }
+      // Nếu không confirm, không làm gì (tiếp tục edit)
+    } else {
+      // Không có thay đổi, đóng edit mode luôn
+      setIsEditing(false);
+      setOriginalProfileData(null);
+    }
+  };
+
   // 🔹 Lưu profile
   const handleSave = async () => {
+    // ✅ Validation: Kiểm tra các trường bắt buộc không được bỏ trống
+    const trimmedName = profileData.name?.trim();
+    const trimmedPhone = profileData.phone?.trim();
+    const trimmedAddress = profileData.address?.trim();
+
+    if (!trimmedName || !trimmedPhone || !trimmedAddress) {
+      if (onShowToast) {
+        onShowToast({
+          type: "error",
+          title: "Lỗi",
+          message: "Không thể bỏ trống các trường thông tin trong profile. Vui lòng điền đầy đủ thông tin.",
+          duration: 5000,
+        });
+      } else {
+        alert("Không thể bỏ trống các trường thông tin trong profile. Vui lòng điền đầy đủ thông tin.");
+      }
+      return;
+    }
+
     try {
       const res = await userApi.updateProfile({
-        user_name: profileData.name,
-        phone_number: profileData.phone,
-        address: profileData.address,
+        user_name: trimmedName,
+        phone_number: trimmedPhone,
+        address: trimmedAddress,
         avatar: profileData.avatar,
       });
 
       if (!res.success) {
-        alert("Không thể cập nhật");
+        if (onShowToast) {
+          onShowToast({
+            type: "error",
+            title: "Lỗi",
+            message: "Không thể cập nhật thông tin",
+          });
+        } else {
+          alert("Không thể cập nhật");
+        }
         return;
       }
 
       const updatedUser = res.data.user;
 
+      // ✅ Cập nhật profileData ngay lập tức với dữ liệu mới từ backend
+      const newProfileData = {
+        name: updatedUser.user_name,
+        email: updatedUser.email,
+        phone: updatedUser.phone_number || "",
+        address: updatedUser.address || "",
+        avatar: updatedUser.avatar || null,
+      };
+      setProfileData(newProfileData);
+
       // Lưu cache profile
       const profileKey = `userProfile_${updatedUser.email}`;
-      localStorage.setItem(
-        profileKey,
-        JSON.stringify({
-          name: updatedUser.user_name,
-          email: updatedUser.email,
-          phone: updatedUser.phone_number,
-          address: updatedUser.address,
-          avatar: updatedUser.avatar,
-        })
-      );
+      localStorage.setItem(profileKey, JSON.stringify(newProfileData));
 
       // Cập nhật FE (App.js)
       onProfileUpdate?.(updatedUser);
 
       setIsEditing(false);
-      alert("Cập nhật thành công!");
+      setOriginalProfileData(null); // Clear backup data
+      
+      // Hiển thị toast thông báo thành công (4-5 giây)
+      if (onShowToast) {
+        onShowToast({
+          type: "success",
+          title: "Thành công",
+          message: "Cập nhật thông tin thành công!",
+          duration: 4500, // 4.5 giây
+        });
+      } else {
+        alert("Cập nhật thành công!");
+      }
 
       // Reload bài đăng cho tên mới
       setTimeout(() => {
@@ -376,7 +453,15 @@ const UserProfile = ({
         );
       }, 300);
     } catch (e) {
-      alert("Lỗi khi lưu profile.");
+      if (onShowToast) {
+        onShowToast({
+          type: "error",
+          title: "Lỗi",
+          message: "Lỗi khi lưu thông tin",
+        });
+      } else {
+        alert("Lỗi khi lưu profile.");
+      }
       console.error(e);
     }
   };
@@ -384,7 +469,7 @@ const UserProfile = ({
   // 🔹 Update / Delete post
   const handleUpdatePost = async (updated) => {
     try {
-      // ✅ Tìm post hiện tại để lấy status và type
+      // ✅ Tìm post hiện tại để lấy ảnh gốc
       const currentPost = userPosts.find((p) => p.id === updated.id);
       if (!currentPost) {
         if (onShowToast) {
@@ -401,22 +486,29 @@ const UserProfile = ({
       const postType = updated.type || currentPost.type;
       const currentStatus = currentPost.status || "pending";
 
-      // ✅ Kiểm tra xem có ảnh mới không (base64 bắt đầu bằng "data:image/")
-      // Nếu chỉ có URL ảnh cũ thì KHÔNG gửi images (để backend giữ nguyên ảnh cũ)
+      // ✅ Xác định xem có thay đổi về ảnh không
       let imagesToSend = undefined;
-      if (updated.images && Array.isArray(updated.images) && updated.images.length > 0) {
-        // Kiểm tra xem có ít nhất 1 ảnh mới (base64) không
-        const hasNewImages = updated.images.some(img =>
+      
+      if (updated.images !== undefined && Array.isArray(updated.images)) {
+        // Lấy danh sách ảnh gốc từ currentPost
+        const originalImages = currentPost.images || [];
+        const updatedImages = updated.images;
+
+        // Kiểm tra xem có ảnh mới (base64) không
+        const hasNewImages = updatedImages.some(img =>
           typeof img === 'string' && img.startsWith('data:image/')
         );
 
-        if (hasNewImages) {
-          // Chỉ gửi ảnh mới (base64), loại bỏ ảnh cũ (URL)
-          imagesToSend = updated.images.filter(img =>
-            typeof img === 'string' && img.startsWith('data:image/')
-          );
+        // Kiểm tra xem số lượng ảnh có thay đổi không (có thể đã xóa ảnh)
+        const imageCountChanged = updatedImages.length !== originalImages.length;
+
+        // ✅ GỬI images nếu:
+        // 1. Có ảnh mới (base64) HOẶC
+        // 2. Số lượng ảnh thay đổi (đã xóa hoặc thêm ảnh)
+        if (hasNewImages || imageCountChanged) {
+          imagesToSend = updatedImages;
+          console.log(`📸 Sending ${updatedImages.length} images to backend (original: ${originalImages.length})`);
         }
-        // Nếu không có ảnh mới, imagesToSend = undefined → backend giữ nguyên ảnh cũ
       }
 
       // ✅ Format data cho backend (chỉ gửi các field backend cần)
@@ -425,7 +517,7 @@ const UserProfile = ({
         description: updated.description,
         category: updated.category,
         location: updated.location,
-        // ✅ CHỈ gửi images nếu có ảnh mới (base64)
+        // ✅ GỬI images nếu có thay đổi (thêm, xóa, hoặc cập nhật)
         ...(imagesToSend !== undefined && { images: imagesToSend }),
         // ✅ KHÔNG gửi status - user không được thay đổi status khi update
       };
@@ -603,7 +695,7 @@ const UserProfile = ({
                 <div className="edit-actions">
                   <button
                     className="btn-cancel"
-                    onClick={() => setIsEditing(false)}
+                    onClick={handleCancelEdit}
                   >
                     Hủy
                   </button>
@@ -612,7 +704,7 @@ const UserProfile = ({
                   </button>
                 </div>
               ) : (
-                <button className="btn-edit" onClick={() => setIsEditing(true)}>
+                <button className="btn-edit" onClick={handleStartEdit}>
                   <EditIcon style={{ fontSize: 18, marginRight: 8 }} />
                   Chỉnh sửa hồ sơ
                 </button>

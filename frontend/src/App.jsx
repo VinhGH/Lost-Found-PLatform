@@ -3,7 +3,7 @@ import LandingPage from "./components/LandingPage.jsx";
 import AdminUI from "./components/admin/AdminUI.jsx";
 import UserUI from "./components/user/UserUI.jsx";
 import adminApi from "./services/adminApi.js";
-import userApi from "./services/realApi.js"; // ✅ FIXED: Use realApi instead of old userApi
+import userApi from "./services/realApi.js";
 
 function App() {
   const [currentView, setCurrentView] = useState("main"); // 'main', 'admin-dashboard', 'user-dashboard'

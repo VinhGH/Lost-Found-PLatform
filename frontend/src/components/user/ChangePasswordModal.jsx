@@ -340,8 +340,8 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="change-password-modal-overlay" onClick={handleCancel}>
-      <div className="change-password-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="change-password-modal-overlay">
+      <div className="change-password-modal">
         {!showForgotPassword ? (
           <>
             <div className="modal-header">
@@ -384,6 +384,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     className="password-toggle"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     disabled={isLoading}
+                    tabIndex="-1"
                   >
                     {showCurrentPassword ? (
                       <VisibilityOffIcon className="eye-icon" />
@@ -424,6 +425,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     className="password-toggle"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     disabled={isLoading}
+                    tabIndex="-1"
                   >
                     {showNewPassword ? (
                       <VisibilityOffIcon className="eye-icon" />
@@ -467,6 +469,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                     className="password-toggle"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     disabled={isLoading}
+                    tabIndex="-1"
                   >
                     {showConfirmPassword ? (
                       <VisibilityOffIcon className="eye-icon" />
@@ -581,7 +584,11 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                       }}
                       className={validationErrors.email ? "input-error" : ""}
                       readOnly={!!forgotPasswordEmail} // ✅ Email tự động điền và không cho chỉnh sửa
-                      style={{ backgroundColor: forgotPasswordEmail ? '#f8f9fa' : 'white', cursor: forgotPasswordEmail ? 'not-allowed' : 'text' }}
+                      style={{ 
+                        backgroundColor: forgotPasswordEmail ? '#f8f9fa' : 'white', 
+                        cursor: forgotPasswordEmail ? 'not-allowed' : 'text',
+                        maxWidth: '320px'
+                      }}
                     />
                     {validationErrors.email && (
                       <span className="validation-error">
@@ -643,6 +650,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                         type="button"
                         className="password-toggle"
                         onClick={() => setShowNewPassword(!showNewPassword)}
+                        tabIndex="-1"
                       >
                         {showNewPassword ? (
                           <VisibilityOffIcon className="eye-icon" />
@@ -682,6 +690,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
                         type="button"
                         className="password-toggle"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        tabIndex="-1"
                       >
                         {showConfirmPassword ? (
                           <VisibilityOffIcon className="eye-icon" />

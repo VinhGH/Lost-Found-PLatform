@@ -9,14 +9,15 @@ const ToastNotification = ({ notification, onClose, onClick }) => {
     // Trigger animation khi component mount
     setTimeout(() => setIsVisible(true), 10);
 
-    // Tự động đóng sau 5 giây
+    // Tự động đóng sau duration (mặc định 8 giây nếu không có duration)
+    const duration = notification?.duration || 8000;
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(() => onClose(), 300); // Đợi animation xong rồi mới close
-    }, 8000);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, notification?.duration]);
 
   if (!notification) return null;
 

@@ -20,6 +20,10 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
   const [images, setImages] = useState([]); // Mảng để lưu nhiều ảnh (tối đa 3)
   const [errors, setErrors] = useState({});
   const [zoomedImage, setZoomedImage] = useState(null); // Ảnh đang được phóng to
+  
+  // ✅ State để lưu dữ liệu gốc ban đầu (để kiểm tra thay đổi)
+  const [originalFormData, setOriginalFormData] = useState(null);
+  const [originalImages, setOriginalImages] = useState([]);
 
   // ✅ Lock body scroll when modal is open
   useEffect(() => {
@@ -56,7 +60,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         ? postData.images
         : (postData.imageUrl || postData.image ? [postData.imageUrl || postData.image] : []);
 
-      setFormData({
+      const loadedFormData = {
         postType: postData.type || "lost",
         author: postData.author || "",
         title: postData.title || "",
@@ -82,17 +86,26 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         date: postData.date || "",
         contact: postData.contact || "",
         image: null,
-      });
+      };
+
+      setFormData(loadedFormData);
+      
+      // ✅ Lưu dữ liệu gốc để so sánh sau này
+      setOriginalFormData(JSON.parse(JSON.stringify(loadedFormData)));
 
       // Load tất cả ảnh vào images array
       if (existingImages.length > 0) {
-        setImages(existingImages.map((img, index) => ({
+        const loadedImages = existingImages.map((img, index) => ({
           file: null, // Ảnh cũ không có file object
           preview: img,
-          id: Date.now() + index
-        })));
+          id: `existing-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`
+        }));
+        setImages(loadedImages);
+        // ✅ Lưu ảnh gốc để so sánh sau này
+        setOriginalImages(JSON.parse(JSON.stringify(loadedImages)));
       } else {
         setImages([]);
+        setOriginalImages([]);
       }
     }
   }, [postData]);
@@ -144,7 +157,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
         newImages.push({
           file: file,
           preview: reader.result,
-          id: Date.now() + index
+          id: `new-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`
         });
 
         loadedCount++;
@@ -294,12 +307,41 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
     alert("✅ Bài đăng đã được cập nhật thành công!");
   };
 
+  // ✅ Kiểm tra xem có thay đổi nào chưa được lưu không
+  const hasChanges = () => {
+    if (!originalFormData || !originalImages) return false;
+
+    // So sánh formData với originalFormData
+    const formDataChanged = JSON.stringify(formData) !== JSON.stringify(originalFormData);
+
+    // So sánh images với originalImages (số lượng và preview URLs)
+    const imagesChanged = 
+      images.length !== originalImages.length ||
+      images.some((img, index) => img.preview !== originalImages[index]?.preview);
+
+    return formDataChanged || imagesChanged;
+  };
+
+  // ✅ Xử lý khi người dùng bấm "Hủy" hoặc nút đóng "X"
+  const handleCancel = () => {
+    if (hasChanges()) {
+      const confirmDiscard = window.confirm(
+        "Bạn có thay đổi chưa được lưu. Bạn có chắc chắn muốn hủy? Các thay đổi sẽ bị mất."
+      );
+      if (confirmDiscard) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <div className="overlay">
       <div className="modal">
         <div className="modal-header">
           <h2>Chỉnh sửa bài đăng</h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={handleCancel}>
             <CloseIcon style={{ fontSize: "22px" }} />
           </button>
         </div>
@@ -519,7 +561,7 @@ const EditPostModal = ({ postData, onClose, onUpdate }) => {
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="cancel-btn" onClick={onClose}>
+            <button type="button" className="cancel-btn" onClick={handleCancel}>
               Hủy
             </button>
             <button type="submit" className="submit-btn">

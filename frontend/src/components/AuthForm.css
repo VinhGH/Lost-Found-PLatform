@@ -583,6 +583,13 @@
   line-height: 1.5;
 }
 
+/* Forgot Password Form - Submit Button */
+.forgot-password-form .submit-btn {
+  width: 320px;
+  max-width: 100%;
+  display: block;
+}
+
 /* OTP Input Styles */
 .otp-input-container {
   display: flex;

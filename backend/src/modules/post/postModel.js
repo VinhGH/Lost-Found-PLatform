@@ -732,48 +732,78 @@ class PostModel {
       if (error) throw error;
 
       // ✅ Handle images update if provided
-      if (updateData.images !== undefined && Array.isArray(updateData.images)) {
-        console.log(`📸 Updating images for ${type} post ${postId}...`);
+    if (updateData.images !== undefined && Array.isArray(updateData.images)) {
+      console.log(`📸 Updating images for ${type} post ${postId}...`);
+      console.log(`📸 Received ${updateData.images.length} images`);
 
-        // Delete old images
-        const junctionTable = type === "found" ? "Found_Post_Images" : "Lost_Post_Images";
-        const imageTable = type === "found" ? "Found_Images" : "Lost_Images";
-        const postIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
-        const imgIdColumn = type === "found" ? "found_img_id" : "lost_img_id";
+      const junctionTable = type === "found" ? "Found_Post_Images" : "Lost_Post_Images";
+      const imageTable = type === "found" ? "Found_Images" : "Lost_Images";
+      const postIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
+      const imgIdColumn = type === "found" ? "found_img_id" : "lost_img_id";
 
-        // Get old image IDs
-        const { data: oldJunctions } = await supabase
-          .from(junctionTable)
-          .select(imgIdColumn)
-          .eq(postIdColumn, postId);
+      // ✅ Phân loại ảnh: ảnh cũ (URL) vs ảnh mới (base64)
+      const oldImageUrls = updateData.images.filter(img => 
+        typeof img === 'string' && img.startsWith('https://')
+      );
+      const newImageBase64 = updateData.images.filter(img => 
+        typeof img === 'string' && img.startsWith('data:image/')
+      );
 
-        if (oldJunctions && oldJunctions.length > 0) {
-          const oldImgIds = oldJunctions.map(j => j[imgIdColumn]);
+      console.log(`📸 Old images (URLs): ${oldImageUrls.length}`);
+      console.log(`📸 New images (base64): ${newImageBase64.length}`);
 
+      // ✅ Get current image records from database
+      const { data: currentJunctions } = await supabase
+        .from(junctionTable)
+        .select(`${imgIdColumn}, ${imageTable}(link_picture)`)
+        .eq(postIdColumn, postId);
+
+      // ✅ Find which old images to keep (match URLs)
+      const imagesToKeep = [];
+      if (currentJunctions && currentJunctions.length > 0) {
+        for (const junction of currentJunctions) {
+          const imageUrl = junction[imageTable]?.link_picture;
+          if (imageUrl && oldImageUrls.includes(imageUrl)) {
+            imagesToKeep.push(junction[imgIdColumn]);
+          }
+        }
+      }
+
+      console.log(`📸 Images to keep: ${imagesToKeep.length}`);
+
+      // ✅ Delete images that are NOT in the keep list
+      if (currentJunctions && currentJunctions.length > 0) {
+        const allCurrentImgIds = currentJunctions.map(j => j[imgIdColumn]);
+        const imagesToDelete = allCurrentImgIds.filter(id => !imagesToKeep.includes(id));
+
+        if (imagesToDelete.length > 0) {
           // Delete junction records
           await supabase
             .from(junctionTable)
             .delete()
-            .eq(postIdColumn, postId);
+            .in(imgIdColumn, imagesToDelete);
 
           // Delete image records
           await supabase
             .from(imageTable)
             .delete()
-            .in(imgIdColumn, oldImgIds);
+            .in(imgIdColumn, imagesToDelete);
 
-          console.log(`✅ Deleted ${oldImgIds.length} old images`);
-        }
-
-        // Save new images if any
-        if (updateData.images.length > 0) {
-          const postObj = { [idColumn]: postId };
-          await this._saveImages(postObj, type, updateData.images);
-          console.log(`✅ Saved ${updateData.images.length} new images`);
+          console.log(`✅ Deleted ${imagesToDelete.length} old images`);
         }
       }
 
-      return await this.getPostById(postId, type);
+      // ✅ Upload and save new images (base64 only)
+      if (newImageBase64.length > 0) {
+        const postObj = { [idColumn]: postId };
+        await this._saveImages(postObj, type, newImageBase64);
+        console.log(`✅ Saved ${newImageBase64.length} new images`);
+      }
+
+      console.log(`📸 Final: ${imagesToKeep.length} old + ${newImageBase64.length} new = ${imagesToKeep.length + newImageBase64.length} total images`);
+    }
+
+    return await this.getPostById(postId, type);
     } catch (err) {
       console.error("Error updating post:", err.message);
       return {

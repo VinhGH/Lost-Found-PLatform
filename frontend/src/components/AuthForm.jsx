@@ -712,6 +712,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                     className="password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
+                    tabIndex="-1"
                   >
                     {showPassword ? (
                       <VisibilityOffIcon className="eye-icon" />
@@ -748,6 +749,7 @@ const AuthForm = ({ onAdminLoginSuccess, onUserLoginSuccess, initialMode = 'logi
                       className="password-toggle"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       disabled={isLoading}
+                      tabIndex="-1"
                     >
                       {showConfirmPassword ? (
                         <VisibilityOffIcon className="eye-icon" />
