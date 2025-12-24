@@ -1,6 +1,8 @@
 import matchModel from './matchModel.js';
 import notificationModel from '../notification/notificationModel.js';
 import aiMatchingService from '../../utils/aiMatchingService.js';
+import { sendMatchNotificationEmail } from '../../utils/emailService.js';
+import accountModel from '../account/accountModel.js';
 
 /**
  * POST /api/matches
@@ -27,11 +29,11 @@ export const createMatch = async (req, res, next) => {
     }
 
     // Parse IDs if they come as strings (L55, F43) or use as integers
-    const lostId = typeof lostPostId === 'string' && lostPostId.startsWith('L') 
-      ? parseInt(lostPostId.substring(1)) 
+    const lostId = typeof lostPostId === 'string' && lostPostId.startsWith('L')
+      ? parseInt(lostPostId.substring(1))
       : parseInt(lostPostId);
-    const foundId = typeof foundPostId === 'string' && foundPostId.startsWith('F') 
-      ? parseInt(foundPostId.substring(1)) 
+    const foundId = typeof foundPostId === 'string' && foundPostId.startsWith('F')
+      ? parseInt(foundPostId.substring(1))
       : parseInt(foundPostId);
 
     if (isNaN(lostId) || isNaN(foundId)) {
@@ -576,6 +578,7 @@ export async function performSinglePostScan(postId, postType) {
     }
 
     let notificationCount = 0;
+    let emailCount = 0;
 
     for (const match of createdMatches) {
       // Notify both users: lost post owner and found post owner
@@ -586,7 +589,7 @@ export async function performSinglePostScan(postId, postType) {
       if (lostPost && lostPost.account_id) {
         const lostAccountId = lostPost.account_id;
         const foundPostId = foundPost?.found_post_id;
-        
+
         await notificationModel.createNotification(
           lostAccountId,
           'match',
@@ -594,6 +597,29 @@ export async function performSinglePostScan(postId, postType) {
           foundPostId ? `/posts/found/${foundPostId}` : '',
           match.match_id
         );
+
+        // Send email notification
+        try {
+          const lostAccount = await accountModel.getById(lostAccountId);
+          if (lostAccount && lostAccount.email) {
+            const emailResult = await sendMatchNotificationEmail(
+              lostAccount.email,
+              lostAccount.user_name,
+              lostPost.post_title || 'Bài đăng của bạn',
+              foundPost?.post_title || 'Đồ nhặt được',
+              match.confidence_score || 0.8
+            );
+            if (emailResult.success) {
+              console.log(`📧 Email sent to lost post owner: ${lostAccount.email}`);
+              emailCount++;
+            } else {
+              console.warn(`⚠️ Failed to send email to ${lostAccount.email}:`, emailResult.error);
+            }
+          }
+        } catch (emailError) {
+          console.error('❌ Error sending email to lost post owner:', emailError);
+          // Continue even if email fails
+        }
 
         if (io) {
           io.to(`user_${lostAccountId}`).emit('new_notification', {
@@ -611,7 +637,7 @@ export async function performSinglePostScan(postId, postType) {
       if (foundPost && foundPost.account_id) {
         const foundAccountId = foundPost.account_id;
         const lostPostId = lostPost?.lost_post_id;
-        
+
         await notificationModel.createNotification(
           foundAccountId,
           'match',
@@ -619,6 +645,29 @@ export async function performSinglePostScan(postId, postType) {
           lostPostId ? `/posts/lost/${lostPostId}` : '',
           match.match_id
         );
+
+        // Send email notification
+        try {
+          const foundAccount = await accountModel.getById(foundAccountId);
+          if (foundAccount && foundAccount.email) {
+            const emailResult = await sendMatchNotificationEmail(
+              foundAccount.email,
+              foundAccount.user_name,
+              foundPost.post_title || 'Bài đăng của bạn',
+              lostPost?.post_title || 'Đồ mất',
+              match.confidence_score || 0.8
+            );
+            if (emailResult.success) {
+              console.log(`📧 Email sent to found post owner: ${foundAccount.email}`);
+              emailCount++;
+            } else {
+              console.warn(`⚠️ Failed to send email to ${foundAccount.email}:`, emailResult.error);
+            }
+          }
+        } catch (emailError) {
+          console.error('❌ Error sending email to found post owner:', emailError);
+          // Continue even if email fails
+        }
 
         if (io) {
           io.to(`user_${foundAccountId}`).emit('new_notification', {
@@ -633,7 +682,7 @@ export async function performSinglePostScan(postId, postType) {
       }
     }
 
-    console.log(`✅ Event-driven scan completed: ${matches.length} matches found, ${createdMatches.length} created, ${notificationCount} notifications sent`);
+    console.log(`✅ Event-driven scan completed: ${matches.length} matches found, ${createdMatches.length} created, ${notificationCount} notifications sent, ${emailCount} emails sent`);
 
     return {
       success: true,
@@ -644,6 +693,7 @@ export async function performSinglePostScan(postId, postType) {
         matchesFound: matches.length,
         matchesCreated: createdMatches.length,
         notificationsSent: notificationCount,
+        emailsSent: emailCount,
         matches: createdMatches
       }
     };
