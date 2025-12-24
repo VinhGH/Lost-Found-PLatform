@@ -341,7 +341,7 @@ const UserUI = ({ onLogout, user: initialUser }) => {
     };
   }, []);
 
-  // � Polling interval - auto refresh posts every 30 seconds (silent)
+  // 🔄 Polling interval - auto refresh posts every 5 seconds (FAST & INSTANT)
   useEffect(() => {
     // Only poll on tabs that show posts
     const shouldPoll = ['home', 'found', 'lost'].includes(activeTab);
@@ -351,12 +351,12 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       return;
     }
 
-    console.log(`▶️ Starting background polling for tab: ${activeTab}`);
+    console.log(`▶️ Starting FAST background polling for tab: ${activeTab} (5s interval)`);
 
-    // Set up interval to check for updates every 30 seconds
+    // ⚡ FAST polling: Check for updates every 5 seconds for instant feel
     const intervalId = setInterval(() => {
       loadPostsSilently();
-    }, 30000); // 30 seconds
+    }, 5000); // ⚡ 5 seconds (was 30s) - MUCH FASTER!
 
     return () => {
       console.log(`⏹️ Stopping background polling for tab: ${activeTab}`);

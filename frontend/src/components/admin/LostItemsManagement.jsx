@@ -5,6 +5,7 @@ import PostDetailModal from "../user/PostDetailModal";
 import userApi from "../../services/realApi"; // ✅ REAL API
 import httpClient from "../../services/httpClient"; // ✅ HTTP Client với admin token
 import ImageCarousel from "../user/ImageCarousel";
+import ToastNotification from "../common/ToastNotification"; // ✅ Toast notifications
 
 import {
   Search as SearchIcon,
@@ -33,6 +34,7 @@ const LostItemsManagement = ({ onPostChange }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSelectionMode, setIsSelectionMode] = useState(false); // ✅ New selection mode state
+  const [toast, setToast] = useState(null); // ✅ Toast notification state
 
   // ✅ Load posts từ API (admin sẽ thấy tất cả bài pending)
   const loadPosts = async (skipIfLoading = true) => {
@@ -242,7 +244,11 @@ const LostItemsManagement = ({ onPostChange }) => {
       // Execute all requests
       await Promise.all(promises);
 
-      alert(`✅ Đã duyệt ${selectedPosts.length} bài đăng!`);
+      setToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Đã duyệt ${selectedPosts.length} bài đăng!`
+      });
 
       // Reset & Reload
       setSelectedPosts([]);
@@ -258,7 +264,11 @@ const LostItemsManagement = ({ onPostChange }) => {
 
     } catch (error) {
       console.error("❌ Bulk approve error:", error);
-      alert("❌ Có lỗi xảy ra khi duyệt nhiều bài.");
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: 'Có lỗi xảy ra khi duyệt nhiều bài.'
+      });
     }
   };
 
@@ -282,7 +292,11 @@ const LostItemsManagement = ({ onPostChange }) => {
 
       await Promise.all(promises);
 
-      alert(`✅ Đã xóa ${selectedPosts.length} bài đăng!`);
+      setToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Đã xóa ${selectedPosts.length} bài đăng!`
+      });
 
       setSelectedPosts([]);
       setIsSelectionMode(false);
@@ -296,7 +310,11 @@ const LostItemsManagement = ({ onPostChange }) => {
 
     } catch (error) {
       console.error("❌ Bulk delete error:", error);
-      alert("❌ Có lỗi xảy ra khi xóa nhiều bài.");
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: 'Có lỗi xảy ra khi xóa nhiều bài.'
+      });
     }
   };
 
@@ -326,7 +344,11 @@ const LostItemsManagement = ({ onPostChange }) => {
       );
 
       if (response.success) {
-        alert("✅ Duyệt bài thành công!");
+        setToast({
+          type: 'success',
+          title: 'Thành công!',
+          message: 'Duyệt bài thành công!'
+        });
 
         // reload danh sách pending
         await loadPosts(false);
@@ -342,11 +364,19 @@ const LostItemsManagement = ({ onPostChange }) => {
           })
         );
       } else {
-        alert("❌ Lỗi duyệt bài: " + (response.error || response.message));
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Lỗi duyệt bài: ' + (response.error || response.message)
+        });
       }
     } catch (error) {
       console.error("❌ Error approving post:", error);
-      alert("❌ Lỗi: " + (error.message || "Không xác định"));
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: error.message || 'Không xác định'
+      });
     }
   };
 
@@ -360,19 +390,36 @@ const LostItemsManagement = ({ onPostChange }) => {
     const { postId } = deleteModal;
     if (!postId) return;
 
+    // ✅ ĐÓNG MODAL NGAY LẬP TỨC để tránh lag
+    setDeleteModal({ isOpen: false, postId: null, postTitle: "" });
+
+    // ✅ Hiển thị toast "Đang xử lý..." ngay
+    setToast({
+      type: 'info',
+      title: 'Đang xử lý...',
+      message: 'Đang xóa bài đăng, vui lòng đợi...'
+    });
+
+    // ✅ Xử lý xóa trong background
     try {
       const postToDelete = posts.find((p) => p.id === postId);
       if (!postToDelete) {
-        alert("❌ Không tìm thấy bài đăng");
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Không tìm thấy bài đăng'
+        });
         return;
       }
 
       // ✅ Kiểm tra admin token trước khi xóa
       const adminToken = localStorage.getItem("adminToken");
       if (!adminToken) {
-        alert(
-          "⚠️ Admin token không tồn tại! Vui lòng đăng nhập lại admin.\n\nNếu bạn đang ở Admin UI, hãy đăng xuất và đăng nhập lại với:\n- Email: admin@dtu.edu.vn\n- Password: Admin@123"
-        );
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Admin token không tồn tại! Vui lòng đăng nhập lại.'
+        });
         console.error("❌ Admin token missing! Cannot delete post.");
         return;
       }
@@ -416,9 +463,6 @@ const LostItemsManagement = ({ onPostChange }) => {
         );
 
         window.dispatchEvent(new Event("notificationAdded"));
-
-        // ✅ Đóng modal trước
-        setDeleteModal({ isOpen: false, postId: null, postTitle: "" });
 
         // ✅ Xóa bài đăng khỏi state ngay lập tức (optimistic update)
         setPosts((prevPosts) =>
@@ -468,18 +512,25 @@ const LostItemsManagement = ({ onPostChange }) => {
 
         if (onPostChange) onPostChange();
 
-        alert("✅ Đã xóa bài đăng và gửi thông báo!");
+        setToast({
+          type: 'success',
+          title: 'Thành công!',
+          message: 'Đã xóa bài đăng và gửi thông báo đến người dùng!'
+        });
       } else {
-        alert(
-          "❌ Không thể xóa bài: " + (response.error || "Lỗi không xác định")
-        );
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Không thể xóa bài: ' + (response.error || 'Lỗi không xác định')
+        });
       }
     } catch (error) {
       console.error("❌ Lỗi khi xóa bài đăng:", error);
-      alert(
-        "❌ Có lỗi xảy ra khi xóa bài đăng: " +
-        (error.message || "Lỗi không xác định")
-      );
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: 'Có lỗi xảy ra khi xóa bài đăng: ' + (error.message || 'Lỗi không xác định')
+      });
     }
   };
 
@@ -769,6 +820,14 @@ const LostItemsManagement = ({ onPostChange }) => {
           />
         )
       }
+
+      {/* Toast Notification */}
+      {toast && (
+        <ToastNotification
+          notification={toast}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div >
   );
 };

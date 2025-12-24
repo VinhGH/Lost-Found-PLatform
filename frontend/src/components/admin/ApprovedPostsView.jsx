@@ -5,6 +5,7 @@ import PostDetailModal from "../user/PostDetailModal";
 import ImageCarousel from "../user/ImageCarousel";
 import httpClient from "../../services/httpClient"; // ✅ HTTP Client với admin token
 import userApi from "../../services/realApi"; // ✅ API service
+import ToastNotification from "../common/ToastNotification"; // ✅ Toast notifications
 import {
   Search as SearchIcon,
   Search as LostIcon,
@@ -29,6 +30,7 @@ const ApprovedPostsView = ({ onPostChange }) => {
   const [loading, setLoading] = useState(true);
   const [selectedPosts, setSelectedPosts] = useState([]); // ✅ Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false); // ✅ Selection Mode
+  const [toast, setToast] = useState(null); // ✅ Toast notification state
 
   // ✅ Load posts từ API (admin sẽ thấy tất cả bài đã duyệt)
   const loadPosts = async () => {
@@ -168,7 +170,11 @@ const ApprovedPostsView = ({ onPostChange }) => {
 
       await Promise.all(promises);
 
-      alert(`✅ Đã xóa ${selectedPosts.length} bài đăng!`);
+      setToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Đã xóa ${selectedPosts.length} bài đăng!`
+      });
 
       setSelectedPosts([]);
       setIsSelectionMode(false);
@@ -183,7 +189,11 @@ const ApprovedPostsView = ({ onPostChange }) => {
 
     } catch (error) {
       console.error("❌ Bulk delete error:", error);
-      alert("❌ Có lỗi xảy ra khi xóa nhiều bài.");
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: 'Có lỗi xảy ra khi xóa nhiều bài.'
+      });
     }
   };
 
@@ -197,19 +207,36 @@ const ApprovedPostsView = ({ onPostChange }) => {
     const { postId } = deleteModal;
     if (!postId) return;
 
+    // ✅ ĐÓNG MODAL NGAY LẬP TỨC để tránh lag
+    setDeleteModal({ isOpen: false, postId: null, postTitle: "" });
+
+    // ✅ Hiển thị toast "Đang xử lý..." ngay
+    setToast({
+      type: 'info',
+      title: 'Đang xử lý...',
+      message: 'Đang xóa bài đăng, vui lòng đợi...'
+    });
+
+    // ✅ Xử lý xóa trong background
     try {
       const postToDelete = posts.find((p) => p.id === postId);
       if (!postToDelete) {
-        alert("❌ Không tìm thấy bài đăng");
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Không tìm thấy bài đăng'
+        });
         return;
       }
 
       // ✅ Kiểm tra admin token trước khi xóa
       const adminToken = localStorage.getItem("adminToken");
       if (!adminToken) {
-        alert(
-          "⚠️ Admin token không tồn tại! Vui lòng đăng nhập lại admin.\n\nNếu bạn đang ở Admin UI, hãy đăng xuất và đăng nhập lại với:\n- Email: admin@dtu.edu.vn\n- Password: Admin@123"
-        );
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Admin token không tồn tại! Vui lòng đăng nhập lại.'
+        });
         console.error("❌ Admin token missing! Cannot delete post.");
         return;
       }
@@ -260,8 +287,6 @@ const ApprovedPostsView = ({ onPostChange }) => {
         // ✅ Reload danh sách posts từ API
         await loadPosts();
 
-        setDeleteModal({ isOpen: false, postId: null, postTitle: "" });
-
         // ✅ Dispatch event với thông tin chi tiết để các component biết bài nào bị xóa
         // Đợi một chút để đảm bảo backend đã commit transaction xóa bài đăng
         setTimeout(() => {
@@ -292,18 +317,25 @@ const ApprovedPostsView = ({ onPostChange }) => {
 
         if (onPostChange) onPostChange();
 
-        alert("✅ Đã xóa bài đăng và gửi thông báo đến người dùng!");
+        setToast({
+          type: 'success',
+          title: 'Thành công!',
+          message: 'Đã xóa bài đăng và gửi thông báo đến người dùng!'
+        });
       } else {
-        alert(
-          "❌ Không thể xóa bài: " + (response.error || "Lỗi không xác định")
-        );
+        setToast({
+          type: 'error',
+          title: 'Lỗi!',
+          message: 'Không thể xóa bài: ' + (response.error || 'Lỗi không xác định')
+        });
       }
     } catch (error) {
       console.error("❌ Lỗi khi xóa bài đăng:", error);
-      alert(
-        "❌ Có lỗi xảy ra khi xóa bài đăng: " +
-        (error.message || "Lỗi không xác định")
-      );
+      setToast({
+        type: 'error',
+        title: 'Lỗi!',
+        message: 'Có lỗi xảy ra khi xóa bài đăng: ' + (error.message || 'Lỗi không xác định')
+      });
     }
   };
 
@@ -577,6 +609,14 @@ const ApprovedPostsView = ({ onPostChange }) => {
           />
         )
       }
+
+      {/* Toast Notification */}
+      {toast && (
+        <ToastNotification
+          notification={toast}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div >
   );
 };

@@ -10,11 +10,11 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, postTitle }) => {
       <div className="confirm-delete-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-icon">
-            <WarningIcon style={{ fontSize: '48px', color: '#ef4444' }} />
+            <WarningIcon style={{ fontSize: '48px', color: '#ffffff' }} />
           </div>
           <h3>Xác nhận xóa bài đăng</h3>
         </div>
-        
+
         <div className="modal-content">
           <p>Bạn có muốn xóa bài viết này không?</p>
           {postTitle && (
@@ -24,7 +24,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, postTitle }) => {
             Sau khi xóa, người dùng sẽ nhận được thông báo về việc bài đăng bị xóa.
           </p>
         </div>
-        
+
         <div className="modal-footer">
           <button className="btn-cancel" onClick={onClose}>
             Hủy
