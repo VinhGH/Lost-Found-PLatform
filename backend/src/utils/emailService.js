@@ -298,3 +298,366 @@ Vui lòng không trả lời email này.
     };
   }
 };
+
+/**
+ * Send account lock notification email
+ * @param {string} to - Recipient email address
+ * @param {string} userName - User's name
+ * @param {string} reason - Reason for lock (optional)
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+ */
+export const sendAccountLockEmail = async (to, userName, reason = '') => {
+  try {
+    console.log('📧 Attempting to send account lock email to:', to);
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.EMAIL_FROM) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: to,
+      subject: '⚠️ Tài khoản của bạn đã bị khóa - Lost & Found DTU',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">⚠️ TimDoDTU</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">DTU Lost & Found Platform</p>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #e74c3c; margin-top: 0;">Tài khoản của bạn đã bị khóa</h2>
+            <p>Xin chào <strong>${userName || 'bạn'}</strong>,</p>
+            <p>Chúng tôi rất tiếc phải thông báo rằng tài khoản của bạn đã bị khóa bởi quản trị viên.</p>
+            
+            ${reason ? `
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+              <p style="margin: 0; color: #856404;"><strong>Lý do:</strong> ${reason}</p>
+            </div>
+            ` : ''}
+
+            <div style="background: white; border: 1px solid #ddd; padding: 20px; margin: 25px 0; border-radius: 5px;">
+              <p style="margin: 0 0 10px 0; font-weight: bold;">Điều này có nghĩa là:</p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Bạn không thể đăng nhập vào hệ thống</li>
+                <li>Các bài đăng của bạn sẽ bị ẩn</li>
+                <li>Bạn không thể tạo bài đăng mới</li>
+              </ul>
+            </div>
+
+            <p style="color: #666; font-size: 14px;">
+              💡 <strong>Cần hỗ trợ?</strong> Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ với quản trị viên qua email: <a href="mailto:${process.env.SMTP_USER}">${process.env.SMTP_USER}</a>
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="font-size: 12px; color: #999; margin: 0;">
+              Email này được gửi tự động từ hệ thống Lost & Found DTU.<br>
+              Vui lòng không trả lời email này.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+TimDoDTU - DTU Lost & Found Platform
+
+Tài khoản của bạn đã bị khóa
+
+Xin chào ${userName || 'bạn'},
+
+Chúng tôi rất tiếc phải thông báo rằng tài khoản của bạn đã bị khóa bởi quản trị viên.
+
+${reason ? `Lý do: ${reason}` : ''}
+
+Điều này có nghĩa là:
+- Bạn không thể đăng nhập vào hệ thống
+- Các bài đăng của bạn sẽ bị ẩn
+- Bạn không thể tạo bài đăng mới
+
+💡 Cần hỗ trợ? Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ với quản trị viên qua email: ${process.env.SMTP_USER}
+
+---
+Email này được gửi tự động từ hệ thống Lost & Found DTU.
+      `
+    };
+
+    const emailTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Email timeout')), 45000);
+    });
+
+    const info = await Promise.race([transporter.sendMail(mailOptions), emailTimeout]);
+
+    console.log('✅ Account lock email sent to:', to);
+    return { success: true, message: 'Account lock email sent', data: { messageId: info.messageId } };
+  } catch (error) {
+    console.error('❌ Error sending account lock email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send account unlock notification email
+ * @param {string} to - Recipient email address
+ * @param {string} userName - User's name
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+ */
+export const sendAccountUnlockEmail = async (to, userName) => {
+  try {
+    console.log('📧 Attempting to send account unlock email to:', to);
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.EMAIL_FROM) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: to,
+      subject: '✅ Tài khoản của bạn đã được mở khóa - Lost & Found DTU',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0;">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">✅ TimDoDTU</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">DTU Lost & Found Platform</p>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #52c41a; margin-top: 0;">Tài khoản đã được mở khóa! 🎉</h2>
+            <p>Xin chào <strong>${userName || 'bạn'}</strong>,</p>
+            <p>Chúng tôi vui mừng thông báo rằng tài khoản của bạn đã được mở khóa bởi quản trị viên.</p>
+            
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 5px;">
+              <p style="margin: 0; color: #155724;"><strong>✅ Bạn có thể:</strong></p>
+              <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #155724;">
+                <li>Đăng nhập vào hệ thống</li>
+                <li>Tạo và quản lý bài đăng</li>
+                <li>Sử dụng đầy đủ các tính năng</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'https://lost-found-dtu.vercel.app'}/login" 
+                 style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+                Đăng nhập ngay
+              </a>
+            </div>
+
+            <p style="color: #666; font-size: 14px;">
+              💡 Vui lòng tuân thủ các quy định của cộng đồng để tránh bị khóa lại trong tương lai.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="font-size: 12px; color: #999; margin: 0;">
+              Email này được gửi tự động từ hệ thống Lost & Found DTU.<br>
+              Vui lòng không trả lời email này.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+TimDoDTU - DTU Lost & Found Platform
+
+Tài khoản đã được mở khóa! 🎉
+
+Xin chào ${userName || 'bạn'},
+
+Chúng tôi vui mừng thông báo rằng tài khoản của bạn đã được mở khóa bởi quản trị viên.
+
+✅ Bạn có thể:
+- Đăng nhập vào hệ thống
+- Tạo và quản lý bài đăng
+- Sử dụng đầy đủ các tính năng
+
+Đăng nhập tại: ${process.env.FRONTEND_URL || 'https://lost-found-dtu.vercel.app'}/login
+
+💡 Vui lòng tuân thủ các quy định của cộng đồng để tránh bị khóa lại trong tương lai.
+
+---
+Email này được gửi tự động từ hệ thống Lost & Found DTU.
+      `
+    };
+
+    const emailTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Email timeout')), 45000);
+    });
+
+    const info = await Promise.race([transporter.sendMail(mailOptions), emailTimeout]);
+
+    console.log('✅ Account unlock email sent to:', to);
+    return { success: true, message: 'Account unlock email sent', data: { messageId: info.messageId } };
+  } catch (error) {
+    console.error('❌ Error sending account unlock email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send post status change notification email
+ * @param {string} to - Recipient email address
+ * @param {string} userName - User's name
+ * @param {string} postTitle - Post title
+ * @param {string} action - 'approved' | 'rejected' | 'deleted'
+ * @param {string} reason - Reason for rejection/deletion (optional)
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+ */
+export const sendPostStatusEmail = async (to, userName, postTitle, action, reason = '') => {
+  try {
+    console.log(`📧 Attempting to send post ${action} email to:`, to);
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.EMAIL_FROM) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const transporter = createTransporter();
+
+    // Configure based on action
+    const config = {
+      approved: {
+        subject: '✅ Bài đăng của bạn đã được duyệt - Lost & Found DTU',
+        icon: '✅',
+        title: 'Bài đăng đã được duyệt!',
+        color: '#52c41a',
+        bgColor: '#d4edda',
+        borderColor: '#28a745',
+        textColor: '#155724',
+        message: 'Chúc mừng! Bài đăng của bạn đã được quản trị viên phê duyệt và hiện đã được công khai trên hệ thống.',
+        cta: 'Xem bài đăng'
+      },
+      rejected: {
+        subject: '❌ Bài đăng của bạn bị từ chối - Lost & Found DTU',
+        icon: '❌',
+        title: 'Bài đăng bị từ chối',
+        color: '#e74c3c',
+        bgColor: '#f8d7da',
+        borderColor: '#dc3545',
+        textColor: '#721c24',
+        message: 'Rất tiếc, bài đăng của bạn đã bị từ chối bởi quản trị viên.',
+        cta: 'Tạo bài mới'
+      },
+      deleted: {
+        subject: '🗑️ Bài đăng của bạn đã bị xóa - Lost & Found DTU',
+        icon: '🗑️',
+        title: 'Bài đăng đã bị xóa',
+        color: '#ff9800',
+        bgColor: '#fff3cd',
+        borderColor: '#ffc107',
+        textColor: '#856404',
+        message: 'Bài đăng của bạn đã bị xóa bởi quản trị viên.',
+        cta: 'Về trang chủ'
+      }
+    };
+
+    const cfg = config[action] || config.rejected;
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: to,
+      subject: cfg.subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">${cfg.icon} TimDoDTU</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">DTU Lost & Found Platform</p>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: ${cfg.color}; margin-top: 0;">${cfg.title}</h2>
+            <p>Xin chào <strong>${userName || 'bạn'}</strong>,</p>
+            <p>${cfg.message}</p>
+            
+            <div style="background: white; border-left: 4px solid ${cfg.borderColor}; padding: 20px; margin: 25px 0; border-radius: 5px;">
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">📝 Bài đăng:</p>
+              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #333;">"${postTitle}"</p>
+            </div>
+
+            ${reason ? `
+            <div style="background: ${cfg.bgColor}; border-left: 4px solid ${cfg.borderColor}; padding: 15px; margin: 20px 0; border-radius: 5px;">
+              <p style="margin: 0; color: ${cfg.textColor};"><strong>Lý do:</strong> ${reason}</p>
+            </div>
+            ` : ''}
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'https://lost-found-dtu.vercel.app'}" 
+                 style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+                ${cfg.cta}
+              </a>
+            </div>
+
+            ${action === 'approved' ? `
+            <p style="color: #666; font-size: 14px;">
+              💡 <strong>Gợi ý:</strong> Bài đăng của bạn giờ đây có thể được người khác tìm thấy. Hãy kiểm tra thường xuyên để không bỏ lỡ tin nhắn!
+            </p>
+            ` : `
+            <p style="color: #666; font-size: 14px;">
+              💡 Vui lòng đảm bảo bài đăng tuân thủ quy định cộng đồng trước khi đăng lại.
+            </p>
+            `}
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="font-size: 12px; color: #999; margin: 0;">
+              Email này được gửi tự động từ hệ thống Lost & Found DTU.<br>
+              Vui lòng không trả lời email này.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+TimDoDTU - DTU Lost & Found Platform
+
+${cfg.title}
+
+Xin chào ${userName || 'bạn'},
+
+${cfg.message}
+
+📝 Bài đăng: "${postTitle}"
+
+${reason ? `Lý do: ${reason}` : ''}
+
+Truy cập: ${process.env.FRONTEND_URL || 'https://lost-found-dtu.vercel.app'}
+
+---
+Email này được gửi tự động từ hệ thống Lost & Found DTU.
+      `
+    };
+
+    const emailTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Email timeout')), 45000);
+    });
+
+    const info = await Promise.race([transporter.sendMail(mailOptions), emailTimeout]);
+
+    console.log(`✅ Post ${action} email sent to:`, to);
+    return { success: true, message: `Post ${action} email sent`, data: { messageId: info.messageId } };
+  } catch (error) {
+    console.error(`❌ Error sending post ${action} email:`, error);
+    return { success: false, error: error.message };
+  }
+};
+

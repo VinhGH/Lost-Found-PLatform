@@ -1,5 +1,7 @@
 import postModel from './postModel.js';
 import notificationModel from '../notification/notificationModel.js';
+import { sendPostStatusEmail } from '../../utils/emailService.js';
+import accountModel from '../account/accountModel.js';
 
 /**
  * GET /api/posts
@@ -366,6 +368,31 @@ export const deletePost = async (req, res, next) => {
       console.log('✅ Admin detected - skipping ownership check');
     }
 
+    // ✅ Get post info BEFORE deleting (for notification and email)
+    let postInfo = null;
+    if (isAdmin) {
+      try {
+        const post = await postModel.getPostById(id, type);
+        if (post.success && post.data) {
+          postInfo = {
+            accountId: post.data.accountId,
+            title: post.data.title || post.data.Post_Title,
+            email: null,
+            userName: null
+          };
+
+          // Get user info for email
+          const userAccount = await accountModel.getById(postInfo.accountId);
+          if (userAccount) {
+            postInfo.email = userAccount.email;
+            postInfo.userName = userAccount.user_name;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching post info before deletion:', error);
+      }
+    }
+
     const result = await postModel.deletePost(id, type);
 
     if (!result.success) {
@@ -376,22 +403,40 @@ export const deletePost = async (req, res, next) => {
       });
     }
 
-    // ✅ Create notification if admin deleted (not owner)
-    if (isAdmin) {
+    // ✅ Create notification and send email if admin deleted (using saved post info)
+    if (isAdmin && postInfo && postInfo.accountId) {
+      // Create in-app notification
       try {
-        const post = await postModel.getPostById(id, type);
-        if (post.success && post.data && post.data.accountId) {
-          await notificationModel.createNotification(
-            post.data.accountId,
-            'post_rejected',
-            'Bài đăng của bạn đã bị xóa do vi phạm tiêu chuẩn cộng đồng của chúng tôi',
-            '',
-            null
-          );
-        }
+        await notificationModel.createNotification(
+          postInfo.accountId,
+          'post_rejected',
+          'Bài đăng của bạn đã bị xóa do vi phạm tiêu chuẩn cộng đồng của chúng tôi',
+          '',
+          null
+        );
+        console.log(`✅ Notification created for user: ${postInfo.accountId}`);
       } catch (notifError) {
         console.error('❌ Failed to create notification:', notifError);
-        // Don't fail the request if notification creation fails
+      }
+
+      // Send email notification
+      if (postInfo.email) {
+        try {
+          const emailResult = await sendPostStatusEmail(
+            postInfo.email,
+            postInfo.userName,
+            postInfo.title,
+            'deleted',
+            'Bài đăng vi phạm tiêu chuẩn cộng đồng'
+          );
+          if (emailResult.success) {
+            console.log(`📧 Post deletion email sent to: ${postInfo.email}`);
+          } else {
+            console.warn(`⚠️ Failed to send deletion email to ${postInfo.email}:`, emailResult.error);
+          }
+        } catch (emailError) {
+          console.error('❌ Error sending post deletion email:', emailError);
+        }
       }
     }
 
@@ -616,6 +661,30 @@ export const approvePost = async (req, res, next) => {
       // Don't fail the request if notification creation fails
     }
 
+    // Send email notification
+    try {
+      const post = await postModel.getPostById(id, type.toLowerCase());
+      if (post.success && post.data && post.data.accountId) {
+        const userAccount = await accountModel.getById(post.data.accountId);
+        if (userAccount && userAccount.email) {
+          const emailResult = await sendPostStatusEmail(
+            userAccount.email,
+            userAccount.user_name,
+            post.data.title || post.data.Post_Title,
+            'approved'
+          );
+          if (emailResult.success) {
+            console.log(`📧 Post approval email sent to: ${userAccount.email}`);
+          } else {
+            console.warn(`⚠️ Failed to send approval email to ${userAccount.email}:`, emailResult.error);
+          }
+        }
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending post approval email:', emailError);
+      // Continue - don't fail the request if email fails
+    }
+
     // 🤖 Trigger AI matching (Event-driven, fire-and-forget)
     triggerAIMatchingForPost(id, type.toLowerCase()).catch(err => {
       console.error('❌ Background AI matching failed:', err);
@@ -685,7 +754,39 @@ export const rejectPost = async (req, res, next) => {
       });
     }
 
-    // TODO: Send notification to user about rejection (with reason)
+    // Create notification for post owner
+    try {
+      const post = await postModel.getPostById(id, type.toLowerCase());
+      if (post.success && post.data && post.data.accountId) {
+        await notificationModel.createNotification(
+          post.data.accountId,
+          'post_rejected',
+          reason ? `Bài đăng của bạn đã bị từ chối: ${reason}` : 'Bài đăng của bạn đã bị từ chối',
+          '',
+          null
+        );
+
+        // Send email notification
+        const userAccount = await accountModel.getById(post.data.accountId);
+        if (userAccount && userAccount.email) {
+          const emailResult = await sendPostStatusEmail(
+            userAccount.email,
+            userAccount.user_name,
+            post.data.title || post.data.Post_Title,
+            'rejected',
+            reason || ''
+          );
+          if (emailResult.success) {
+            console.log(`📧 Post rejection email sent to: ${userAccount.email}`);
+          } else {
+            console.warn(`⚠️ Failed to send rejection email to ${userAccount.email}:`, emailResult.error);
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error('❌ Failed to create notification or send email:', notifError);
+      // Continue - don't fail the request
+    }
 
     res.status(200).json({
       success: true,

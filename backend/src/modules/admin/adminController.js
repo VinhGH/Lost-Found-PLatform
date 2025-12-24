@@ -1,4 +1,6 @@
 import { getAllStudents, getAllPosts, getAllUsers, lockUser, unlockUser, deleteUser } from "./adminModel.js";
+import { sendAccountLockEmail, sendAccountUnlockEmail } from "../../utils/emailService.js";
+import accountModel from "../account/accountModel.js";
 
 export const getStudents = async (req, res) => {
   try {
@@ -108,6 +110,27 @@ export const lockUserAccount = async (req, res) => {
     }
 
     const user = await lockUser(id);
+
+    // Send email notification
+    try {
+      const userAccount = await accountModel.getById(id);
+      if (userAccount && userAccount.email) {
+        const emailResult = await sendAccountLockEmail(
+          userAccount.email,
+          userAccount.user_name,
+          req.body.reason || '' // Optional reason from request body
+        );
+        if (emailResult.success) {
+          console.log(`📧 Lock notification email sent to: ${userAccount.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send lock email to ${userAccount.email}:`, emailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending lock notification email:', emailError);
+      // Continue - don't fail the request if email fails
+    }
+
     res.status(200).json({
       success: true,
       message: "User locked successfully",
@@ -146,6 +169,26 @@ export const unlockUserAccount = async (req, res) => {
     }
 
     const user = await unlockUser(id);
+
+    // Send email notification
+    try {
+      const userAccount = await accountModel.getById(id);
+      if (userAccount && userAccount.email) {
+        const emailResult = await sendAccountUnlockEmail(
+          userAccount.email,
+          userAccount.user_name
+        );
+        if (emailResult.success) {
+          console.log(`📧 Unlock notification email sent to: ${userAccount.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send unlock email to ${userAccount.email}:`, emailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending unlock notification email:', emailError);
+      // Continue - don't fail the request if email fails
+    }
+
     res.status(200).json({
       success: true,
       message: "User unlocked successfully",
