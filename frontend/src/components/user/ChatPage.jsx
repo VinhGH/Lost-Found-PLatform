@@ -10,13 +10,19 @@ import {
   Close as CloseIcon,
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
+  Reply as ReplyIcon,
+  Forward as ForwardIcon,
+  DeleteForever as DeleteForeverIcon,
+  MoreHoriz as MoreHorizIcon,
 } from "@mui/icons-material";
 import ChatContextBox from "./ChatContextBox";
 import realApi from "../../services/realApi";
+import { deleteMessage, sendReplyMessage } from "../../services/chatApiExtensions";
+
 
 const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail, setProfileTargetUser }) => {
   const [conversations, setConversations] = useState([]);
-  const [activeConversation, setActiveConversation] = useState(null);
+  const [activeConversation, setActiveConversation,] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +33,8 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
   const [showMessageSearch, setShowMessageSearch] = useState(false); // ✅ Show/hide search input
   const [searchResults, setSearchResults] = useState([]); // ✅ Search results
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0); // ✅ Current result index
+  const [replyingTo, setReplyingTo] = useState(null); // ✅ Message being replied to
+  const [hoveredMessageId, setHoveredMessageId] = useState(null); // ✅ Currently hovered message
   const processingChatTarget = useRef(null);
 
   // ✅ Load conversations từ API khi component mount
@@ -204,9 +212,15 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
             from: msg.sender_id === user?.account_id ? "Bạn" : msg.Sender?.user_name || "User",
             text: msg.message,
             time: vnTime,
-            timestamp: utcDate, // ✅ Thêm timestamp đầy đủ để so sánh ngày
-            isRead: msg.is_read || false, // ✅ Read status
-            senderId: msg.sender_id, // ✅ Sender ID for checking ownership
+            timestamp: utcDate,
+            isRead: msg.is_read || false,
+            senderId: msg.sender_id,
+            // ✅ THÊM FIELD NÀY
+            repliedTo: msg.RepliedMessage ? {
+              id: msg.RepliedMessage.message_id,
+              from: msg.RepliedMessage.sender_id === user?.account_id ? "Bạn" : msg.RepliedMessage.Sender?.user_name || "User",
+              text: msg.RepliedMessage.message
+            } : null,
           };
         });
 
@@ -263,18 +277,28 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation) return;
-
     try {
-      const response = await realApi.sendMessage(
-        activeConversation.conversation_id,
-        newMessage.trim()
-      );
+      let response;
 
+      // ✅ If replying to a message, use sendReplyMessage
+      if (replyingTo) {
+        response = await sendReplyMessage(
+          activeConversation.conversation_id,
+          newMessage.trim(),
+          replyingTo.id
+        );
+      } else {
+        // Normal message
+        response = await realApi.sendMessage(
+          activeConversation.conversation_id,
+          newMessage.trim()
+        );
+      }
       if (response.success) {
         // Reload messages
         await loadMessages(activeConversation.conversation_id);
         setNewMessage("");
-
+        setReplyingTo(null); // ✅ Clear reply state
         // ❌ REMOVED: Không cần reload conversations ngay lập tức
         // Polling sẽ tự động cập nhật sau 30s
       } else {
@@ -424,7 +448,60 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
     }
     return "Chưa có tin nhắn";
   };
+  // ✅ Handler: Reply to message
+  const handleReplyMessage = (msg) => {
+    setReplyingTo(msg);
+    setHoveredMessageId(null);
+    setTimeout(() => {
+      const textarea = document.querySelector('.message-text-input');
+      if (textarea) textarea.focus();
+    }, 100);
+  };
+  // ✅ Handler: Delete message
+  const handleDeleteMessage = async (msg) => {
+    if (!window.confirm("Bạn có chắc muốn thu hồi tin nhắn này?")) return;
 
+    try {
+      const response = await deleteMessage(activeConversation.conversation_id, msg.id);
+
+      if (response.success) {
+        console.log("✅ Message deleted");
+        // Hide message immediately with animation
+        const messageEl = document.getElementById(`msg-${msg.id}`);
+        if (messageEl) {
+          messageEl.style.opacity = '0';
+          messageEl.style.transform = 'scale(0.8)';
+          messageEl.style.transition = 'all 0.3s ease';
+          setTimeout(() => {
+            messageEl.style.display = 'none';
+          }, 300);
+        }
+        setHoveredMessageId(null);
+      } else {
+        alert(response.error || "Không thể thu hồi tin nhắn");
+      }
+    } catch (error) {
+      alert("Đã xảy ra lỗi khi thu hồi tin nhắn");
+    }
+  };
+  // ✅ Handler: Forward message
+  const handleForwardMessage = (msg) => {
+    navigator.clipboard.writeText(msg.text).then(() => {
+      alert(`Đã sao chép: "${msg.text.substring(0, 50)}..."`);
+      setHoveredMessageId(null);
+    }).catch(() => alert("Không thể sao chép"));
+  };
+  // ✅ Handler: Cancel reply
+  const cancelReply = () => setReplyingTo(null);
+  // ✅ Handler: Scroll to message
+  const handleScrollToMessage = (messageId) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('message-highlight');
+      setTimeout(() => el.classList.remove('message-highlight'), 2000);
+    }
+  };
   if (isLoading)
     return <p style={{ textAlign: "center", marginTop: "50px" }}>Đang tải...</p>;
 
@@ -520,7 +597,14 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                         fontSize: "12px",
                         color: hasUnread ? "#333" : "#555", // ✅ Darker if unread
                         margin: 0,
-                        fontWeight: hasUnread ? 600 : 400 // ✅ Semi-bold if unread
+                        fontWeight: hasUnread ? 600 : 400, // ✅ Semi-bold if unread
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        wordBreak: "break-word",
+                        whiteSpace: "normal"
                       }}>
                         {lastMessagePreview}
                       </p>
@@ -693,8 +777,21 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                         className={`message ${msg.from === "Bạn" ? "own" : "other"} ${searchResults.some(r => r.id === msg.id) ? "search-highlight" : ""
                           } ${searchResults[currentSearchIndex]?.id === msg.id ? "search-active" : ""
                           }`}
+                        onMouseEnter={() => setHoveredMessageId(msg.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
                       >
                         <div className="message-content">
+                          {/* Replied Message - INSIDE bubble */}
+                          {msg.repliedTo && (
+                            <div className="replied-message-ref" onClick={() => handleScrollToMessage(msg.repliedTo.id)}>
+                              <ReplyIcon style={{ fontSize: "14px" }} />
+                              <div className="replied-message-info">
+                                <strong>{msg.repliedTo.from}</strong>
+                                <p>{msg.repliedTo.text}</p>
+                              </div>
+                            </div>
+                          )}
+
                           <p className="message-text">{msg.text}</p>
                           <div className="message-footer">
                             <span className="message-time">{msg.time}</span>
@@ -706,25 +803,79 @@ const ChatPage = ({ user, chatTarget, setActiveTab, posts = [], onOpenPostDetail
                             )}
                           </div>
                         </div>
+
+                        {/* ✅ Message Actions on Hover */}
+                        {hoveredMessageId === msg.id && (
+                          <div className={`message-actions ${msg.from === "Bạn" ? "own-actions" : "other-actions"}`}>
+                            <button
+                              className="message-action-btn"
+                              onClick={() => handleReplyMessage(msg)}
+                              title="Trả lời"
+                            >
+                              <ReplyIcon style={{ fontSize: "16px" }} />
+                            </button>
+                            <button
+                              className="message-action-btn"
+                              onClick={() => handleForwardMessage(msg)}
+                              title="Chuyển tiếp"
+                            >
+                              <ForwardIcon style={{ fontSize: "16px" }} />
+                            </button>
+                            {msg.senderId === user?.account_id && (
+                              <button
+                                className="message-action-btn delete-btn"
+                                onClick={() => handleDeleteMessage(msg)}
+                                title="Thu hồi"
+                              >
+                                <DeleteForeverIcon style={{ fontSize: "16px" }} />
+                              </button>
+                            )}
+                            <button
+                              className="message-action-btn"
+                              title="Thêm"
+                            >
+                              <MoreHorizIcon style={{ fontSize: "16px" }} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </React.Fragment>
                   ))}
                 </div>
               </div>
-
+              {/* ✅ Reply Preview */}
+              {replyingTo && (
+                <div className="reply-preview">
+                  <div className="reply-preview-content">
+                    <ReplyIcon style={{ fontSize: "16px", color: "#667eea" }} />
+                    <div className="reply-preview-info">
+                      <strong>Trả lời {replyingTo.from}</strong>
+                      <p>{replyingTo.text}</p>
+                    </div>
+                  </div>
+                  <button className="reply-preview-close" onClick={cancelReply}>
+                    <CloseIcon style={{ fontSize: "18px" }} />
+                  </button>
+                </div>
+              )}
               <div className="message-input">
                 <div className="input-container">
-                  <input
-                    type="text"
+                  <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Nhập tin nhắn..."
                     className="message-text-input"
+                    rows="1"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
+                    }}
+                    onInput={(e) => {
+                      // Auto-resize textarea
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                     }}
                   />
                   <button

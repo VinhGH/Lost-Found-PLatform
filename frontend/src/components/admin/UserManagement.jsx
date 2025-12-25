@@ -5,7 +5,6 @@ import {
   Search as SearchIcon,
   Lock as LockIcon,
   LockOpen as LockOpenIcon,
-  Delete as DeleteIcon,
   Add as AddIcon,
   AdminPanelSettings as AdminIcon,
   SupervisorAccount as ManagerIcon,
@@ -80,42 +79,7 @@ const UserManagement = () => {
     }
   };
 
-  // ✅ DELETE ADMIN
-  const handleDeleteAdmin = async (adminId) => {
-    if (adminId === currentAdminId) {
-      alert("Bạn không thể xóa tài khoản của chính mình!");
-      return;
-    }
 
-    const user = admins.find(a => a.id === adminId || a.account_id === adminId);
-    const userName = user?.name || user?.user_name || user?.email || "người dùng này";
-
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${userName}"?`)) {
-      return;
-    }
-
-    const response = await httpClient.delete(
-      `/admin/users/${adminId}`,
-      {},
-      {},
-      { preferAdmin: true }
-    );
-
-    if (response.success) {
-      setToast({ type: 'success', message: 'Đã xóa tài khoản người dùng!' });
-
-      const refreshed = await httpClient.get(
-        "/admin/users",
-        {},
-        {},
-        { preferAdmin: true }
-      );
-
-      if (refreshed.success) setAdmins(refreshed.data);
-    } else {
-      setToast({ type: 'error', message: 'Không thể xóa người dùng: ' + (response.error || 'Lỗi') });
-    }
-  };
 
   // ✅ LOCK / UNLOCK ADMIN
   const handleLockToggle = async (adminId) => {
@@ -216,33 +180,7 @@ const UserManagement = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedAdmins.length === 0) {
-      alert("Vui lòng chọn ít nhất một người dùng!");
-      return;
-    }
 
-    if (!window.confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedAdmins.length} tài khoản đã chọn? Hành động này không thể hoàn tác!`)) {
-      return;
-    }
-
-    try {
-      const promises = selectedAdmins.map(userId =>
-        httpClient.delete(`/admin/users/${userId}`, {}, {}, { preferAdmin: true })
-      );
-
-      await Promise.all(promises);
-      alert(`✅ Đã xóa ${selectedAdmins.length} tài khoản!`);
-
-      // Refresh list
-      const refreshed = await httpClient.get("/admin/users", {}, {}, { preferAdmin: true });
-      if (refreshed.success) setAdmins(refreshed.data);
-      setSelectedAdmins([]);
-    } catch (error) {
-      console.error("Error bulk deleting:", error);
-      alert("❌ Có lỗi xảy ra khi xóa tài khoản!");
-    }
-  };
 
   const filteredAdmins = admins.filter((admin) => {
     const matchesSearch =
@@ -301,7 +239,6 @@ const UserManagement = () => {
             </span>
             <button className="bulk-btn lock" onClick={handleBulkLock}>Khóa tài khoản</button>
             <button className="bulk-btn unlock" onClick={handleBulkUnlock}>Mở khóa</button>
-            <button className="bulk-btn delete" onClick={handleBulkDelete}>Xóa tài khoản</button>
           </div>
         )}
       </div>
@@ -387,15 +324,6 @@ const UserManagement = () => {
                             <LockIcon /> Khóa
                           </>
                         )}
-                      </button>
-
-                      <button
-                        className={`action-btn delete ${admin.id === currentAdminId ? "disabled" : ""
-                          }`}
-                        onClick={() => handleDeleteAdmin(admin.id)}
-                        disabled={admin.id === currentAdminId}
-                      >
-                        <DeleteIcon /> Xóa
                       </button>
                     </div>
                   </td>

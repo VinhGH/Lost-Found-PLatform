@@ -722,3 +722,26 @@
     background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
   }
+/* Close button in modal header */
+.close-modal-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  z-index: 10;
+  color: white;
+}
+.close-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.close-modal-btn svg {
+  font-size: 24px;
+}

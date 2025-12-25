@@ -214,18 +214,26 @@ class ChatModel {
    * @param {string} conversationId
    * @param {number} senderId
    * @param {string} message
+   * @param {number} replyToMessageId - Optional ID of message being replied to
    * @returns {Promise<Object>}
    */
-  async sendMessage(conversationId, senderId, message) {
+  async sendMessage(conversationId, senderId, message, replyToMessageId = null) {
     try {
+      const messageData = {
+        conversation_id: conversationId,
+        sender_id: senderId,
+        message: message,
+        created_at: new Date().toISOString()
+      };
+
+      // Add reply_to_message_id if provided
+      if (replyToMessageId) {
+        messageData.reply_to_message_id = replyToMessageId;
+      }
+
       const { data, error } = await supabase
         .from('Message')
-        .insert([{
-          conversation_id: conversationId,
-          sender_id: senderId,
-          message: message,
-          created_at: new Date().toISOString()
-        }])
+        .insert([messageData])
         .select('*')
         .single();
 
@@ -304,10 +312,32 @@ class ChatModel {
         });
       }
 
-      // Attach sender info to each message
+      // Get unique reply_to_message_ids
+      const replyToIds = [...new Set(messages.filter(m => m.reply_to_message_id).map(m => m.reply_to_message_id))];
+
+      // Fetch replied messages if any
+      let repliedMessagesMap = {};
+      if (replyToIds.length > 0) {
+        const { data: repliedMessages } = await supabase
+          .from('Message')
+          .select('message_id, message, sender_id')
+          .in('message_id', replyToIds);
+
+        if (repliedMessages) {
+          repliedMessages.forEach(msg => {
+            repliedMessagesMap[msg.message_id] = {
+              ...msg,
+              Sender: senderMap[msg.sender_id] || null
+            };
+          });
+        }
+      }
+
+      // Attach sender info and replied message info to each message
       const messagesWithSender = messages.map(msg => ({
         ...msg,
-        Sender: senderMap[msg.sender_id] || null
+        Sender: senderMap[msg.sender_id] || null,
+        RepliedMessage: msg.reply_to_message_id ? repliedMessagesMap[msg.reply_to_message_id] : null
       }));
 
       return {
@@ -732,7 +762,69 @@ class ChatModel {
     }
   }
 
+  /**
+   * Get message by ID
+   * @param {number} messageId
+   * @returns {Promise<Object>}
+   */
+  async getMessageById(messageId) {
+    try {
+      const { data, error } = await supabase
+        .from('Message')
+        .select('*')
+        .eq('message_id', messageId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return {
+        success: true,
+        data: data || null,
+        error: null
+      };
+    } catch (err) {
+      console.error('Error getting message by ID:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
+  /**
+   * Delete a message
+   * @param {number} messageId
+   * @returns {Promise<Object>}
+   */
+  async deleteMessage(messageId) {
+    try {
+      const { data, error } = await supabase
+        .from('Message')
+        .delete()
+        .eq('message_id', messageId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        data: data || { message_id: messageId },
+        error: null
+      };
+    } catch (err) {
+      console.error('Error deleting message:', err.message);
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      };
+    }
+  }
+
 }
 
 export default new ChatModel();
-

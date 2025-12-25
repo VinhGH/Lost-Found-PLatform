@@ -11,10 +11,10 @@ router.get('/conversations/:id', verifyToken, controller.getConversationById);
 router.get('/conversations/:id/messages', verifyToken, controller.getMessages);
 router.post('/conversations/:id/messages', verifyToken, controller.sendMessage);
 router.patch('/conversations/:id/messages/read', verifyToken, controller.markMessagesAsRead);
+router.delete('/conversations/:id/messages/:messageId', verifyToken, controller.deleteMessage);
 
 // Post-based conversation routes
 router.post('/conversations/by-post', verifyToken, controller.createOrGetConversationByPost);
 router.delete('/conversations/:id', verifyToken, controller.deleteConversation);
 
 export default router;
-

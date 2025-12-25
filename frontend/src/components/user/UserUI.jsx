@@ -74,8 +74,10 @@ const UserUI = ({ onLogout, user: initialUser }) => {
   }, [initialUser]);
 
   useEffect(() => {
-    aiMatchingService.startScanning();
-    return () => aiMatchingService.stopScanning();
+    // ⚠️ DISABLED: AI matching auto-scan causes severe lag (60+ seconds)
+    // AI matching will only run when user manually triggers it in Matches tab
+    // aiMatchingService.startScanning();
+    // return () => aiMatchingService.stopScanning();
   }, []);
 
   const handleProfileUpdate = (updatedUser) => {
