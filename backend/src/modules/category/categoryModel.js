@@ -14,6 +14,7 @@ class CategoryModel {
       let query = supabase
         .from('Category')
         .select('*')
+        .is('deleted_at', null) // Only get non-deleted categories
         .order('category_id', { ascending: true });
 
       // Filter by type if provided
@@ -205,12 +206,11 @@ class CategoryModel {
         })
         .eq('category_id', categoryId)
         .is('deleted_at', null) // Only delete non-deleted categories
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
 
-      if (!data) {
+      if (!data || data.length === 0) {
         return {
           success: false,
           data: null,
@@ -220,7 +220,7 @@ class CategoryModel {
 
       return {
         success: true,
-        data: { id: data.category_id },
+        data: { id: data[0].category_id },
         error: null
       };
     } catch (err) {
