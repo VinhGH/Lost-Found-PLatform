@@ -212,7 +212,7 @@ class PostModel {
           console.error("❌ Error querying Lost_Post:", lostError);
         }
 
-        if (lostPosts) {
+        if (lostPosts && lostPosts.length > 0) {
           console.log(
             "📋 Lost posts details:",
             lostPosts.map((p) => ({
@@ -225,8 +225,30 @@ class PostModel {
             }))
           );
 
+          // ⚡ OPTIMIZATION: Fetch ALL lost images in ONE query instead of N queries
+          const lostPostIds = lostPosts.map(p => p.lost_post_id);
+          const { data: allLostImages } = await supabase
+            .from("Lost_Post_Images")
+            .select(`
+              lost_post_id,
+              Lost_Images!inner(link_picture)
+            `)
+            .in("lost_post_id", lostPostIds);
+
+          // Create a map: postId -> [image1, image2, ...]
+          const lostImagesMap = {};
+          if (allLostImages) {
+            allLostImages.forEach(item => {
+              if (!lostImagesMap[item.lost_post_id]) {
+                lostImagesMap[item.lost_post_id] = [];
+              }
+              lostImagesMap[item.lost_post_id].push(item.Lost_Images.link_picture);
+            });
+          }
+
+          // Format posts with pre-fetched images
           for (const post of lostPosts) {
-            const images = await this._getLostPostImages(post.lost_post_id);
+            const images = lostImagesMap[post.lost_post_id] || [];
             const formatted = await this._formatPost(
               { ...post, category_name: post.Category?.name },
               "lost",
@@ -295,7 +317,7 @@ class PostModel {
           console.error("❌ Error querying Found_Post:", foundError);
         }
 
-        if (foundPosts) {
+        if (foundPosts && foundPosts.length > 0) {
           console.log(
             "📋 Found posts details:",
             foundPosts.map((p) => ({
@@ -308,8 +330,30 @@ class PostModel {
             }))
           );
 
+          // ⚡ OPTIMIZATION: Fetch ALL found images in ONE query instead of N queries
+          const foundPostIds = foundPosts.map(p => p.found_post_id);
+          const { data: allFoundImages } = await supabase
+            .from("Found_Post_Images")
+            .select(`
+              found_post_id,
+              Found_Images!inner(link_picture)
+            `)
+            .in("found_post_id", foundPostIds);
+
+          // Create a map: postId -> [image1, image2, ...]
+          const foundImagesMap = {};
+          if (allFoundImages) {
+            allFoundImages.forEach(item => {
+              if (!foundImagesMap[item.found_post_id]) {
+                foundImagesMap[item.found_post_id] = [];
+              }
+              foundImagesMap[item.found_post_id].push(item.Found_Images.link_picture);
+            });
+          }
+
+          // Format posts with pre-fetched images
           for (const post of foundPosts) {
-            const images = await this._getFoundPostImages(post.found_post_id);
+            const images = foundImagesMap[post.found_post_id] || [];
             const formatted = await this._formatPost(
               { ...post, category_name: post.Category?.name },
               "found",
@@ -732,78 +776,78 @@ class PostModel {
       if (error) throw error;
 
       // ✅ Handle images update if provided
-    if (updateData.images !== undefined && Array.isArray(updateData.images)) {
-      console.log(`📸 Updating images for ${type} post ${postId}...`);
-      console.log(`📸 Received ${updateData.images.length} images`);
+      if (updateData.images !== undefined && Array.isArray(updateData.images)) {
+        console.log(`📸 Updating images for ${type} post ${postId}...`);
+        console.log(`📸 Received ${updateData.images.length} images`);
 
-      const junctionTable = type === "found" ? "Found_Post_Images" : "Lost_Post_Images";
-      const imageTable = type === "found" ? "Found_Images" : "Lost_Images";
-      const postIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
-      const imgIdColumn = type === "found" ? "found_img_id" : "lost_img_id";
+        const junctionTable = type === "found" ? "Found_Post_Images" : "Lost_Post_Images";
+        const imageTable = type === "found" ? "Found_Images" : "Lost_Images";
+        const postIdColumn = type === "found" ? "found_post_id" : "lost_post_id";
+        const imgIdColumn = type === "found" ? "found_img_id" : "lost_img_id";
 
-      // ✅ Phân loại ảnh: ảnh cũ (URL) vs ảnh mới (base64)
-      const oldImageUrls = updateData.images.filter(img => 
-        typeof img === 'string' && img.startsWith('https://')
-      );
-      const newImageBase64 = updateData.images.filter(img => 
-        typeof img === 'string' && img.startsWith('data:image/')
-      );
+        // ✅ Phân loại ảnh: ảnh cũ (URL) vs ảnh mới (base64)
+        const oldImageUrls = updateData.images.filter(img =>
+          typeof img === 'string' && img.startsWith('https://')
+        );
+        const newImageBase64 = updateData.images.filter(img =>
+          typeof img === 'string' && img.startsWith('data:image/')
+        );
 
-      console.log(`📸 Old images (URLs): ${oldImageUrls.length}`);
-      console.log(`📸 New images (base64): ${newImageBase64.length}`);
+        console.log(`📸 Old images (URLs): ${oldImageUrls.length}`);
+        console.log(`📸 New images (base64): ${newImageBase64.length}`);
 
-      // ✅ Get current image records from database
-      const { data: currentJunctions } = await supabase
-        .from(junctionTable)
-        .select(`${imgIdColumn}, ${imageTable}(link_picture)`)
-        .eq(postIdColumn, postId);
+        // ✅ Get current image records from database
+        const { data: currentJunctions } = await supabase
+          .from(junctionTable)
+          .select(`${imgIdColumn}, ${imageTable}(link_picture)`)
+          .eq(postIdColumn, postId);
 
-      // ✅ Find which old images to keep (match URLs)
-      const imagesToKeep = [];
-      if (currentJunctions && currentJunctions.length > 0) {
-        for (const junction of currentJunctions) {
-          const imageUrl = junction[imageTable]?.link_picture;
-          if (imageUrl && oldImageUrls.includes(imageUrl)) {
-            imagesToKeep.push(junction[imgIdColumn]);
+        // ✅ Find which old images to keep (match URLs)
+        const imagesToKeep = [];
+        if (currentJunctions && currentJunctions.length > 0) {
+          for (const junction of currentJunctions) {
+            const imageUrl = junction[imageTable]?.link_picture;
+            if (imageUrl && oldImageUrls.includes(imageUrl)) {
+              imagesToKeep.push(junction[imgIdColumn]);
+            }
           }
         }
-      }
 
-      console.log(`📸 Images to keep: ${imagesToKeep.length}`);
+        console.log(`📸 Images to keep: ${imagesToKeep.length}`);
 
-      // ✅ Delete images that are NOT in the keep list
-      if (currentJunctions && currentJunctions.length > 0) {
-        const allCurrentImgIds = currentJunctions.map(j => j[imgIdColumn]);
-        const imagesToDelete = allCurrentImgIds.filter(id => !imagesToKeep.includes(id));
+        // ✅ Delete images that are NOT in the keep list
+        if (currentJunctions && currentJunctions.length > 0) {
+          const allCurrentImgIds = currentJunctions.map(j => j[imgIdColumn]);
+          const imagesToDelete = allCurrentImgIds.filter(id => !imagesToKeep.includes(id));
 
-        if (imagesToDelete.length > 0) {
-          // Delete junction records
-          await supabase
-            .from(junctionTable)
-            .delete()
-            .in(imgIdColumn, imagesToDelete);
+          if (imagesToDelete.length > 0) {
+            // Delete junction records
+            await supabase
+              .from(junctionTable)
+              .delete()
+              .in(imgIdColumn, imagesToDelete);
 
-          // Delete image records
-          await supabase
-            .from(imageTable)
-            .delete()
-            .in(imgIdColumn, imagesToDelete);
+            // Delete image records
+            await supabase
+              .from(imageTable)
+              .delete()
+              .in(imgIdColumn, imagesToDelete);
 
-          console.log(`✅ Deleted ${imagesToDelete.length} old images`);
+            console.log(`✅ Deleted ${imagesToDelete.length} old images`);
+          }
         }
+
+        // ✅ Upload and save new images (base64 only)
+        if (newImageBase64.length > 0) {
+          const postObj = { [idColumn]: postId };
+          await this._saveImages(postObj, type, newImageBase64);
+          console.log(`✅ Saved ${newImageBase64.length} new images`);
+        }
+
+        console.log(`📸 Final: ${imagesToKeep.length} old + ${newImageBase64.length} new = ${imagesToKeep.length + newImageBase64.length} total images`);
       }
 
-      // ✅ Upload and save new images (base64 only)
-      if (newImageBase64.length > 0) {
-        const postObj = { [idColumn]: postId };
-        await this._saveImages(postObj, type, newImageBase64);
-        console.log(`✅ Saved ${newImageBase64.length} new images`);
-      }
-
-      console.log(`📸 Final: ${imagesToKeep.length} old + ${newImageBase64.length} new = ${imagesToKeep.length + newImageBase64.length} total images`);
-    }
-
-    return await this.getPostById(postId, type);
+      return await this.getPostById(postId, type);
     } catch (err) {
       console.error("Error updating post:", err.message);
       return {

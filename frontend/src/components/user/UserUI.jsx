@@ -458,10 +458,8 @@ const UserUI = ({ onLogout, user: initialUser }) => {
       const newPost = response.data?.data || response.data;
       console.log('📄 New post created:', newPost);
 
-      // 🚀 Không await loadPosts() - để nó chạy background, không block UI
-      loadPosts();
-
-      // ✅ Dispatch event một lần duy nhất (loại bỏ setTimeout 300ms)
+      // ✅ Dispatch event một lần duy nhất - event listener sẽ tự động reload posts
+      // KHÔNG gọi loadPosts() trực tiếp ở đây để tránh double-loading
       window.dispatchEvent(new CustomEvent('postsUpdated', {
         detail: {
           action: 'create',
