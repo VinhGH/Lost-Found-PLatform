@@ -12,33 +12,13 @@ import RecentPosts from "./RecentPosts";
 import FilterPanel from "./FilterPanel";
 import { FilterList as FilterIcon } from "@mui/icons-material";
 import ImageCarousel from "./ImageCarousel";
+import { getTimeAgo } from "../../utils/timeUtils";
 
 const ITEMS_PER_PAGE = 16; // 4 hàng × 4 cột
 
 // 🔹 Cấu hình khoảng thời gian hiển thị trong mục "Gần đây"
 // Mặc định: 24 giờ (1 ngày). Có thể điều chỉnh theo yêu cầu.
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-// 🔹 Hàm tính toán thời gian real-time
-const getTimeAgo = (timestamp) => {
-  if (!timestamp) return "Vừa đăng";
-
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (seconds < 60) return "Vừa đăng";
-  if (minutes < 60) return `${minutes} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
-
-  // Nếu quá 7 ngày, hiển thị ngày tháng
-  const date = new Date(timestamp);
-  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-};
 
 const FoundPage = ({ setActiveTab, setChatTarget, posts, searchQuery = "", onViewPost }) => {
   const [selectedPost, setSelectedPost] = useState(null);

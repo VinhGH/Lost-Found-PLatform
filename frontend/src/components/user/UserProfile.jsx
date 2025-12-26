@@ -6,6 +6,7 @@ import ConfirmLogoutModal from "./ConfirmLogoutModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 import ImageCarousel from "./ImageCarousel";
 import userApi from "../../services/realApi"; // REAL API – Supabase
+import { getTimeAgo as getTimeAgoUtil } from "../../utils/timeUtils";
 
 import {
   Article as ArticleIcon,
@@ -19,19 +20,17 @@ import {
   VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
 
-// 🔹 Đồng bộ cách hiển thị thời gian
+// 🔹 Đồng bộ cách hiển thị thời gian - Wrapper around utility with timezone handling
 const getTimeAgo = (timestamp) => {
   if (!timestamp) return "Vừa xong";
 
   // ✅ Convert timestamp to number if it's a string
   let ts = timestamp;
   if (typeof ts === "string") {
-    // Try parsing as ISO string first (handles UTC strings like "2025-11-16T14:23:06.238Z")
     const parsed = Date.parse(ts);
     if (!isNaN(parsed)) {
       ts = parsed;
     } else {
-      // Try as number string
       ts = parseInt(ts, 10);
       if (isNaN(ts)) {
         console.warn("⚠️ Invalid timestamp:", timestamp);
@@ -40,52 +39,24 @@ const getTimeAgo = (timestamp) => {
     }
   }
 
-  // ✅ Ensure timestamp is in milliseconds (not seconds)
-  // If timestamp is less than 1e12, it's likely in seconds, convert to milliseconds
+  // ✅ Ensure timestamp is in milliseconds
   if (ts < 1e12) {
     ts = ts * 1000;
   }
 
-  // ✅ Date.now() returns milliseconds in local time
-  // Timestamp từ backend đã là milliseconds (từ new Date(UTC_string).getTime())
-  // JavaScript Date.getTime() tự động convert UTC string sang milliseconds (UTC-based)
-  // Khi so sánh với Date.now(), cả hai đều là milliseconds, nên diff sẽ đúng
   const now = Date.now();
   const diff = now - ts;
 
-  // ✅ If diff is negative, timestamp is in the future (likely wrong timezone or clock skew)
+  // ✅ If diff is negative, timestamp is in the future
   if (diff < 0) {
-    console.warn("⚠️ Timestamp is in the future:", {
-      timestamp: ts,
-      timestampDate: new Date(ts).toISOString(),
-      timestampLocal: new Date(ts).toLocaleString("vi-VN", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }),
-      now: now,
-      nowDate: new Date(now).toISOString(),
-      nowLocal: new Date(now).toLocaleString("vi-VN", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }),
-      diff: diff,
-      diffHours: (diff / (1000 * 60 * 60)).toFixed(2),
-    });
-    // ✅ Nếu timestamp trong tương lai nhưng chỉ chênh lệch < 1 giờ, có thể do timezone, return "Vừa xong"
     if (Math.abs(diff) < 3600000) {
       return "Vừa xong";
     }
     return "Vừa xong";
   }
 
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (seconds < 60) return "Vừa xong";
-  if (minutes < 60) return `${minutes} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
-  return new Date(ts).toLocaleDateString("vi-VN");
+  // ✅ Use utility function for actual formatting
+  return getTimeAgoUtil(ts, now);
 };
 
 const UserProfile = ({
@@ -350,7 +321,7 @@ const UserProfile = ({
       const confirmed = window.confirm(
         "Các thông tin đã thay đổi sẽ bị xóa và không được lưu lại. Bạn có chắc chắn muốn hủy?"
       );
-      
+
       if (confirmed) {
         // Khôi phục dữ liệu gốc
         setProfileData({ ...originalProfileData });
@@ -428,7 +399,7 @@ const UserProfile = ({
 
       setIsEditing(false);
       setOriginalProfileData(null); // Clear backup data
-      
+
       // Hiển thị toast thông báo thành công (4-5 giây)
       if (onShowToast) {
         onShowToast({
@@ -488,7 +459,7 @@ const UserProfile = ({
 
       // ✅ Xác định xem có thay đổi về ảnh không
       let imagesToSend = undefined;
-      
+
       if (updated.images !== undefined && Array.isArray(updated.images)) {
         // Lấy danh sách ảnh gốc từ currentPost
         const originalImages = currentPost.images || [];

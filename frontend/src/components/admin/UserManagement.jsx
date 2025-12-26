@@ -196,11 +196,11 @@ const UserManagement = () => {
   const getLockStatus = (isLocked) =>
     isLocked ? (
       <span className="lock-badge locked">
-        Đã khóa
+        Tài Khoản Đang Bị Khóa
       </span>
     ) : (
       <span className="lock-badge unlocked">
-        Mở khóa
+        Tài Khoản Đang Mở Khóa
       </span>
     );
 
@@ -219,7 +219,7 @@ const UserManagement = () => {
           <div className="search-input-container">
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, email hoặc username..."
+              placeholder="Tìm kiếm theo tên, email hoặc tài khoản..."
               value={searchTerm}
               onChange={handleSearch}
               className="search-input"
@@ -246,7 +246,7 @@ const UserManagement = () => {
       {/* Loading */}
       {loading && (
         <div style={{ textAlign: "center", padding: "40px" }}>
-          <p>Đang tải danh sách admin...</p>
+          <p>Đang tải hồ sơ người dùng...</p>
         </div>
       )}
 
@@ -266,12 +266,12 @@ const UserManagement = () => {
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th>Thông tin Admin</th>
-                <th>Username</th>
+                <th>Tên Người Dùng</th>
+                <th>Tài Khoản </th>
                 <th>Email</th>
-                <th>Khóa/Mở</th>
-                <th>Ngày tạo</th>
-                <th>Thao tác</th>
+                <th>Tình Trạng Tài Khoản</th>
+                <th>Ngày Tạo</th>
+                <th>Thao Tác</th>
               </tr>
             </thead>
 

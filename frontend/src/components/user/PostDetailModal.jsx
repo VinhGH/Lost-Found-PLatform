@@ -11,27 +11,9 @@ import {
   ChevronRight,
 } from "@mui/icons-material";
 import realApiService from "../../services/realApi"; // ✅ Import default export
+import { getTimeAgo } from "../../utils/timeUtils";
 
-// 🔹 Hàm tính toán thời gian real-time
-const getTimeAgo = (timestamp, currentTime = Date.now()) => {
-  if (!timestamp) return "Vừa đăng";
 
-  const now = currentTime;
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (seconds < 60) return "Vừa đăng";
-  if (minutes < 60) return `${minutes} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
-
-  // Nếu quá 7 ngày, hiển thị ngày tháng
-  const date = new Date(timestamp);
-  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-};
 
 const PostDetailModal = ({ post, onClose, onNavigate, currentTab, categoryPath }) => {
 

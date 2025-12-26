@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import './LandingPage.css';
 import UserHome from './user/UserHome';
 import AuthForm from './AuthForm';
-import userApi from '../services/userApi';
 
 const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
   const [showAuthForm, setShowAuthForm] = useState(false);
@@ -41,13 +40,13 @@ const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
           {/* ✅ LUÔN hiển thị buttons trên landing page (không check isAuthenticated) */}
           {/* Vì đây là landing page, user có thể muốn login lại hoặc login tài khoản khác */}
           <div className="landing-header-actions">
-            <button 
+            <button
               className={`landing-btn-login ${showAuthForm && authMode === 'login' ? 'active' : ''}`}
               onClick={() => handleOpenAuth('login')}
             >
               Đăng Nhập
             </button>
-            <button 
+            <button
               className={`landing-btn-register ${showAuthForm && authMode === 'register' ? 'active' : ''}`}
               onClick={() => handleOpenAuth('register')}
             >
@@ -59,7 +58,7 @@ const LandingPage = ({ onUserLoginSuccess, onAdminLoginSuccess }) => {
 
       {/* Main Content - Landing Page or Auth Form */}
       {!showAuthForm ? (
-        <UserHome 
+        <UserHome
           onOpenAuth={handleOpenAuth}
           isAuthenticated={false}
         />

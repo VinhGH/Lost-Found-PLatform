@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
-import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
 
 // Initialize theme (system preference + persisted choice)
@@ -46,7 +45,7 @@ const getThemeContext = () => {
       theme = prefersDark ? 'dark' : 'light';
     }
     applyThemeClass(theme);
-    
+
     // If user follows system by default, also react to system changes until user toggles
     if (!saved && window.matchMedia) {
       const mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -58,37 +57,37 @@ const getThemeContext = () => {
         mql.addListener(handler);
       }
     }
-    
+
     // ✅ Expose theme functions với context awareness
     window.__toggleTheme = (context) => {
       // Nếu không có context, tự động detect
       if (!context) {
         context = getThemeContext();
       }
-      
+
       const isDark = document.body.classList.contains('dark');
       const next = isDark ? 'light' : 'dark';
-      
+
       // ✅ Lưu vào key phù hợp với context
       if (context === 'admin') {
         localStorage.setItem(ADMIN_THEME_KEY, next);
       } else {
         localStorage.setItem(USER_THEME_KEY, next);
       }
-      
+
       // ✅ Lưu vào default key để backward compatibility
       localStorage.setItem(DEFAULT_THEME_KEY, next);
-      
+
       applyThemeClass(next);
     };
-    
+
     window.__getTheme = () => (document.body.classList.contains('dark') ? 'dark' : 'light');
-    
+
     // ✅ Hàm để load theme theo context
     window.__loadTheme = (context) => {
       const themeKey = context === 'admin' ? ADMIN_THEME_KEY : USER_THEME_KEY;
       const savedTheme = localStorage.getItem(themeKey);
-      
+
       if (savedTheme) {
         applyThemeClass(savedTheme);
         // ✅ Cập nhật default theme để sync
@@ -117,7 +116,4 @@ root.render(
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+
