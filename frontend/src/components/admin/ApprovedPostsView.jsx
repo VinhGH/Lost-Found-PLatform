@@ -339,17 +339,24 @@ const ApprovedPostsView = ({ onPostChange }) => {
     }
   };
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesSearch =
-      post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.reporter?.name || post.author)
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      post.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || post.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const filteredPosts = posts
+    .filter((post) => {
+      const matchesSearch =
+        post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (post.reporter?.name || post.author)
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        post.location?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === "all" || post.type === filterType;
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      // Sort by createdAt in descending order (most recent first)
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      return dateB - dateA; // Descending order (newest first)
+    });
 
   const getTypeBadge = (type) => {
     return (
