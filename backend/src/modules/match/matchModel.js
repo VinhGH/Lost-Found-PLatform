@@ -968,32 +968,33 @@ class MatchModel {
   }
 
   /**
-   * Get Post IDs that already have matches (in last 24 hours)
-   * Used for optimization: skip these posts in AI scanning to avoid redundant calculations
-   * @returns {Promise<Set<string>>} Set of Post IDs with existing matches (format: "L55", "F43")
+   * Get Post ID pairs that already have matches
+   * Used for optimization: skip only these specific pairs in AI scanning to avoid duplicate matches
+   * BUT allow each post to match with multiple different posts
+   * @returns {Promise<Set<string>>} Set of post pair IDs (format: "L55-F43")
    */
   async getPostIdsWithRecentMatches() {
     try {
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
+      // ✅ Get ALL match pairs to avoid creating duplicate matches for the same pair
+      // BUT still allow a post to match with multiple different posts
       const { data, error } = await supabase
         .from('Match_Post')
-        .select('lost_post_id, found_post_id')
-        .gte('matched_at', oneDayAgo.toISOString());
+        .select('lost_post_id, found_post_id');
 
       if (error) throw error;
 
-      // Format to Post_id strings and return as Set for O(1) lookup performance
-      const postIds = new Set();
+      // Create Set of post pairs (e.g., "L55-F43") for O(1) lookup performance
+      const postPairs = new Set();
       (data || []).forEach(match => {
-        if (match.lost_post_id) postIds.add(`L${match.lost_post_id}`);
-        if (match.found_post_id) postIds.add(`F${match.found_post_id}`);
+        if (match.lost_post_id && match.found_post_id) {
+          // Store as "L{id}-F{id}" to track specific pairs
+          postPairs.add(`L${match.lost_post_id}-F${match.found_post_id}`);
+        }
       });
 
-      return postIds;
+      return postPairs;
     } catch (err) {
-      console.error('Error getting post IDs with recent matches:', err.message);
+      console.error('Error getting post pairs with existing matches:', err.message);
       // Return empty Set on error - fail gracefully (will scan all posts)
       return new Set();
     }

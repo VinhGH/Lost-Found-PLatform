@@ -341,22 +341,14 @@ export const scanForMatches = async (req, res, next) => {
 
     const allPosts = postsResult.data || [];
 
-    // ⚡ OPTIMIZATION: Get posts that already have matches (last 24 hours)
-    const matchedPostIds = await matchModel.getPostIdsWithRecentMatches();
-    console.log(`🔍 Found ${matchedPostIds.size} posts with existing matches (will skip)`);
+    console.log(`📊 Total posts to scan: ${allPosts.length}`);
 
-    // Filter out posts that already have matches
-    const posts = allPosts.filter(post => !matchedPostIds.has(post.Post_id));
-
-    console.log(`📊 Optimized scan: ${allPosts.length} total posts → ${posts.length} posts to scan (skipped ${allPosts.length - posts.length})`);
-
-    if (posts.length === 0) {
+    if (allPosts.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'No new posts to scan (all posts already have matches)',
+        message: 'No posts to scan',
         data: {
-          totalPosts: allPosts.length,
-          skippedPosts: allPosts.length,
+          totalPosts: 0,
           scannedPosts: 0,
           matchesFound: 0,
           matchesCreated: 0,
@@ -365,21 +357,45 @@ export const scanForMatches = async (req, res, next) => {
       });
     }
 
-
     // Use AI service to find matches
-    const matches = await aiMatchingService.findMatchingPosts(posts);
+    const allMatches = await aiMatchingService.findMatchingPosts(allPosts);
 
-    console.log(`✅ AI found ${matches.length} potential matches`);
+    console.log(`✅ AI found ${allMatches.length} potential matches`);
+
+    // ⚡ OPTIMIZATION: Get post pairs that already have matches
+    const existingMatchPairs = await matchModel.getPostIdsWithRecentMatches();
+    console.log(`🔍 Found ${existingMatchPairs.size} existing match pairs (will skip duplicates)`);
+
+
+    // Filter out matches that already exist (check specific pairs)
+    const matches = allMatches.filter(match => {
+      // Determine lost and found post IDs
+      const lostId = match.post1.Post_type === 'lost' ? match.post1.Post_id : match.post2.Post_id;
+      const foundId = match.post1.Post_type === 'found' ? match.post1.Post_id : match.post2.Post_id;
+      const pairKey = `${lostId}-${foundId}`;
+
+      // Skip if this specific pair already has a match
+      if (existingMatchPairs.has(pairKey)) {
+        console.log(`⏭️ Skipping duplicate match pair: ${pairKey}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`📊 Filtered matches: ${allMatches.length} total → ${matches.length} new (skipped ${allMatches.length - matches.length} duplicates)`);
+
 
     if (matches.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'Scan completed, no matches found',
+        message: 'Scan completed, no new matches found (all potential matches already exist)',
         data: {
-          scannedPosts: posts.length,
-          matchesFound: 0,
+          totalPosts: allPosts.length,
+          scannedPosts: allPosts.length,
+          matchesFound: allMatches.length,
           matchesCreated: 0,
-          notificationsSent: 0
+          notificationsSent: 0,
+          duplicatesSkipped: allMatches.length
         }
       });
     }
@@ -464,8 +480,10 @@ export const scanForMatches = async (req, res, next) => {
       success: true,
       message: 'AI matching scan completed successfully',
       data: {
-        scannedPosts: posts.length,
-        matchesFound: matches.length,
+        totalPosts: allPosts.length,
+        scannedPosts: allPosts.length,
+        potentialMatches: allMatches.length,
+        duplicatesSkipped: allMatches.length - matches.length,
         matchesCreated: createdMatches.length,
         notificationsSent: notificationCount,
         imageMatches: imageMatchesCount,
